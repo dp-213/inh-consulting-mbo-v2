@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import streamlit as st
 
 from model.run_model import run_model
 from state.cases import case_path, list_cases, load_case, save_case
 from state.persistence import load_assumptions
-from ui.components.case_bar import render_case_bar
 from ui.pages import (
     balance_sheet,
     cashflow,
@@ -39,6 +38,53 @@ PAGES = [
     "Valuation & Purchase Price",
     "Model Settings",
 ]
+
+
+def _render_case_bar(assumptions, current_path, case_options):
+    st.markdown("## Case")
+    st.table([{"Current Case": _case_name(current_path)}])
+
+    scenario = st.selectbox(
+        "Scenario View",
+        ["Base", "Best", "Worst"],
+        index=["Base", "Best", "Worst"].index(assumptions.scenario),
+    )
+    if scenario != assumptions.scenario:
+        assumptions = replace(assumptions, scenario=scenario)
+
+    new_case_table = st.data_editor(
+        [{"Parameter": "New Case Name", "Value": ""}],
+        use_container_width=True,
+        key="case.new_name",
+    )
+    if hasattr(new_case_table, "to_dict"):
+        records = new_case_table.to_dict(orient="records")
+    else:
+        records = new_case_table
+    new_case_name = str(records[0].get("Value", "") or "").strip()
+
+    load_choice = st.selectbox(
+        "Load Case",
+        ["Select case..."] + case_options,
+        index=0,
+    )
+
+    actions = {
+        "save": st.button("Save"),
+        "save_as": st.button("Save As"),
+        "load": st.button("Load Selected Case"),
+        "reset": st.button("Reset to Base"),
+        "load_choice": load_choice,
+        "new_case_name": new_case_name,
+    }
+    return assumptions, actions
+
+
+def _case_name(path: str) -> str:
+    if path.endswith("base_case.json"):
+        return "Base Case"
+    name = path.split("/")[-1].replace(".json", "")
+    return name or "Unnamed Case"
 
 
 def main() -> None:
@@ -83,7 +129,7 @@ def main() -> None:
     assumptions = original_assumptions
     base_case = load_assumptions("data/base_case.json")
     case_options = list_cases()
-    assumptions, actions = render_case_bar(assumptions, data_path, case_options)
+    assumptions, actions = _render_case_bar(assumptions, data_path, case_options)
 
     if actions["reset"]:
         data_path = "data/base_case.json"
