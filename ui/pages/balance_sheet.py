@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    with st.expander("Balance Sheet", expanded=True):
-        outputs.render_balance_sheet(result)
+    st.markdown("## Balance Sheet")
+    outputs.render_balance_sheet(result)

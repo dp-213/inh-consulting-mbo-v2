@@ -7,9 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    with st.expander("Key Metrics", expanded=True):
-        outputs.render_overview(result)
-    with st.expander("Revenue Summary", expanded=True):
-        outputs.render_revenue(result)
-    with st.expander("Cost Summary", expanded=True):
-        outputs.render_costs(result)
+    st.markdown("## Overview")
+    outputs.render_overview(result)

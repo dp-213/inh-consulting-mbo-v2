@@ -20,507 +20,434 @@ from state.assumptions import (
     VariableCostYearAssumptions,
 )
 
-
-def render_inputs(assumptions: Assumptions) -> Assumptions:
-    scenario = st.selectbox(
-        "Scenario",
-        ["Base", "Best", "Worst"],
-        index=["Base", "Best", "Worst"].index(assumptions.scenario),
-    )
-
-    revenue = _render_revenue_inputs(assumptions, scenario)
-    cost = _render_cost_inputs(assumptions)
-    transaction = _render_transaction_inputs(assumptions)
-    financing = _render_financing_inputs(assumptions)
-    cashflow = _render_cashflow_inputs(assumptions)
-    balance_sheet = _render_balance_sheet_inputs(assumptions)
-    tax = _render_tax_inputs(assumptions)
-    valuation = _render_valuation_inputs(assumptions)
-
-    return Assumptions(
-        scenario=scenario,
-        revenue=revenue,
-        cost=cost,
-        transaction_and_financing=transaction,
-        financing=financing,
-        cashflow=cashflow,
-        balance_sheet=balance_sheet,
-        tax_and_distributions=tax,
-        valuation=valuation,
-    )
+YEARS = ["Year 0", "Year 1", "Year 2", "Year 3", "Year 4"]
 
 
-def _render_revenue_inputs(
-    assumptions: Assumptions, scenario: str
-) -> RevenueAssumptions:
+def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
+    scenario = _scenario_table(assumptions)
     scenarios = dict(assumptions.revenue.scenarios)
     current = scenarios[scenario]
 
-    with st.expander("Revenue Model", expanded=True):
-        workdays = _year_number_inputs(
-            "Workdays per Year",
-            current.workdays_per_year,
-            step=1.0,
-        )
-        utilization = _year_percent_inputs(
-            "Utilization (%)",
-            current.utilization_rate_pct,
-        )
-        group_rate = _year_number_inputs(
-            "Group Day Rate (EUR)",
-            current.group_day_rate_eur,
-            step=100.0,
-        )
-        external_rate = _year_number_inputs(
-            "External Day Rate (EUR)",
-            current.external_day_rate_eur,
-            step=100.0,
-        )
-        rate_growth = _year_percent_inputs(
-            "Day Rate Growth (% p.a.)",
-            current.day_rate_growth_pct,
-        )
-        revenue_growth = _year_percent_inputs(
-            "Revenue Growth (% p.a.)",
-            current.revenue_growth_pct,
-        )
-        group_share = _year_percent_inputs(
-            "Group Capacity Share (%)",
-            current.group_capacity_share_pct,
-        )
-        external_share = _year_percent_inputs(
-            "External Capacity Share (%)",
-            current.external_capacity_share_pct,
-        )
-        reference_revenue = st.number_input(
-            "Reference Revenue (EUR)",
-            value=current.reference_revenue_eur,
-            min_value=0.0,
-            step=10_000.0,
-        )
-        guarantee = _year_percent_inputs(
-            "Guarantee (%)",
-            current.guarantee_pct_by_year,
-        )
+    st.markdown("### Revenue Drivers")
+    drivers_table = _year_table(
+        [
+            ("Workdays per Year", "Days", current.workdays_per_year, ""),
+            ("Utilization Rate", "%", current.utilization_rate_pct, ""),
+            ("Day Rate Growth", "% p.a.", current.day_rate_growth_pct, ""),
+            ("Revenue Growth", "% p.a.", current.revenue_growth_pct, ""),
+        ]
+    )
+    drivers_table = _edit_table(drivers_table, key="revenue.drivers")
+
+    st.markdown("### Capacity Allocation")
+    allocation_table = _year_table(
+        [
+            ("Group Capacity Share", "%", current.group_capacity_share_pct, ""),
+            ("External Capacity Share", "%", current.external_capacity_share_pct, ""),
+        ]
+    )
+    allocation_table = _edit_table(allocation_table, key="revenue.allocation")
+
+    st.markdown("### Pricing")
+    pricing_table = _year_table(
+        [
+            ("Group Day Rate", "EUR", current.group_day_rate_eur, ""),
+            ("External Day Rate", "EUR", current.external_day_rate_eur, ""),
+        ]
+    )
+    pricing_table = _edit_table(pricing_table, key="revenue.pricing")
+
+    st.markdown("### Guarantees")
+    guarantee_table = _year_table(
+        [
+            ("Guarantee %", "%", current.guarantee_pct_by_year, ""),
+        ]
+    )
+    guarantee_table = _edit_table(guarantee_table, key="revenue.guarantee")
+
+    st.markdown("### Reference Revenue")
+    reference_table = _value_table(
+        [
+            ("Reference Revenue", "EUR", current.reference_revenue_eur, ""),
+        ]
+    )
+    reference_table = _edit_table(reference_table, key="revenue.reference")
 
     scenarios[scenario] = RevenueScenarioAssumptions(
-        workdays_per_year=workdays,
-        utilization_rate_pct=utilization,
-        group_day_rate_eur=group_rate,
-        external_day_rate_eur=external_rate,
-        day_rate_growth_pct=rate_growth,
-        revenue_growth_pct=revenue_growth,
-        group_capacity_share_pct=group_share,
-        external_capacity_share_pct=external_share,
-        reference_revenue_eur=reference_revenue,
-        guarantee_pct_by_year=guarantee,
+        workdays_per_year=_row_years_numeric(drivers_table, "Workdays per Year"),
+        utilization_rate_pct=_row_years_numeric(drivers_table, "Utilization Rate"),
+        group_day_rate_eur=_row_years_numeric(pricing_table, "Group Day Rate"),
+        external_day_rate_eur=_row_years_numeric(pricing_table, "External Day Rate"),
+        day_rate_growth_pct=_row_years_numeric(drivers_table, "Day Rate Growth"),
+        revenue_growth_pct=_row_years_numeric(drivers_table, "Revenue Growth"),
+        group_capacity_share_pct=_row_years_numeric(allocation_table, "Group Capacity Share"),
+        external_capacity_share_pct=_row_years_numeric(allocation_table, "External Capacity Share"),
+        reference_revenue_eur=_to_float(_row_value(reference_table, "Reference Revenue")),
+        guarantee_pct_by_year=_row_years_numeric(guarantee_table, "Guarantee %"),
     )
 
-    return RevenueAssumptions(scenarios=scenarios)
+    return Assumptions(
+        scenario=scenario,
+        revenue=RevenueAssumptions(scenarios=scenarios),
+        cost=assumptions.cost,
+        transaction_and_financing=assumptions.transaction_and_financing,
+        financing=assumptions.financing,
+        cashflow=assumptions.cashflow,
+        balance_sheet=assumptions.balance_sheet,
+        tax_and_distributions=assumptions.tax_and_distributions,
+        valuation=assumptions.valuation,
+    )
 
 
-def _render_cost_inputs(assumptions: Assumptions) -> CostAssumptions:
+def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     cost = assumptions.cost
 
-    with st.expander("Cost Model", expanded=True):
-        inflation_apply = st.selectbox(
-            "Apply Inflation",
-            ["No", "Yes"],
-            index=1 if cost.inflation_apply else 0,
-        )
-        inflation_rate = st.number_input(
-            "Inflation Rate (% p.a.)",
-            value=cost.inflation_rate_pct * 100,
-            min_value=0.0,
-            step=0.1,
-        )
+    st.markdown("### Inflation")
+    inflation_table = _value_table(
+        [
+            ("Apply Inflation (Yes/No)", "", "Yes" if cost.inflation_apply else "No", ""),
+            ("Inflation Rate", "% p.a.", cost.inflation_rate_pct, ""),
+        ]
+    )
+    inflation_table = _edit_table(inflation_table, key="cost.inflation")
 
-        consultant_fte = _year_number_inputs(
-            "Consultant FTE",
-            [row.consultant_fte for row in cost.personnel_by_year],
-            step=0.5,
-        )
-        consultant_cost = _year_number_inputs(
-            "Consultant Loaded Cost (EUR)",
-            [row.consultant_loaded_cost_eur for row in cost.personnel_by_year],
-            step=1_000.0,
-        )
-        backoffice_fte = _year_number_inputs(
-            "Backoffice FTE",
-            [row.backoffice_fte for row in cost.personnel_by_year],
-            step=0.5,
-        )
-        backoffice_cost = _year_number_inputs(
-            "Backoffice Loaded Cost (EUR)",
-            [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year],
-            step=1_000.0,
-        )
-        management_cost = _year_number_inputs(
-            "Management Cost (EUR)",
-            [row.management_cost_eur for row in cost.personnel_by_year],
-            step=1_000.0,
-        )
+    st.markdown("### Personnel")
+    personnel_table = _year_table(
+        [
+            ("Consultant FTE", "FTE", [row.consultant_fte for row in cost.personnel_by_year], ""),
+            (
+                "Consultant Loaded Cost",
+                "EUR",
+                [row.consultant_loaded_cost_eur for row in cost.personnel_by_year],
+                "",
+            ),
+            ("Backoffice FTE", "FTE", [row.backoffice_fte for row in cost.personnel_by_year], ""),
+            (
+                "Backoffice Loaded Cost",
+                "EUR",
+                [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year],
+                "",
+            ),
+            ("Management Cost", "EUR", [row.management_cost_eur for row in cost.personnel_by_year], ""),
+        ]
+    )
+    personnel_table = _edit_table(personnel_table, key="cost.personnel")
 
-        advisory = _year_number_inputs(
-            "Advisory (EUR)",
-            [row.advisory_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
-        legal = _year_number_inputs(
-            "Legal (EUR)",
-            [row.legal_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
-        it_software = _year_number_inputs(
-            "IT & Software (EUR)",
-            [row.it_software_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
-        office_rent = _year_number_inputs(
-            "Office Rent (EUR)",
-            [row.office_rent_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
-        services = _year_number_inputs(
-            "Services (EUR)",
-            [row.services_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
-        other_services = _year_number_inputs(
-            "Other Services (EUR)",
-            [row.other_services_eur for row in cost.fixed_overhead_by_year],
-            step=1_000.0,
-        )
+    st.markdown("### Fixed Overhead")
+    fixed_table = _year_table(
+        [
+            ("Advisory", "EUR", [row.advisory_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Legal", "EUR", [row.legal_eur for row in cost.fixed_overhead_by_year], ""),
+            ("IT & Software", "EUR", [row.it_software_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Office Rent", "EUR", [row.office_rent_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Services", "EUR", [row.services_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Other Services", "EUR", [row.other_services_eur for row in cost.fixed_overhead_by_year], ""),
+        ]
+    )
+    fixed_table = _edit_table(fixed_table, key="cost.fixed")
 
-        training = _variable_cost_inputs(
-            "Training",
-            cost.variable_costs_by_year,
-        )
-        travel = _variable_cost_inputs(
-            "Travel",
-            cost.variable_costs_by_year,
-        )
-        communication = _variable_cost_inputs(
-            "Communication",
-            cost.variable_costs_by_year,
-        )
+    st.markdown("### Variable Costs — Type")
+    variable_type_table = _year_table(
+        [
+            ("Training Type", "EUR/%", [row.training_type for row in cost.variable_costs_by_year], ""),
+            ("Travel Type", "EUR/%", [row.travel_type for row in cost.variable_costs_by_year], ""),
+            ("Communication Type", "EUR/%", [row.communication_type for row in cost.variable_costs_by_year], ""),
+        ]
+    )
+    variable_type_table = _edit_table(variable_type_table, key="cost.variable.type")
+
+    st.markdown("### Variable Costs — Value")
+    variable_value_table = _year_table(
+        [
+            ("Training Value", "EUR or %", [row.training_value for row in cost.variable_costs_by_year], ""),
+            ("Travel Value", "EUR or %", [row.travel_value for row in cost.variable_costs_by_year], ""),
+            ("Communication Value", "EUR or %", [row.communication_value for row in cost.variable_costs_by_year], ""),
+        ]
+    )
+    variable_value_table = _edit_table(variable_value_table, key="cost.variable.value")
 
     personnel_by_year = [
         PersonnelYearAssumptions(
-            consultant_fte=consultant_fte[i],
-            consultant_loaded_cost_eur=consultant_cost[i],
-            backoffice_fte=backoffice_fte[i],
-            backoffice_loaded_cost_eur=backoffice_cost[i],
-            management_cost_eur=management_cost[i],
+            consultant_fte=_row_years_numeric(personnel_table, "Consultant FTE")[i],
+            consultant_loaded_cost_eur=_row_years_numeric(personnel_table, "Consultant Loaded Cost")[i],
+            backoffice_fte=_row_years_numeric(personnel_table, "Backoffice FTE")[i],
+            backoffice_loaded_cost_eur=_row_years_numeric(personnel_table, "Backoffice Loaded Cost")[i],
+            management_cost_eur=_row_years_numeric(personnel_table, "Management Cost")[i],
         )
         for i in range(5)
     ]
     fixed_overhead_by_year = [
         FixedOverheadYearAssumptions(
-            advisory_eur=advisory[i],
-            legal_eur=legal[i],
-            it_software_eur=it_software[i],
-            office_rent_eur=office_rent[i],
-            services_eur=services[i],
-            other_services_eur=other_services[i],
+            advisory_eur=_row_years_numeric(fixed_table, "Advisory")[i],
+            legal_eur=_row_years_numeric(fixed_table, "Legal")[i],
+            it_software_eur=_row_years_numeric(fixed_table, "IT & Software")[i],
+            office_rent_eur=_row_years_numeric(fixed_table, "Office Rent")[i],
+            services_eur=_row_years_numeric(fixed_table, "Services")[i],
+            other_services_eur=_row_years_numeric(fixed_table, "Other Services")[i],
         )
         for i in range(5)
     ]
     variable_costs_by_year = [
         VariableCostYearAssumptions(
-            training_type=training["type"][i],
-            training_value=training["value"][i],
-            travel_type=travel["type"][i],
-            travel_value=travel["value"][i],
-            communication_type=communication["type"][i],
-            communication_value=communication["value"][i],
+            training_type=_row_years_text(variable_type_table, "Training Type")[i],
+            training_value=_row_years_numeric(variable_value_table, "Training Value")[i],
+            travel_type=_row_years_text(variable_type_table, "Travel Type")[i],
+            travel_value=_row_years_numeric(variable_value_table, "Travel Value")[i],
+            communication_type=_row_years_text(variable_type_table, "Communication Type")[i],
+            communication_value=_row_years_numeric(variable_value_table, "Communication Value")[i],
         )
         for i in range(5)
     ]
 
-    return CostAssumptions(
-        inflation_apply=inflation_apply == "Yes",
-        inflation_rate_pct=inflation_rate / 100,
-        personnel_by_year=personnel_by_year,
-        fixed_overhead_by_year=fixed_overhead_by_year,
-        variable_costs_by_year=variable_costs_by_year,
+    inflation_apply = (
+        str(_row_value(inflation_table, "Apply Inflation (Yes/No)")).strip().lower() == "yes"
+    )
+    inflation_rate = _to_float(_row_value(inflation_table, "Inflation Rate"))
+
+    return Assumptions(
+        scenario=assumptions.scenario,
+        revenue=assumptions.revenue,
+        cost=CostAssumptions(
+            inflation_apply=inflation_apply,
+            inflation_rate_pct=inflation_rate,
+            personnel_by_year=personnel_by_year,
+            fixed_overhead_by_year=fixed_overhead_by_year,
+            variable_costs_by_year=variable_costs_by_year,
+        ),
+        transaction_and_financing=assumptions.transaction_and_financing,
+        financing=assumptions.financing,
+        cashflow=assumptions.cashflow,
+        balance_sheet=assumptions.balance_sheet,
+        tax_and_distributions=assumptions.tax_and_distributions,
+        valuation=assumptions.valuation,
     )
 
 
-def _render_transaction_inputs(
-    assumptions: Assumptions,
-) -> TransactionFinancingAssumptions:
-    with st.expander("Transaction & Financing", expanded=True):
-        purchase_price = st.number_input(
-            "Purchase Price (EUR)",
-            value=assumptions.transaction_and_financing.purchase_price_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        equity_contribution = st.number_input(
-            "Equity Contribution (EUR)",
-            value=assumptions.transaction_and_financing.equity_contribution_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        senior_term_loan = st.number_input(
-            "Senior Term Loan Start (EUR)",
-            value=assumptions.transaction_and_financing.senior_term_loan_start_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
+def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
+    transaction = assumptions.transaction_and_financing
+    financing = assumptions.financing
 
-    return TransactionFinancingAssumptions(
-        purchase_price_eur=purchase_price,
-        equity_contribution_eur=equity_contribution,
-        senior_term_loan_start_eur=senior_term_loan,
+    st.markdown("### Transaction & Financing")
+    transaction_table = _value_table(
+        [
+            ("Purchase Price", "EUR", transaction.purchase_price_eur, ""),
+            ("Equity Contribution", "EUR", transaction.equity_contribution_eur, ""),
+            ("Senior Term Loan Start", "EUR", transaction.senior_term_loan_start_eur, ""),
+        ]
+    )
+    transaction_table = _edit_table(transaction_table, key="financing.transaction")
+
+    st.markdown("### Debt Terms")
+    financing_table = _value_table(
+        [
+            ("Senior Debt Amount", "EUR", financing.senior_debt_amount_eur, ""),
+            ("Initial Debt", "EUR", financing.initial_debt_eur, ""),
+            ("Interest Rate", "% p.a.", financing.interest_rate_pct, ""),
+            ("Amortization Type", "", financing.amortization_type, ""),
+            ("Amortization Period (Years)", "Years", financing.amortization_period_years, ""),
+            ("Grace Period (Years)", "Years", financing.grace_period_years, ""),
+            ("Special Repayment Year (None/Year X)", "", _format_special_year(financing.special_repayment_year), ""),
+            ("Special Repayment Amount", "EUR", financing.special_repayment_amount_eur, ""),
+            ("Minimum DSCR", "", financing.minimum_dscr, ""),
+        ]
+    )
+    financing_table = _edit_table(financing_table, key="financing.terms")
+
+    return Assumptions(
+        scenario=assumptions.scenario,
+        revenue=assumptions.revenue,
+        cost=assumptions.cost,
+        transaction_and_financing=TransactionFinancingAssumptions(
+            purchase_price_eur=_to_float(_row_value(transaction_table, "Purchase Price")),
+            equity_contribution_eur=_to_float(_row_value(transaction_table, "Equity Contribution")),
+            senior_term_loan_start_eur=_to_float(_row_value(transaction_table, "Senior Term Loan Start")),
+        ),
+        financing=FinancingAssumptions(
+            senior_debt_amount_eur=_to_float(_row_value(financing_table, "Senior Debt Amount")),
+            initial_debt_eur=_to_float(_row_value(financing_table, "Initial Debt")),
+            interest_rate_pct=_to_float(_row_value(financing_table, "Interest Rate")),
+            amortization_type=str(_row_value(financing_table, "Amortization Type")).strip() or "Linear",
+            amortization_period_years=int(_to_float(_row_value(financing_table, "Amortization Period (Years)") or 0)),
+            grace_period_years=int(_to_float(_row_value(financing_table, "Grace Period (Years)") or 0)),
+            special_repayment_year=_parse_special_year(
+                str(_row_value(financing_table, "Special Repayment Year (None/Year X)")).strip()
+            ),
+            special_repayment_amount_eur=_to_float(
+                _row_value(financing_table, "Special Repayment Amount")
+            ),
+            minimum_dscr=_to_float(_row_value(financing_table, "Minimum DSCR")),
+        ),
+        cashflow=assumptions.cashflow,
+        balance_sheet=assumptions.balance_sheet,
+        tax_and_distributions=assumptions.tax_and_distributions,
+        valuation=assumptions.valuation,
     )
 
 
-def _render_financing_inputs(
-    assumptions: Assumptions,
-) -> FinancingAssumptions:
-    finance = assumptions.financing
-
-    with st.expander("Financing Terms", expanded=True):
-        senior_debt_amount = st.number_input(
-            "Senior Debt Amount (EUR)",
-            value=finance.senior_debt_amount_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        initial_debt = st.number_input(
-            "Initial Debt (EUR)",
-            value=finance.initial_debt_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        interest_rate = st.number_input(
-            "Interest Rate (% p.a.)",
-            value=finance.interest_rate_pct * 100,
-            min_value=0.0,
-            step=0.1,
-        )
-        amortization_type = st.selectbox(
-            "Amortization Type",
-            ["Linear", "Bullet"],
-            index=0 if finance.amortization_type == "Linear" else 1,
-        )
-        amortization_period = int(
-            st.number_input(
-                "Amortization Period (Years)",
-                value=finance.amortization_period_years,
-                min_value=1,
-                step=1,
-            )
-        )
-        grace_period = int(
-            st.number_input(
-                "Grace Period (Years)",
-                value=finance.grace_period_years,
-                min_value=0,
-                step=1,
-            )
-        )
-        special_year_options = ["None"] + [f"Year {i}" for i in range(5)]
-        special_index = (
-            0
-            if finance.special_repayment_year is None
-            else finance.special_repayment_year + 1
-        )
-        special_year_choice = st.selectbox(
-            "Special Repayment Year",
-            special_year_options,
-            index=special_index,
-        )
-        special_year = (
-            None
-            if special_year_choice == "None"
-            else int(special_year_choice.replace("Year ", ""))
-        )
-        special_amount = st.number_input(
-            "Special Repayment Amount (EUR)",
-            value=finance.special_repayment_amount_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        minimum_dscr = st.number_input(
-            "Minimum DSCR",
-            value=finance.minimum_dscr,
-            min_value=0.0,
-            step=0.1,
-        )
-
-    return FinancingAssumptions(
-        senior_debt_amount_eur=senior_debt_amount,
-        initial_debt_eur=initial_debt,
-        interest_rate_pct=interest_rate / 100,
-        amortization_type=amortization_type,
-        amortization_period_years=amortization_period,
-        grace_period_years=grace_period,
-        special_repayment_year=special_year,
-        special_repayment_amount_eur=special_amount,
-        minimum_dscr=minimum_dscr,
+def render_other_assumptions(assumptions: Assumptions) -> Assumptions:
+    st.markdown("### Scenario")
+    scenario_table = _value_table(
+        [
+            ("Scenario (Base/Best/Worst)", "", assumptions.scenario, ""),
+        ]
     )
+    scenario_table = _edit_table(scenario_table, key="other.scenario")
+    scenario = str(_row_value(scenario_table, "Scenario (Base/Best/Worst)")).strip() or assumptions.scenario
 
-
-def _render_cashflow_inputs(assumptions: Assumptions) -> CashflowAssumptions:
+    st.markdown("### Cashflow")
     cashflow = assumptions.cashflow
-
-    with st.expander("Cashflow Assumptions", expanded=True):
-        tax_cash_rate = st.number_input(
-            "Tax Cash Rate (%)",
-            value=cashflow.tax_cash_rate_pct * 100,
-            min_value=0.0,
-            step=0.1,
-        )
-        tax_payment_lag = int(
-            st.number_input(
-                "Tax Payment Lag (Years)",
-                value=cashflow.tax_payment_lag_years,
-                min_value=0,
-                step=1,
-            )
-        )
-        capex_pct = st.number_input(
-            "Capex (% of Revenue)",
-            value=cashflow.capex_pct_revenue * 100,
-            min_value=0.0,
-            step=0.1,
-        )
-        working_capital_pct = st.number_input(
-            "Working Capital (% of Revenue)",
-            value=cashflow.working_capital_pct_revenue * 100,
-            min_value=0.0,
-            step=0.1,
-        )
-        opening_cash = st.number_input(
-            "Opening Cash Balance (EUR)",
-            value=cashflow.opening_cash_balance_eur,
-            min_value=0.0,
-            step=10_000.0,
-        )
-
-    return CashflowAssumptions(
-        tax_cash_rate_pct=tax_cash_rate / 100,
-        tax_payment_lag_years=tax_payment_lag,
-        capex_pct_revenue=capex_pct / 100,
-        working_capital_pct_revenue=working_capital_pct / 100,
-        opening_cash_balance_eur=opening_cash,
+    cashflow_table = _value_table(
+        [
+            ("Tax Cash Rate", "%", cashflow.tax_cash_rate_pct, ""),
+            ("Tax Payment Lag (Years)", "Years", cashflow.tax_payment_lag_years, ""),
+            ("Capex (% of Revenue)", "%", cashflow.capex_pct_revenue, ""),
+            ("Working Capital (% of Revenue)", "%", cashflow.working_capital_pct_revenue, ""),
+            ("Opening Cash Balance", "EUR", cashflow.opening_cash_balance_eur, ""),
+        ]
     )
+    cashflow_table = _edit_table(cashflow_table, key="other.cashflow")
 
-
-def _render_balance_sheet_inputs(
-    assumptions: Assumptions,
-) -> BalanceSheetAssumptions:
+    st.markdown("### Balance Sheet")
     balance = assumptions.balance_sheet
+    balance_table = _value_table(
+        [
+            ("Opening Equity", "EUR", balance.opening_equity_eur, ""),
+            ("Depreciation Rate", "% p.a.", balance.depreciation_rate_pct, ""),
+        ]
+    )
+    balance_table = _edit_table(balance_table, key="other.balance")
 
-    with st.expander("Balance Sheet Assumptions", expanded=True):
-        opening_equity = st.number_input(
-            "Opening Equity (EUR)",
-            value=balance.opening_equity_eur,
-            min_value=0.0,
-            step=100_000.0,
-        )
-        depreciation_rate = st.number_input(
-            "Depreciation Rate (% p.a.)",
-            value=balance.depreciation_rate_pct * 100,
-            min_value=0.0,
-            step=0.1,
-        )
+    st.markdown("### Tax & Valuation")
+    tax_table = _value_table(
+        [
+            ("Tax Rate", "%", assumptions.tax_and_distributions.tax_rate_pct, ""),
+            ("Seller Multiple (x EBIT)", "x", assumptions.valuation.seller_multiple, ""),
+        ]
+    )
+    tax_table = _edit_table(tax_table, key="other.tax")
 
-    return BalanceSheetAssumptions(
-        opening_equity_eur=opening_equity,
-        depreciation_rate_pct=depreciation_rate / 100,
+    return Assumptions(
+        scenario=scenario,
+        revenue=assumptions.revenue,
+        cost=assumptions.cost,
+        transaction_and_financing=assumptions.transaction_and_financing,
+        financing=assumptions.financing,
+        cashflow=CashflowAssumptions(
+            tax_cash_rate_pct=_to_float(_row_value(cashflow_table, "Tax Cash Rate")),
+            tax_payment_lag_years=int(
+                _to_float(_row_value(cashflow_table, "Tax Payment Lag (Years)") or 0)
+            ),
+            capex_pct_revenue=_to_float(_row_value(cashflow_table, "Capex (% of Revenue)")),
+            working_capital_pct_revenue=_to_float(
+                _row_value(cashflow_table, "Working Capital (% of Revenue)")
+            ),
+            opening_cash_balance_eur=_to_float(
+                _row_value(cashflow_table, "Opening Cash Balance")
+            ),
+        ),
+        balance_sheet=BalanceSheetAssumptions(
+            opening_equity_eur=_to_float(_row_value(balance_table, "Opening Equity")),
+            depreciation_rate_pct=_to_float(_row_value(balance_table, "Depreciation Rate")),
+        ),
+        tax_and_distributions=TaxAssumptions(
+            tax_rate_pct=_to_float(_row_value(tax_table, "Tax Rate"))
+        ),
+        valuation=ValuationAssumptions(
+            seller_multiple=_to_float(_row_value(tax_table, "Seller Multiple (x EBIT)"))
+        ),
     )
 
 
-def _render_tax_inputs(assumptions: Assumptions) -> TaxAssumptions:
-    with st.expander("Tax & Distributions", expanded=True):
-        tax_rate = st.number_input(
-            "Tax Rate (%)",
-            value=assumptions.tax_and_distributions.tax_rate_pct * 100,
-            min_value=0.0,
-            step=0.1,
+def _scenario_table(assumptions: Assumptions) -> str:
+    scenario_table = _value_table(
+        [("Scenario (Base/Best/Worst)", "", assumptions.scenario, "")]
+    )
+    scenario_table = _edit_table(scenario_table, key="scenario.table")
+    scenario = str(_row_value(scenario_table, "Scenario (Base/Best/Worst)")).strip()
+    if scenario not in {"Base", "Best", "Worst"}:
+        return assumptions.scenario
+    return scenario
+
+
+def _year_table(rows: List[tuple]) -> List[dict]:
+    table = []
+    for name, unit, values, notes in rows:
+        row = {"Parameter": name, "Unit": unit, "Notes": notes}
+        for idx, year in enumerate(YEARS):
+            row[year] = values[idx]
+        table.append(row)
+    return table
+
+
+def _value_table(rows: List[tuple]) -> List[dict]:
+    table = []
+    for name, unit, value, notes in rows:
+        table.append(
+            {
+                "Parameter": name,
+                "Value": value,
+                "Unit": unit,
+                "Notes": notes,
+            }
         )
-
-    return TaxAssumptions(tax_rate_pct=tax_rate / 100)
-
-
-def _render_valuation_inputs(
-    assumptions: Assumptions,
-) -> ValuationAssumptions:
-    with st.expander("Valuation Assumptions", expanded=True):
-        seller_multiple = st.number_input(
-            "Seller Multiple (x EBIT)",
-            value=assumptions.valuation.seller_multiple,
-            min_value=0.0,
-            step=0.1,
-        )
-
-    return ValuationAssumptions(seller_multiple=seller_multiple)
+    return table
 
 
-def _year_number_inputs(label: str, values: List[float], step: float) -> List[float]:
-    results = []
-    for year_index, value in enumerate(values):
-        results.append(
-            st.number_input(
-                f"{label} — Year {year_index}",
-                value=value,
-                min_value=0.0,
-                step=step,
-            )
-        )
-    return results
+def _edit_table(table: List[dict], key: str) -> List[dict]:
+    edited = st.data_editor(table, use_container_width=True, key=key)
+    if edited is None:
+        return table
+    if isinstance(edited, list):
+        return edited
+    if hasattr(edited, "to_dict"):
+        return edited.to_dict(orient="records")
+    return table
 
 
-def _year_percent_inputs(label: str, values: List[float]) -> List[float]:
-    results = []
-    for year_index, value in enumerate(values):
-        results.append(
-            st.number_input(
-                f"{label} — Year {year_index}",
-                value=value * 100,
-                min_value=0.0,
-                step=0.1,
-            )
-            / 100
-        )
-    return results
+def _row_years_numeric(table: List[dict], name: str) -> List[float]:
+    for row in table:
+        if row.get("Parameter") == name:
+            return [_to_float(row.get(year, 0.0)) for year in YEARS]
+    return [0.0 for _ in YEARS]
 
 
-def _variable_cost_inputs(
-    label: str,
-    rows: List[VariableCostYearAssumptions],
-) -> dict:
-    types = []
-    values = []
-    for year_index, row in enumerate(rows):
-        current_type = getattr(row, f"{label.lower()}_type")
-        cost_type = st.selectbox(
-            f"{label} Type — Year {year_index}",
-            ["EUR", "%"],
-            index=0 if current_type == "EUR" else 1,
-        )
-        if cost_type == "%":
-            value = (
-                st.number_input(
-                    f"{label} Value (% of Revenue) — Year {year_index}",
-                    value=getattr(row, f"{label.lower()}_value") * 100,
-                    min_value=0.0,
-                    step=0.1,
-                )
-                / 100
-            )
-        else:
-            value = st.number_input(
-                f"{label} Value (EUR) — Year {year_index}",
-                value=getattr(row, f"{label.lower()}_value"),
-                min_value=0.0,
-                step=1_000.0,
-            )
-        types.append(cost_type)
-        values.append(value)
+def _row_years_text(table: List[dict], name: str) -> List[str]:
+    for row in table:
+        if row.get("Parameter") == name:
+            return [str(row.get(year, "") or "") for year in YEARS]
+    return ["" for _ in YEARS]
 
-    return {"type": types, "value": values}
+
+def _row_value(table: List[dict], name: str):
+    for row in table:
+        if row.get("Parameter") == name:
+            return row.get("Value", row.get(YEARS[0], 0.0))
+    return 0.0
+
+
+def _to_float(value) -> float:
+    if value is None or value == "":
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).replace(",", "").strip())
+    except ValueError:
+        return 0.0
+
+
+def _format_special_year(value: int | None) -> str:
+    if value is None:
+        return "None"
+    return f"Year {value}"
+
+
+def _parse_special_year(value: str) -> int | None:
+    if value.lower() == "none":
+        return None
+    if value.lower().startswith("year"):
+        try:
+            return int(value.split(" ")[1])
+        except (IndexError, ValueError):
+            return None
+    return None

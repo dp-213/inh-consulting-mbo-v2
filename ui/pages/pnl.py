@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    with st.expander("P&L Statement", expanded=True):
-        outputs.render_pnl(result)
+    st.markdown("## Operating Model (P&L)")
+    outputs.render_operating_model(result)

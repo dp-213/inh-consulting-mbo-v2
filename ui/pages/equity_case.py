@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    st.markdown("## Cashflow & Liquidity")
-    outputs.render_cashflow_liquidity(result)
+    st.markdown("## Equity Case")
+    outputs.render_equity_case(result)
