@@ -5,6 +5,7 @@ from typing import Dict, List
 import streamlit as st
 
 from model.run_model import ModelResult
+from state.assumptions import Assumptions
 
 
 def render_overview(result: ModelResult) -> None:
@@ -50,6 +51,42 @@ def render_overview(result: ModelResult) -> None:
             }
         ]
     )
+
+
+def render_impact_preview(result: ModelResult) -> None:
+    last_year = len(result.pnl) - 1
+    revenue = result.pnl[last_year]["revenue"]
+    ebitda = result.pnl[last_year]["ebitda"]
+    fcf = result.cashflow[last_year]["free_cashflow"]
+    equity_value = result.equity.get("exit_value", 0.0)
+    min_dscr = _min_dscr(result.debt)
+
+    st.metric("Revenue (Year 4)", _fmt(revenue))
+    st.metric("EBITDA (Year 4)", _fmt(ebitda))
+    st.metric("FCF (Year 4)", _fmt(fcf))
+    st.metric("Equity Value", _fmt(equity_value))
+    st.metric("Min DSCR", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
+
+
+def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
+    st.markdown("### Key Drivers (This Case vs Base)")
+    scenario = current.scenario
+    current_rev = current.revenue.scenarios[scenario]
+    base_rev = base.revenue.scenarios[scenario]
+
+    rows = [
+        _driver_row("Workdays (Year 0)", current_rev.workdays_per_year[0], base_rev.workdays_per_year[0], "Days"),
+        _driver_row("Utilization (Year 0)", current_rev.utilization_rate_pct[0], base_rev.utilization_rate_pct[0], "%"),
+        _driver_row("Group Day Rate (Year 0)", current_rev.group_day_rate_eur[0], base_rev.group_day_rate_eur[0], "EUR"),
+        _driver_row("External Day Rate (Year 0)", current_rev.external_day_rate_eur[0], base_rev.external_day_rate_eur[0], "EUR"),
+        _driver_row("Consultant FTE (Year 0)", current.cost.personnel_by_year[0].consultant_fte, base.cost.personnel_by_year[0].consultant_fte, "FTE"),
+        _driver_row("Consultant Cost (Year 0)", current.cost.personnel_by_year[0].consultant_loaded_cost_eur, base.cost.personnel_by_year[0].consultant_loaded_cost_eur, "EUR"),
+        _driver_row("Senior Debt", current.financing.senior_debt_amount_eur, base.financing.senior_debt_amount_eur, "EUR"),
+        _driver_row("Interest Rate", current.financing.interest_rate_pct, base.financing.interest_rate_pct, "%"),
+        _driver_row("Purchase Price", current.transaction_and_financing.purchase_price_eur, base.transaction_and_financing.purchase_price_eur, "EUR"),
+        _driver_row("Seller Multiple", current.valuation.seller_multiple, base.valuation.seller_multiple, "x"),
+    ]
+    st.dataframe(rows, use_container_width=True)
 
 
 def render_operating_model(result: ModelResult) -> None:
@@ -204,3 +241,14 @@ def _min_dscr(debt_schedule: List[dict]) -> float | None:
 
 def _fmt(value: float) -> str:
     return f"{value:,.0f}"
+
+
+def _driver_row(name: str, current: float, base: float, unit: str) -> dict:
+    delta = current - base
+    return {
+        "Driver": name,
+        "Current": current,
+        "Base": base,
+        "Delta": delta,
+        "Unit": unit,
+    }
