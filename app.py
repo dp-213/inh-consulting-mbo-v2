@@ -167,6 +167,41 @@ def _inject_base_styles() -> None:
             font-size: 0.78rem;
             color: #4b5563;
           }
+          .fin-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-family: Arial, sans-serif;
+              font-size: 13px;
+          }
+          .fin-table th {
+              text-align: left;
+              background-color: #f2f2f2;
+              font-weight: 600;
+              padding: 4px 6px;
+              border-bottom: 1px solid #ccc;
+          }
+          .fin-table td {
+              padding: 3px 6px;
+              border-bottom: 1px solid #e0e0e0;
+          }
+          .fin-table .section {
+              background-color: #f7f7f7;
+              font-weight: 600;
+          }
+          .fin-table .total {
+              background-color: #e3e3e3;
+              font-weight: 700;
+              border-top: 2px solid #b0b0b0;
+          }
+          .fin-table .num {
+              text-align: right;
+          }
+          .fin-table .label {
+              text-align: left;
+          }
+          .fin-table .neg {
+              color: #c0392b;
+          }
           .statement-table,
           .kpi-table,
           .input-table {

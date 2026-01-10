@@ -819,9 +819,15 @@ def _render_statement_table_html(
     bold_set = set(bold_labels or [])
     class_map = dict(row_classes or {})
     headers = ["Line Item"] + [f"Year {i}" for i in range(years)]
-    html = ['<table class="statement-table">', "<thead><tr>"]
-    for header in headers:
-        html.append(f"<th>{header}</th>")
+    html = ['<table class="fin-table">', "<thead><tr>"]
+    for index, header in enumerate(headers):
+        if index == 0:
+            header_classes = ["label"]
+        else:
+            header_classes = ["num"]
+            if index == 1:
+                header_classes.append("section")
+        html.append(f'<th class="{" ".join(header_classes)}">{header}</th>')
     html.append("</tr></thead><tbody>")
     for label, values in rows:
         if label == "" and values is None:
@@ -830,8 +836,12 @@ def _render_statement_table_html(
         if values is None:
             row_class = class_map.get(label, "section")
             html.append(f'<tr class="{row_class}">')
-            html.append(f"<td>{label}</td>")
-            html.extend(["<td></td>" for _ in range(years)])
+            html.append(f'<td class="label">{label}</td>')
+            for year_index in range(years):
+                cell_classes = ["num"]
+                if year_index == 0:
+                    cell_classes.append("section")
+                html.append(f'<td class="{" ".join(cell_classes)}"></td>')
             html.append("</tr>")
             continue
         row_classes_list = []
@@ -840,10 +850,16 @@ def _render_statement_table_html(
         if label in class_map:
             row_classes_list.append(class_map[label])
         class_attr = f' class="{" ".join(row_classes_list)}"' if row_classes_list else ""
-        html.append(f"<tr{class_attr}><td>{label}</td>")
+        html.append(f'<tr{class_attr}><td class="label">{label}</td>')
         for year_index in range(years):
             value = values[year_index] if year_index < len(values) else ""
-            html.append(f"<td>{_format_output_value(value)}</td>")
+            cell_classes = ["num"]
+            if year_index == 0 and "total" not in row_classes_list:
+                cell_classes.append("section")
+            if isinstance(value, (int, float)) and value < 0:
+                cell_classes.append("neg")
+            class_attr = f' class="{" ".join(cell_classes)}"'
+            html.append(f"<td{class_attr}>{_format_output_value(value)}</td>")
         html.append("</tr>")
     html.append("</tbody></table>")
     st.markdown("".join(html), unsafe_allow_html=True)
