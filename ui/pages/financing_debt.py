@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    st.markdown("## Financing & Debt")
+    st.markdown("## Loan Overview")
     outputs.render_financing_debt(result)

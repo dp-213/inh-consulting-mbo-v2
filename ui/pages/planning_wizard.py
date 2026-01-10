@@ -19,8 +19,8 @@ def render_inputs(assumptions: Assumptions) -> Assumptions:
         [
             "Step 1: Revenue Drivers",
             "Step 2: Cost Drivers",
-            "Step 3: Financing",
-            "Step 4: Valuation",
+            "Step 3: Loans & Funding",
+            "Step 4: Purchase Price & Exit",
         ],
         index=0,
     )
@@ -31,8 +31,8 @@ def render_inputs(assumptions: Assumptions) -> Assumptions:
     if step == "Step 2: Cost Drivers":
         st.markdown("Focus: consultant costs, backoffice, and management.")
         return inputs.render_cost_quick_inputs(assumptions)
-    if step == "Step 3: Financing":
-        st.markdown("Focus: debt size, pricing, and amortization.")
+    if step == "Step 3: Loans & Funding":
+        st.markdown("Focus: loan size, pricing, and repayment.")
         return inputs.render_financing_quick_inputs(assumptions)
     st.markdown("Focus: purchase price and exit multiple.")
     return inputs.render_valuation_quick_inputs(assumptions)
@@ -42,3 +42,4 @@ def render_outputs(result: ModelResult) -> None:
     st.markdown("### Impact Preview")
     st.markdown("Instant read-through of the most sensitive KPIs.")
     outputs.render_impact_preview(result)
+    outputs.render_input_summary(result)

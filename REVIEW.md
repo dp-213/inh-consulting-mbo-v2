@@ -17,3 +17,7 @@ Use this file to append findings and decisions after each iteration.
 ## Iteration 4
 - Findings: Planning sheets still felt visually dense with little separation between quick and advanced areas.
 - Decisions: Added consistent separators after quick inputs to improve scanning and reduce clutter.
+
+## Iteration 5
+- Findings: Residual jargon in labels, missing read-only summaries on planning pages, and inconsistent unit/formatting cues for currency and Year 0.
+- Decisions: Simplified labels to plain language, added read-only summary blocks on every input page, standardized € units with thousand separators, and made Year 0 visually distinct.

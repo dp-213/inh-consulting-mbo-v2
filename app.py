@@ -7,6 +7,7 @@ import streamlit as st
 from model.run_model import run_model
 from state.cases import case_path, list_cases, load_case, save_case
 from state.persistence import load_assumptions
+from ui import outputs
 from ui.pages import (
     balance_sheet,
     cashflow,
@@ -24,19 +25,19 @@ from ui.pages import (
 )
 
 PAGES = [
-    "Overview",
-    "Operating Model (P&L)",
-    "Cashflow & Liquidity",
-    "Balance Sheet",
-    "Revenue Model",
-    "Planning Wizard",
-    "Cost Model",
-    "Financing Assumptions",
-    "Other Assumptions",
-    "Financing & Debt",
-    "Equity Case",
-    "Valuation & Purchase Price",
-    "Model Settings",
+    "Start Here — Planning Wizard",
+    "Analysis — Overview",
+    "Analysis — Operating Model",
+    "Analysis — Cash Flow",
+    "Analysis — Balance Sheet",
+    "Planning — Revenue Inputs",
+    "Planning — Cost Inputs",
+    "Planning — Financing Inputs",
+    "Planning — Other Inputs",
+    "Financing — Loan View",
+    "Financing — Owner Returns",
+    "Value — Purchase Price",
+    "Settings — Model Settings",
 ]
 
 
@@ -47,7 +48,7 @@ def _render_case_bar(assumptions, current_path, case_options):
         st.table([{"Current Case": _case_name(current_path)}])
     with scenario_col:
         scenario = st.selectbox(
-            "Scenario View",
+            "Case View",
             ["Base", "Best", "Worst"],
             index=["Base", "Best", "Worst"].index(assumptions.scenario),
         )
@@ -55,34 +56,34 @@ def _render_case_bar(assumptions, current_path, case_options):
         if scenario != assumptions.scenario:
             assumptions = replace(assumptions, scenario=scenario)
 
-    st.markdown("### Case Actions")
-    name_col, load_col = st.columns([2, 2])
-    with name_col:
-        new_case_table = st.data_editor(
-            [{"Parameter": "New Case Name", "Value": ""}],
-            use_container_width=True,
-        )
-        if hasattr(new_case_table, "to_dict"):
-            records = new_case_table.to_dict(orient="records")
-        else:
-            records = new_case_table
-        new_case_name = str(records[0].get("Value", "") or "").strip()
-    with load_col:
-        load_choice = st.selectbox(
-            "Load Case",
-            ["Select case..."] + case_options,
-            index=0,
-        )
+    with st.expander("Manage Cases", expanded=False):
+        name_col, load_col = st.columns([2, 2])
+        with name_col:
+            new_case_table = st.data_editor(
+                [{"Parameter": "New Case Name", "Value": ""}],
+                use_container_width=True,
+            )
+            if hasattr(new_case_table, "to_dict"):
+                records = new_case_table.to_dict(orient="records")
+            else:
+                records = new_case_table
+            new_case_name = str(records[0].get("Value", "") or "").strip()
+        with load_col:
+            load_choice = st.selectbox(
+                "Load Case",
+                ["Select case..."] + case_options,
+                index=0,
+            )
 
-    button_cols = st.columns([1, 1, 1, 1])
-    with button_cols[0]:
-        save_pressed = st.button("Save")
-    with button_cols[1]:
-        save_as_pressed = st.button("Save As")
-    with button_cols[2]:
-        load_pressed = st.button("Load Selected Case")
-    with button_cols[3]:
-        reset_pressed = st.button("Reset to Base")
+        button_cols = st.columns([1, 1, 1, 1])
+        with button_cols[0]:
+            save_pressed = st.button("Save")
+        with button_cols[1]:
+            save_as_pressed = st.button("Save As")
+        with button_cols[2]:
+            load_pressed = st.button("Load Selected Case")
+        with button_cols[3]:
+            reset_pressed = st.button("Reset to Base")
 
     actions = {
         "save": save_pressed,
@@ -108,37 +109,6 @@ def main() -> None:
     if "data_path" not in st.session_state:
         st.session_state["data_path"] = "data/base_case.json"
 
-    st.sidebar.markdown(
-        "\n".join(
-            [
-                "**OVERVIEW**",
-                "Overview",
-                "",
-                "**OPERATING MODEL**",
-                "Operating Model (P&L)",
-                "Cashflow & Liquidity",
-                "Balance Sheet",
-                "",
-                "**PLANNING (MODEL INPUTS)**",
-                "Revenue Model",
-                "Planning Wizard",
-                "Cost Model",
-                "Financing Assumptions",
-                "Other Assumptions",
-                "",
-                "**FINANCING**",
-                "Financing & Debt",
-                "Equity Case",
-                "",
-                "**VALUATION**",
-                "Valuation & Purchase Price",
-                "",
-                "**SETTINGS**",
-                "Model Settings",
-            ]
-        )
-    )
-
     page = st.sidebar.selectbox("Navigate", PAGES, index=0, key="page")
 
     data_path = st.session_state["data_path"]
@@ -147,6 +117,14 @@ def main() -> None:
     base_case = load_assumptions("data/base_case.json")
     case_options = list_cases()
     assumptions, actions = _render_case_bar(assumptions, data_path, case_options)
+
+    if actions["save_as"] and not actions["new_case_name"]:
+        st.markdown("Enter a case name before saving a copy.")
+    if actions["load"] and actions["load_choice"] == "Select case...":
+        st.markdown("Select a case to load, then click Load Selected Case.")
+
+    if page.startswith("Planning —") or page == "Start Here — Planning Wizard":
+        st.markdown("Percent inputs use whole numbers (70 = 70%).")
 
     if actions["reset"]:
         data_path = "data/base_case.json"
@@ -157,15 +135,15 @@ def main() -> None:
         st.session_state["data_path"] = data_path
         assumptions = load_case(data_path)
 
-    if page == "Revenue Model":
+    if page == "Planning — Revenue Inputs":
         updated_assumptions = revenue_model.render(assumptions)
-    elif page == "Planning Wizard":
+    elif page == "Start Here — Planning Wizard":
         updated_assumptions = planning_wizard.render_inputs(assumptions)
-    elif page == "Cost Model":
+    elif page == "Planning — Cost Inputs":
         updated_assumptions = cost_model.render(assumptions)
-    elif page == "Financing Assumptions":
+    elif page == "Planning — Financing Inputs":
         updated_assumptions = financing_assumptions.render(assumptions)
-    elif page == "Other Assumptions":
+    elif page == "Planning — Other Inputs":
         updated_assumptions = other_assumptions.render(assumptions)
     else:
         updated_assumptions = assumptions
@@ -185,23 +163,31 @@ def main() -> None:
 
     result = run_model(updated_assumptions)
 
-    if page == "Overview":
+    if page in {
+        "Planning — Revenue Inputs",
+        "Planning — Cost Inputs",
+        "Planning — Financing Inputs",
+        "Planning — Other Inputs",
+    }:
+        outputs.render_input_summary(result)
+
+    if page == "Analysis — Overview":
         overview.render(result, updated_assumptions, base_case)
-    elif page == "Operating Model (P&L)":
+    elif page == "Analysis — Operating Model":
         pnl.render(result)
-    elif page == "Cashflow & Liquidity":
+    elif page == "Analysis — Cash Flow":
         cashflow.render(result)
-    elif page == "Balance Sheet":
+    elif page == "Analysis — Balance Sheet":
         balance_sheet.render(result)
-    elif page == "Financing & Debt":
+    elif page == "Financing — Loan View":
         financing_debt.render(result)
-    elif page == "Equity Case":
+    elif page == "Financing — Owner Returns":
         equity_case.render(result)
-    elif page == "Valuation & Purchase Price":
+    elif page == "Value — Purchase Price":
         valuation.render(result)
-    elif page == "Model Settings":
+    elif page == "Settings — Model Settings":
         model_settings.render(data_path)
-    elif page == "Planning Wizard":
+    elif page == "Start Here — Planning Wizard":
         planning_wizard.render_outputs(result)
 
 

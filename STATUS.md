@@ -1,7 +1,5 @@
 STOP
 
-IN PROGRESS
-
 Iteration 1
 - Polished top case bar layout and added clear case action grouping.
 - Improved KPI layout and added concise explanatory notes on analysis pages.
@@ -21,5 +19,8 @@ Iteration 4
 - Added clear separators between quick inputs and advanced sections.
 - Reduced visual density on planning sheets with consistent spacing.
 
-Next focus
-- Final pass for spacing consistency and narrative clarity.
+Iteration 5
+- Acceptance review found jargon labels, missing input summaries, and weak currency/unit formatting on tables.
+- Simplified labels across outputs/inputs, added read-only summaries to every planning page, and made Year 0 visually distinct.
+- Standardized currency units to "€", added thousand separators, clarified loan language, and added plain-language case error prompts.
+- Remaining violations: none observed after this pass.

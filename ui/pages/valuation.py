@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    st.markdown("## Valuation & Purchase Price")
+    st.markdown("## Purchase Price & Exit")
     outputs.render_valuation(result)

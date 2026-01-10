@@ -7,5 +7,5 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    st.markdown("## Operating Model (P&L)")
+    st.markdown("## Operating Model")
     outputs.render_operating_model(result)
