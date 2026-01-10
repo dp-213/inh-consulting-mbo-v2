@@ -81,36 +81,37 @@ def _inject_base_styles() -> None:
             max-width: 260px;
           }
           [data-testid="stSidebarContent"] {
-            padding: 0.75rem 0.6rem 0.9rem;
+            padding: 0.6rem 0.5rem 0.75rem;
           }
           [data-testid="stSidebar"] .sidebar-title {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 700;
             letter-spacing: 0.02em;
             color: #0f172a;
-            margin: 0.15rem 0 0.85rem;
-            padding-left: 0.4rem;
+            margin: 0.1rem 0 0.6rem;
+            padding-left: 0.35rem;
+            text-align: left;
           }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.6rem;
-            letter-spacing: 0.18em;
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: #6b7280;
-            font-weight: 600;
-            margin: 0.75rem 0 0.25rem;
-            padding-left: 0.45rem;
+            color: #334155;
+            font-weight: 700;
+            margin: 0.6rem 0 0.2rem;
+            padding-left: 0.35rem;
             }
           [data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             border: none;
-            padding: 0.3rem 0.5rem;
+            padding: 0.22rem 0.45rem;
             border-radius: 8px;
-            margin: 0.1rem 0;
+            margin: 0.06rem 0;
             color: #0f172a;
             background: transparent;
-            font-size: 0.82rem;
-            line-height: 1.2;
-            min-height: 30px;
+            font-size: 0.8rem;
+            line-height: 1.15;
+            min-height: 28px;
             font-weight: 500;
             display: flex;
             align-items: center;
