@@ -395,13 +395,18 @@ def main() -> None:
         scenario = case_actions["scenario"]
         if scenario != updated_assumptions.scenario:
             updated_assumptions = replace(updated_assumptions, scenario=scenario)
-            save_case(updated_assumptions, data_path)
+            if not data_path.endswith("base_case.json"):
+                save_case(updated_assumptions, data_path)
         if case_actions["reset"]:
             data_path = "data/base_case.json"
             st.session_state["data_path"] = data_path
             updated_assumptions = load_assumptions(data_path)
         elif case_actions["load"] and case_actions["load_choice"] != "Select case...":
-            data_path = str(case_path(case_actions["load_choice"]))
+            load_choice = str(case_actions["load_choice"])
+            if load_choice.endswith(".json") and ("/" in load_choice or load_choice.startswith("data")):
+                data_path = load_choice
+            else:
+                data_path = str(case_path(load_choice))
             st.session_state["data_path"] = data_path
             updated_assumptions = load_case(data_path)
         if case_actions["save"]:

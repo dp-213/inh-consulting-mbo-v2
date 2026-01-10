@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from state.assumptions import Assumptions
@@ -7,50 +9,68 @@ from state.assumptions import Assumptions
 
 def render(assumptions: Assumptions, data_path: str, case_options: list[str]) -> dict:
     st.markdown("# Case Management")
-    st.markdown("Save, duplicate, and load cases from the case library below.")
-    st.table([{"Current Case": _case_name(data_path), "Current JSON Path": data_path}])
+    is_base_case = data_path.endswith("base_case.json")
 
-    st.markdown("### Case View")
+    # A. Current Case (status)
+    st.subheader("A. Current Case")
+    st.write(f"Active case: **{_case_name(data_path)}**")
+    st.write("Source: **Base**" if is_base_case else "Source: **Custom JSON**")
+    st.caption(f"File: {data_path}")
+
+    st.markdown("")
+    st.write("Scenario affects the planning inputs for this case.")
     scenario = st.selectbox(
-        "Case View (Base / Best / Worst)",
+        "Scenario",
         ["Base", "Best", "Worst"],
         index=["Base", "Best", "Worst"].index(assumptions.scenario),
+        disabled=is_base_case,
+        help="Base Case is read-only.",
     )
-    st.markdown("Case view changes affect the planning view for this case.")
+
     st.markdown("---")
 
-    st.markdown("### Save & Load")
-    st.markdown("Base Case is locked. Use Save As to create a new case.")
-    name_col, load_col = st.columns([2, 2])
-    with name_col:
-        new_case_table = st.data_editor(
-            [{"Parameter": "New Case Name", "Value": ""}],
-            use_container_width=True,
-            hide_index=True,
-            disabled=["Parameter"],
-        )
-        if hasattr(new_case_table, "to_dict"):
-            records = new_case_table.to_dict(orient="records")
-        else:
-            records = new_case_table
-        new_case_name = str(records[0].get("Value", "") or "").strip()
-    with load_col:
-        load_choice = st.selectbox(
-            "Load Case",
-            ["Select case..."] + case_options,
-            index=0,
-        )
+    # B. Case Library
+    st.subheader("B. Case Library")
+    st.write("Load a previously saved case to continue working from that state.")
+    st.caption("Loading a case replaces the current case in the tool immediately.")
 
-    button_cols = st.columns([1, 1, 1, 1])
-    is_base_case = data_path.endswith("base_case.json")
-    with button_cols[0]:
+    library_paths = _discover_case_paths(case_options)
+    load_choice = st.selectbox(
+        "Available cases",
+        ["Select case..."] + library_paths,
+        index=0,
+        format_func=_case_option_label,
+    )
+    load_pressed = st.button("Load Case", type="primary")
+
+    st.markdown("---")
+
+    # C. Save / Duplicate
+    st.subheader("C. Save / Duplicate")
+    st.write("Save changes to the current case, or duplicate it as a new case.")
+    if is_base_case:
+        st.caption("Base Case is protected. Create a copy with Save As.")
+
+    new_case_name = st.text_input(
+        "New case name (for Save As)",
+        value="",
+        placeholder="e.g. downside_case_v2",
+        label_visibility="visible",
+    ).strip()
+
+    save_cols = st.columns([1, 1, 3])
+    with save_cols[0]:
         save_pressed = st.button("Save", disabled=is_base_case)
-    with button_cols[1]:
+    with save_cols[1]:
         save_as_pressed = st.button("Save As")
-    with button_cols[2]:
-        load_pressed = st.button("Load Selected Case")
-    with button_cols[3]:
-        reset_pressed = st.button("Reset to Base")
+
+    st.markdown("---")
+
+    # D. Reset
+    st.subheader("D. Reset")
+    st.write("Reset the tool to the Base Case.")
+    st.caption("This will discard the current loaded case in the session.")
+    reset_pressed = st.button("Reset to Base Case", type="secondary")
 
     return {
         "scenario": scenario,
@@ -68,3 +88,45 @@ def _case_name(path: str) -> str:
         return "Base Case"
     name = path.split("/")[-1].replace(".json", "")
     return name or "Unnamed Case"
+
+
+def _discover_case_paths(case_options: list[str]) -> list[str]:
+    paths: list[str] = []
+
+    base_case = Path("data") / "base_case.json"
+    if base_case.exists():
+        paths.append(str(base_case))
+
+    data_dir = Path("data")
+    if data_dir.exists():
+        for path in sorted(data_dir.glob("*.json")):
+            if path.name == "base_case.json":
+                continue
+            paths.append(str(path))
+
+    cases_dir = data_dir / "cases"
+    if cases_dir.exists():
+        for name in case_options:
+            candidate = cases_dir / f"{name}.json"
+            if candidate.exists():
+                paths.append(str(candidate))
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in paths:
+        if item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
+
+def _case_option_label(value: str) -> str:
+    if value == "Select case...":
+        return value
+    name = value.split("/")[-1].replace(".json", "")
+    if value.endswith("base_case.json"):
+        return "Base Case (read-only)"
+    if "/data/cases/" in value.replace("\\", "/"):
+        return f"{name} (saved)"
+    return f"{name} (json)"
