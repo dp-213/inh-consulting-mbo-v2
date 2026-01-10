@@ -3,9 +3,16 @@ from __future__ import annotations
 from io import BytesIO
 from typing import Dict, List
 
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+except ModuleNotFoundError as exc:
+    Workbook = None  # type: ignore[assignment]
+    Alignment = Border = Font = PatternFill = Side = get_column_letter = None  # type: ignore[assignment]
+    _OPENPYXL_IMPORT_ERROR = exc
+else:
+    _OPENPYXL_IMPORT_ERROR = None
 
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
@@ -22,6 +29,8 @@ def export_ic_excel(
     result: ModelResult,
     case_name: str,
 ) -> bytes:
+    if Workbook is None:
+        raise ImportError("openpyxl is required for the Excel export.") from _OPENPYXL_IMPORT_ERROR
     workbook = Workbook()
     workbook.remove(workbook.active)
 
