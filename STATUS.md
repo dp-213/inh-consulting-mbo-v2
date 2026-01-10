@@ -310,3 +310,31 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Added centralized year labeling for Transition Year and Business Plan Years across statement and KPI tables.
+- Restructured Valuation overview to separate valuation methods from affordability, added intrinsic cash-based view, and expanded detailed analysis bridges.
+- Added subtle CFADS/DSCR footnotes and page-level logic explanation expanders for transparency.
+- Moved Key Assumptions to the top on Cashflow & Liquidity and aligned balance sheet KPIs to new year headers.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Extended Transition/Business Plan year labeling into assumption input tables and Revenue Model derived-capacity table.
+- Replaced remaining “Year 0” references in explanatory copy with transition-year language.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

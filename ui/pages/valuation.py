@@ -56,4 +56,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         outputs.render_valuation_detail(updated_result, updated_assumptions)
     with st.expander("Upside / Exit Sensitivity (Optional)", expanded=False):
         outputs.render_valuation_exit(updated_result)
+    with st.expander("Explain business & calculation logic", expanded=False):
+        st.markdown(
+            "- Business meaning: contrasts what the business is worth today with what a buyer can afford to pay today.\n"
+            "- Calculation logic: multiple-based value uses the reference year metric and multiple, DCF discounts plan cashflows to today, intrinsic sums plan cashflows, and affordability reflects financing and liquidity constraints.\n"
+            "- Key dependencies: P&L (reference year metric), cashflow plan, balance sheet net debt at close, and financing assumptions."
+        )
     return updated_assumptions

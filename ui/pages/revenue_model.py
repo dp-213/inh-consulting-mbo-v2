@@ -9,18 +9,18 @@ from ui import inputs
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("# Revenue Model")
     st.markdown("### Consultant Capacity (Derived)")
+    year_columns = inputs.YEARS
     rows = [
         {
             "Parameter": "Consultant FTE (Derived from Cost Model)",
             "Unit": "FTE",
-            "Year 0": assumptions.cost.personnel_by_year[0].consultant_fte,
-            "Year 1": assumptions.cost.personnel_by_year[1].consultant_fte,
-            "Year 2": assumptions.cost.personnel_by_year[2].consultant_fte,
-            "Year 3": assumptions.cost.personnel_by_year[3].consultant_fte,
-            "Year 4": assumptions.cost.personnel_by_year[4].consultant_fte,
+            **{
+                year_columns[idx]: assumptions.cost.personnel_by_year[idx].consultant_fte
+                for idx in range(5)
+            },
         }
     ]
-    _render_input_table(rows, ["Parameter", "Unit", "Year 0", "Year 1", "Year 2", "Year 3", "Year 4"])
+    _render_input_table(rows, ["Parameter", "Unit"] + year_columns)
     return inputs.render_revenue_inputs(assumptions)
 
 
@@ -36,4 +36,3 @@ def _render_input_table(rows: list[dict], columns: list[str]) -> None:
         html.append("</tr>")
     html.append("</tbody></table>")
     st.markdown("".join(html), unsafe_allow_html=True)
-

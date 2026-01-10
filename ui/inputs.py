@@ -5,6 +5,7 @@ from typing import List
 
 import streamlit as st
 
+from ui.outputs import build_year_labels
 from state.assumptions import (
     Assumptions,
     BalanceSheetAssumptions,
@@ -21,7 +22,7 @@ from state.assumptions import (
     VariableCostYearAssumptions,
 )
 
-YEARS = ["Year 0", "Year 1", "Year 2", "Year 3", "Year 4"]
+YEARS = build_year_labels(5)
 
 
 def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:

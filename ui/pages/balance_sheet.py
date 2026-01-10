@@ -78,7 +78,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         (net_debt[idx] / ebitda[idx]) if ebitda[idx] else 0.0
         for idx in range(len(net_debt))
     ]
-    year_labels = [f"Year {i}" for i in range(5)]
+    year_labels = outputs.YEAR_LABELS
     kpi_rows = [
         {
             "Metric": "Net Debt",
@@ -100,4 +100,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         )
         outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
         outputs.render_balance_sheet(updated_result)
+    with st.expander("Explain business & calculation logic", expanded=False):
+        st.markdown(
+            "- Business meaning: tests cash, debt, and equity consistency for solvency and financing credibility.\n"
+            "- Calculation logic: assets equal liabilities plus equity; equity moves from opening equity through net income, injections, dividends, and buybacks.\n"
+            "- Key dependencies: P&L net income, cashflow opening cash/minimum cash, and the debt schedule."
+        )
     return updated_assumptions

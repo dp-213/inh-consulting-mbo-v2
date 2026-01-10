@@ -7,7 +7,17 @@ import streamlit as st
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
 
-YEAR_LABELS = [f"Year {i}" for i in range(5)]
+def _year_label(index: int) -> str:
+    if index == 0:
+        return "Transition Year (As-Is / Closing)"
+    return f"Business Plan Year {index}"
+
+
+def build_year_labels(years: int) -> List[str]:
+    return [_year_label(i) for i in range(years)]
+
+
+YEAR_LABELS = build_year_labels(5)
 
 
 def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
@@ -26,7 +36,7 @@ def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
         ("Debt at Close", _format_money(debt_at_close)),
         ("Equity at Close", _format_money(equity_at_close)),
         ("Debt / Operating Profit (EBITDA)", f"{debt_ebitda:.2f}x"),
-        ("Exit Year", f"Year {last_year}"),
+        ("Exit Year", _year_label(last_year)),
         ("Exit Multiple", f"{exit_multiple:.2f}x"),
     ]
     metric_html = ['<div class="metric-grid">']
@@ -65,9 +75,13 @@ def render_impact_preview(result: ModelResult) -> None:
     min_dscr = _min_dscr(result.debt)
 
     cols = st.columns(5)
-    cols[0].metric("Revenue (Year 4)", _format_money(revenue))
-    cols[1].metric("Profit Before Depreciation (Year 4)", _format_money(ebitda))
-    cols[2].metric("Cash After Investment (Year 4)", _format_money(fcf))
+    cols[0].metric(f"Revenue ({_year_label(last_year)})", _format_money(revenue))
+    cols[1].metric(
+        f"Profit Before Depreciation ({_year_label(last_year)})", _format_money(ebitda)
+    )
+    cols[2].metric(
+        f"Cash After Investment ({_year_label(last_year)})", _format_money(fcf)
+    )
     cols[3].metric("Owner Value", _format_money(equity_value))
     cols[4].metric("Minimum Loan Coverage", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
 
@@ -80,12 +94,12 @@ def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
     base_rev = base.revenue.scenarios[scenario]
 
     rows = [
-        _driver_row("Workdays (Year 0)", current_rev.workdays_per_year[0], base_rev.workdays_per_year[0], "Days"),
-        _driver_row("Utilization (Year 0)", current_rev.utilization_rate_pct[0], base_rev.utilization_rate_pct[0], "%"),
-        _driver_row("Group Day Rate (Year 0)", current_rev.group_day_rate_eur[0], base_rev.group_day_rate_eur[0], "EUR"),
-        _driver_row("External Day Rate (Year 0)", current_rev.external_day_rate_eur[0], base_rev.external_day_rate_eur[0], "EUR"),
-        _driver_row("Consultant Headcount (Year 0)", current.cost.personnel_by_year[0].consultant_fte, base.cost.personnel_by_year[0].consultant_fte, "People"),
-        _driver_row("Consultant Cost (All-in) (Year 0)", current.cost.personnel_by_year[0].consultant_loaded_cost_eur, base.cost.personnel_by_year[0].consultant_loaded_cost_eur, "EUR"),
+        _driver_row(f"Workdays ({_year_label(0)})", current_rev.workdays_per_year[0], base_rev.workdays_per_year[0], "Days"),
+        _driver_row(f"Utilization ({_year_label(0)})", current_rev.utilization_rate_pct[0], base_rev.utilization_rate_pct[0], "%"),
+        _driver_row(f"Group Day Rate ({_year_label(0)})", current_rev.group_day_rate_eur[0], base_rev.group_day_rate_eur[0], "EUR"),
+        _driver_row(f"External Day Rate ({_year_label(0)})", current_rev.external_day_rate_eur[0], base_rev.external_day_rate_eur[0], "EUR"),
+        _driver_row(f"Consultant Headcount ({_year_label(0)})", current.cost.personnel_by_year[0].consultant_fte, base.cost.personnel_by_year[0].consultant_fte, "People"),
+        _driver_row(f"Consultant Cost (All-in) ({_year_label(0)})", current.cost.personnel_by_year[0].consultant_loaded_cost_eur, base.cost.personnel_by_year[0].consultant_loaded_cost_eur, "EUR"),
         _driver_row("Senior Loan Amount", current.financing.senior_debt_amount_eur, base.financing.senior_debt_amount_eur, "EUR"),
         _driver_row("Interest Rate", current.financing.interest_rate_pct, base.financing.interest_rate_pct, "%"),
         _driver_row("Purchase Price", current.transaction_and_financing.purchase_price_eur, base.transaction_and_financing.purchase_price_eur, "EUR"),
@@ -177,9 +191,7 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         ("Net Income", net_income),
         ("Net Margin", net_margin),
     ]
-    year_labels = ["Current Operating Reality (Year 0)"] + [
-        f"Scaled Operations (Year {idx})" for idx in range(1, 5)
-    ]
+    year_labels = YEAR_LABELS
     _render_statement_table_html(
         rows,
         bold_labels={
@@ -453,6 +465,10 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
         cfads_rows,
         bold_labels={"CFADS"},
     )
+    st.markdown(
+        '<div class="subtle">CFADS = Cash Flow Available for Debt Service (EBITDA – cash taxes – maintenance capex ± working capital).</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### Debt Service Obligation")
     service_rows = [
@@ -484,6 +500,10 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
     _render_statement_table_html(
         coverage_rows,
         bold_labels={"DSCR Headroom"},
+    )
+    st.markdown(
+        '<div class="subtle">DSCR = CFADS / total debt service. Headroom = DSCR minus covenant minimum.</div>',
+        unsafe_allow_html=True,
     )
 
     st.markdown("### Debt Risk Summary")
@@ -548,7 +568,7 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     control_rows = [
         ("Ownership Split", [ownership_split]),
         ("Control Logic", [control_logic]),
-        ("Exit Year", [f"Year {assumptions.equity.exit_year}"]),
+        ("Exit Year", [_year_label(assumptions.equity.exit_year)]),
         ("Exit Mechanism", [assumptions.equity.exit_mechanism]),
         ("Investor Participation", [assumptions.equity.investor_participation]),
         ("Management Participation", [assumptions.equity.management_participation]),
@@ -559,7 +579,7 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     management_exit = exit_value * management_share if total_equity else 0.0
 
     st.markdown("### Cash Flow to Equity")
-    year_labels = [f"Year {i}" for i in range(5)]
+    year_labels = YEAR_LABELS
     operating_cf = [row["operating_cf"] for row in result.cashflow]
     debt_service = [row.get("debt_service", 0.0) for row in result.debt]
     equity_cashflows = result.equity.get("equity_cashflows", [])
@@ -653,14 +673,17 @@ def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> N
         discounted = value * factor
         running += discounted
     dcf_value = running
+    intrinsic_value = sum(
+        value for idx, value in enumerate(free_cf) if idx >= start_year
+    )
 
     st.markdown("### Valuation Today – Overview")
     method_rows = [
         ("Multiple-based Equity Value (Today)", [_format_money(enterprise_value)]),
         ("DCF-based Equity Value (Today, no terminal)", [_format_money(dcf_value)]),
         (
-            "Buyer Affordability (Ceiling, not valuation)",
-            [_format_money(exit_value)],
+            "Intrinsic / Cash-Based Value (Undiscounted Plan Cashflows)",
+            [_format_money(intrinsic_value)],
         ),
     ]
     _render_statement_table_html(
@@ -668,9 +691,13 @@ def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> N
         years=1,
         year_labels=["Equity Value"],
     )
+    st.markdown(
+        f'<div class="subtle">Buyer Affordability (ceiling, not valuation): {_format_money(exit_value)}</div>',
+        unsafe_allow_html=True,
+    )
 
-    valuation_min = min(enterprise_value, dcf_value)
-    valuation_max = max(enterprise_value, dcf_value)
+    valuation_min = min(enterprise_value, dcf_value, intrinsic_value)
+    valuation_max = max(enterprise_value, dcf_value, intrinsic_value)
     midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
     st.markdown("### Valuation Range")
     range_rows = [
@@ -679,6 +706,11 @@ def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> N
         ("Max", [valuation_max]),
     ]
     _render_statement_table_html(range_rows, years=1, year_labels=["Value"])
+    st.markdown(
+        "- Range reflects different risk and growth lenses across methods.\n"
+        "- Downside risk is driven by cashflow timing and utilization volatility.\n"
+        "- Upside remains uncertain until normalized operations are proven."
+    )
 
     st.markdown("### Value vs. Price – Negotiation Logic")
     price_gap = exit_value - midpoint
@@ -715,10 +747,10 @@ def render_valuation_detail(result: ModelResult, assumptions: Assumptions) -> No
     cash_at_close = result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
     net_debt_close = closing_debt - cash_at_close
     net_debt_rows = [
-        {"Metric": "Opening Debt (Year 0)", "Value": _format_money(opening_debt)},
-        {"Metric": "Drawdown (Year 0)", "Value": _format_money(drawdown)},
-        {"Metric": "Repayment (Year 0)", "Value": _format_money(repayment)},
-        {"Metric": "Closing Debt (Year 0)", "Value": _format_money(closing_debt)},
+        {"Metric": f"Opening Debt ({_year_label(0)})", "Value": _format_money(opening_debt)},
+        {"Metric": f"Drawdown ({_year_label(0)})", "Value": _format_money(drawdown)},
+        {"Metric": f"Repayment ({_year_label(0)})", "Value": _format_money(repayment)},
+        {"Metric": f"Closing Debt ({_year_label(0)})", "Value": _format_money(closing_debt)},
         {"Metric": "Net Debt at Close", "Value": _format_money(net_debt_close)},
     ]
     st.markdown("#### Multiple-Based Valuation (Today)")
@@ -728,7 +760,7 @@ def render_valuation_detail(result: ModelResult, assumptions: Assumptions) -> No
         st.stop()
     reference_ebit = result.pnl[reference_year]["ebit"]
     multiple_rows = [
-        (f"Reference EBIT (Year {reference_year})", [reference_ebit]),
+        (f"Reference EBIT ({_year_label(reference_year)})", [reference_ebit]),
         ("Applied Multiple (Assumption)", [f"{assumptions.valuation.seller_multiple:.2f}x"]),
         ("Enterprise Value (Model)", [enterprise_value]),
         ("Net Debt at Close (Reference)", [net_debt_close]),
@@ -776,6 +808,20 @@ def render_valuation_detail(result: ModelResult, assumptions: Assumptions) -> No
     _render_statement_table_html(
         dcf_rows,
         bold_labels={"Equity Value (DCF, no terminal)"},
+    )
+
+    intrinsic_value = sum(
+        value for idx, value in enumerate(free_cf) if idx >= start_year
+    )
+    st.markdown("#### Intrinsic / Cash-Based Value (Undiscounted)")
+    intrinsic_rows = [
+        ("Free Cashflow", free_cf),
+        ("Sum of Plan Cashflows", ["", "", "", "", intrinsic_value]),
+        ("Equity Value (Intrinsic / Cash-Based)", ["", "", "", "", intrinsic_value]),
+    ]
+    _render_statement_table_html(
+        intrinsic_rows,
+        bold_labels={"Equity Value (Intrinsic / Cash-Based)"},
     )
 
     st.markdown("#### Buyer Affordability (Ceiling, not valuation)")
@@ -827,15 +873,23 @@ def render_input_summary(result: ModelResult) -> None:
     last_year = len(result.pnl) - 1
     min_dscr = _min_dscr(result.debt)
     summary_rows = [
-        {"Metric": "Revenue (Year 4)", "Value": _format_money(result.pnl[last_year]["revenue"]), "Unit": "EUR"},
         {
-            "Metric": "Profit Before Depreciation (Year 4)",
+            "Metric": f"Revenue ({_year_label(last_year)})",
+            "Value": _format_money(result.pnl[last_year]["revenue"]),
+            "Unit": "EUR",
+        },
+        {
+            "Metric": f"Profit Before Depreciation ({_year_label(last_year)})",
             "Value": _format_money(result.pnl[last_year]["ebitda"]),
             "Unit": "EUR",
         },
-        {"Metric": "Net Profit (Year 4)", "Value": _format_money(result.pnl[last_year]["net_income"]), "Unit": "EUR"},
         {
-            "Metric": "Cash After Investment (Year 4)",
+            "Metric": f"Net Profit ({_year_label(last_year)})",
+            "Value": _format_money(result.pnl[last_year]["net_income"]),
+            "Unit": "EUR",
+        },
+        {
+            "Metric": f"Cash After Investment ({_year_label(last_year)})",
             "Value": _format_money(result.cashflow[last_year]["free_cashflow"]),
             "Unit": "EUR",
         },
@@ -941,9 +995,10 @@ def _render_statement_table_html(
     bold_set = set(bold_labels or [])
     class_map = dict(row_classes or {})
     if year_labels is not None:
+        years = len(year_labels)
         headers = ["Line Item"] + year_labels
     else:
-        headers = ["Line Item"] + [f"Year {i}" for i in range(years)]
+        headers = ["Line Item"] + build_year_labels(years)
     html = ['<table class="fin-table">', "<thead><tr>"]
     for index, header in enumerate(headers):
         if index == 0:
@@ -996,7 +1051,12 @@ def _render_kpi_table_html(
     table_class: str = "kpi-table",
     bold_rows: Iterable[str] | None = None,
 ) -> None:
-    if "Year 0" in columns:
+    if any(
+        header.startswith("Year")
+        or header.startswith("Transition Year")
+        or header.startswith("Business Plan Year")
+        for header in columns
+    ):
         table_class = f"{table_class} year-table"
     html = [f'<table class="{table_class}">', "<thead><tr>"]
     bold_set = set(bold_rows or [])
