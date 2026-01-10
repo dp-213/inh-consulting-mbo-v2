@@ -122,6 +122,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             value=100.0,
             key=f"pnl.quick.overhead_pct.{scenario}",
         )
+        st.markdown(
+            '<div class="hint-text">Temporary what-if overrides for this page only; values are not saved and do not change the Revenue Model inputs.</div>',
+            unsafe_allow_html=True,
+        )
 
     updated_assumptions = _apply_quick_inputs(
         assumptions=assumptions,

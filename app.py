@@ -194,6 +194,10 @@ def _inject_base_styles() -> None:
             color: #6b7280;
             font-size: 0.9rem;
           }
+          .hint-text {
+            color: #9ca3af;
+            font-size: 0.75rem;
+          }
           .metric-grid {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
