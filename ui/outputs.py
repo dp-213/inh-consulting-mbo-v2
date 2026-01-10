@@ -584,12 +584,17 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
 
 def render_valuation_summary(result: ModelResult) -> None:
     enterprise_value = result.equity.get("enterprise_value", 0.0)
+    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
+    excess_cash_exit = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
-    gap = exit_value - enterprise_value
+    last_year_ebit = result.pnl[-1]["ebit"] if result.pnl else 0.0
+    implied_multiple = (enterprise_value / last_year_ebit) if last_year_ebit else 0.0
 
     debt_year0 = result.debt[0] if result.debt else {}
     closing_debt = debt_year0.get("closing_debt", 0.0)
-    cash_at_close = result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
+    cash_at_close = (
+        result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
+    )
     net_debt_close = closing_debt - cash_at_close
     free_cf = [row["free_cashflow"] for row in result.cashflow]
     discount_rate = 0.10
@@ -601,54 +606,111 @@ def render_valuation_summary(result: ModelResult) -> None:
         running += value
         cumulative_pv.append(running)
     dcf_value = cumulative_pv[-1] if cumulative_pv else 0.0
-    valuation_methods = [
-        {"Method": "Multiple-Based Valuation", "Value (EUR)": _format_money(enterprise_value)},
-        {"Method": "DCF-Based Valuation (no terminal)", "Value (EUR)": _format_money(dcf_value)},
-        {"Method": "Intrinsic / Cash-Based Value", "Value (EUR)": _format_money(exit_value)},
+
+    st.markdown("### Valuation Methods – Detailed Breakdown")
+    st.markdown("#### Multiple-Based Valuation")
+    multiple_rows = [
+        ("Exit Year EBIT", [last_year_ebit]),
+        (
+            "Implied Multiple (model input)",
+            [f"{implied_multiple:.2f}x" if last_year_ebit else "n/a"],
+        ),
+        ("Equity Value (Multiple-Based)", [enterprise_value]),
     ]
-    st.markdown("### Valuation Overview")
-    _render_kpi_table_html(valuation_methods, ["Method", "Value (EUR)"])
-    st.markdown(
-        '<div class="hint-text">Different methods capture different risk and growth perspectives.</div>',
-        unsafe_allow_html=True,
+    _render_statement_table_html(
+        multiple_rows,
+        bold_labels={"Equity Value (Multiple-Based)"},
+        years=1,
+        year_labels=["Value"],
     )
 
-    valuation_range = [
-        {"Metric": "Valuation Range (Min)", "Value": _format_money(min(enterprise_value, dcf_value, exit_value))},
-        {"Metric": "Valuation Range (Max)", "Value": _format_money(max(enterprise_value, dcf_value, exit_value))},
+    st.markdown("#### DCF-Based Valuation (no terminal)")
+    dcf_rows = [
+        ("Free Cashflow", free_cf),
+        ("Discount Factor", [f"{value:.2f}" for value in discount_factors]),
+        ("Present Value of FCF", pv_fcf),
+        ("Cumulative PV of FCF", cumulative_pv),
+        ("Equity Value (DCF, no terminal)", ["", "", "", "", dcf_value]),
     ]
+    _render_statement_table_html(
+        dcf_rows,
+        bold_labels={"Equity Value (DCF, no terminal)"},
+    )
+
+    st.markdown("#### Intrinsic / Cash-Based Value")
+    intrinsic_rows = [
+        ("Enterprise Value (Exit Multiple)", [enterprise_value]),
+        ("Net Debt at Exit", [net_debt_exit]),
+        ("Excess Cash at Exit", [excess_cash_exit]),
+        ("Equity Value (Cash-Based)", [exit_value]),
+    ]
+    _render_statement_table_html(
+        intrinsic_rows,
+        bold_labels={"Equity Value (Cash-Based)"},
+        years=1,
+        year_labels=["Value"],
+    )
+
+    st.markdown("### Valuation Summary (Method Comparison)")
+    method_rows = [
+        ("Multiple-Based Valuation", [enterprise_value, "Optimistic"]),
+        ("DCF-Based Valuation (no terminal)", [dcf_value, "Conservative"]),
+        ("Intrinsic / Cash-Based Value", [exit_value, "Financing-constrained"]),
+    ]
+    _render_statement_table_html(
+        method_rows,
+        years=2,
+        year_labels=["Equity Value", "Characterization"],
+    )
+
+    valuation_min = min(enterprise_value, dcf_value, exit_value)
+    valuation_max = max(enterprise_value, dcf_value, exit_value)
     st.markdown("### Valuation Range & Interpretation")
-    _render_kpi_table_html(valuation_range, ["Metric", "Value"])
+    range_rows = [
+        ("Conservative Floor (Min)", [valuation_min]),
+        ("Optimistic Ceiling (Max)", [valuation_max]),
+    ]
+    _render_statement_table_html(range_rows, years=1, year_labels=["Value"])
     st.markdown(
-        '<div class="hint-text">Optimistic methods: Multiple-Based Valuation. Conservative methods: DCF-Based (no terminal).</div>',
-        unsafe_allow_html=True,
+        "- The range is wide because methods weight risk and growth differently.\n"
+        "- Downside is driven by cashflow timing and financing constraints.\n"
+        "- Upside remains uncertain without terminal value visibility."
     )
 
+    st.markdown("### Buyer Affordability & Price Ceiling")
     affordability_rows = [
-        {"Metric": "Buyer Affordability (Equity Value after financing)", "Value": _format_money(exit_value)},
-        {"Metric": "Net Debt at Close (reference)", "Value": _format_money(net_debt_close)},
+        ("Buyer Affordability (Equity Value after financing)", [exit_value]),
+        ("Net Debt at Close (reference)", [net_debt_close]),
     ]
-    st.markdown("### Buyer Affordability & Financing Constraints")
-    _render_kpi_table_html(affordability_rows, ["Metric", "Value"])
+    _render_statement_table_html(
+        affordability_rows,
+        years=1,
+        year_labels=["Value"],
+    )
     st.markdown(
-        '<div class="hint-text">Based on discounted free cashflow. No terminal value included.</div>',
-        unsafe_allow_html=True,
+        "Affordability is a financing- and liquidity-constrained ceiling, not a valuation."
     )
 
+    midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
+    price_gap = exit_value - midpoint
+    st.markdown("### Value vs. Price – Negotiation Logic")
     gap_rows = [
-        {"Metric": "Seller Asking Value", "Value": _format_money(enterprise_value)},
-        {"Metric": "Buyer Affordability", "Value": _format_money(exit_value)},
-        {"Metric": "Purchase Price Gap (EUR)", "Value": _format_money(gap)},
+        ("Valuation Midpoint (reference)", [midpoint]),
+        ("Buyer Affordability", [exit_value]),
+        ("Price Gap (EUR)", [price_gap]),
     ]
-    st.markdown("### Purchase Price Gap & Negotiation Levers")
-    _render_kpi_table_html(gap_rows, ["Metric", "Value"])
+    _render_statement_table_html(
+        gap_rows,
+        bold_labels={"Price Gap (EUR)"},
+        years=1,
+        year_labels=["Value"],
+    )
     st.markdown(
-        "Key levers to reduce purchase price relative to value:\n"
-        "- Financing constraints (debt service, liquidity risk)\n"
-        "- Cashflow timing and downside protection\n"
-        "- Lack of terminal value visibility\n"
-        "- People dependency / key person risk\n"
-        "- Transition & separation risks\n"
+        "Key arguments to justify purchase price below value:\n"
+        "- Financing and liquidity risk\n"
+        "- Downside-only DCF (no terminal value)\n"
+        "- People dependency\n"
+        "- Transition and separation risk\n"
         "- Conservative buyer-side risk adjustments"
     )
 
@@ -674,21 +736,26 @@ def render_valuation_detail(result: ModelResult) -> None:
         {"Metric": "Net Debt at Close", "Value": _format_money(net_debt_close)},
     ]
     st.markdown("#### Net Debt at Close (Reference)")
-    _render_kpi_table_html(
-        net_debt_rows,
-        columns=["Metric", "Value"],
-        table_class="kpi-table",
-        bold_rows={"Net Debt at Close"},
+    _render_statement_table_html(
+        [(row["Metric"], [row["Value"]]) for row in net_debt_rows],
+        bold_labels={"Net Debt at Close"},
+        years=1,
+        year_labels=["Value"],
     )
 
     st.markdown("#### Seller Valuation (Multiple-Based)")
     seller_rows = [
-        {"Metric": "Enterprise Value", "Value": _format_money(enterprise_value)},
-        {"Metric": "Net Debt at Exit", "Value": _format_money(net_debt_exit)},
-        {"Metric": "Excess Cash at Exit", "Value": _format_money(excess_cash)},
-        {"Metric": "Equity Value (Seller View)", "Value": _format_money(exit_value)},
+        ("Enterprise Value", [_format_money(enterprise_value)]),
+        ("Net Debt at Exit", [_format_money(net_debt_exit)]),
+        ("Excess Cash at Exit", [_format_money(excess_cash)]),
+        ("Equity Value (Seller View)", [_format_money(exit_value)]),
     ]
-    _render_kpi_table_html(seller_rows, columns=["Metric", "Value"], table_class="kpi-table")
+    _render_statement_table_html(
+        seller_rows,
+        bold_labels={"Equity Value (Seller View)"},
+        years=1,
+        year_labels=["Value"],
+    )
 
 
 def render_input_summary(result: ModelResult) -> None:
