@@ -24,3 +24,7 @@ Iteration 5
 - Simplified labels across outputs/inputs, added read-only summaries to every planning page, and made Year 0 visually distinct.
 - Standardized currency units to "€", added thousand separators, clarified loan language, and added plain-language case error prompts.
 - Remaining violations: none observed after this pass.
+
+Iteration 6
+- Violations found: sidebar structure did not match required IA; case management controls were outside settings; statements lacked grouping and totals emphasis; currency and percent formatting lacked k€/m€ and % signs; Base Case was at risk of being overwritten by default.
+- Changes made: rebuilt sidebar into sectioned radio navigation; moved case management and export into Settings pages; embedded the wizard into Revenue Model as the recommended start; added statement section headers and total emphasis; standardized money display to k€/m€ and percent display to 70.0%; auto-clone Base Case into Working Copy on first edit; added case badge and overview case selector.

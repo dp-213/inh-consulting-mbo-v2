@@ -7,5 +7,6 @@ from ui import outputs
 
 
 def render(result: ModelResult) -> None:
-    st.markdown("## Owner Returns")
+    st.markdown("## Equity Case")
+    st.markdown("Owner return profile from entry to exit.")
     outputs.render_equity_case(result)

@@ -12,89 +12,54 @@ from ui.pages import (
     balance_sheet,
     cashflow,
     cost_model,
+    case_management,
     equity_case,
-    financing_assumptions,
     financing_debt,
     model_settings,
+    model_export,
     other_assumptions,
     overview,
     pnl,
-    planning_wizard,
     revenue_model,
     valuation,
 )
 
-PAGES = [
-    "Start Here — Planning Wizard",
-    "Analysis — Overview",
-    "Analysis — Operating Model",
-    "Analysis — Cash Flow",
-    "Analysis — Balance Sheet",
-    "Planning — Revenue Inputs",
-    "Planning — Cost Inputs",
-    "Planning — Financing Inputs",
-    "Planning — Other Inputs",
-    "Financing — Loan View",
-    "Financing — Owner Returns",
-    "Value — Purchase Price",
-    "Settings — Model Settings",
-]
+SECTIONS = {
+    "OVERVIEW": ["Overview"],
+    "OPERATING MODEL (OUTPUT / ANALYSIS)": [
+        "Operating Model (Profit & Loss)",
+        "Cashflow & Liquidity",
+        "Balance Sheet",
+    ],
+    "PLANNING (MODEL INPUTS)": ["Revenue Model", "Cost Model", "Other Assumptions"],
+    "FINANCING": ["Financing & Debt", "Equity Case"],
+    "VALUATION": ["Valuation & Purchase Price"],
+    "SETTINGS": ["Model Settings", "Case Management", "Model Export / Snapshot"],
+}
+
+DEFAULT_PAGE = "Revenue Model"
 
 
-def _render_case_bar(assumptions, current_path, case_options):
-    st.markdown("## Case")
-    case_col, scenario_col = st.columns([2, 2])
-    with case_col:
-        st.table([{"Current Case": _case_name(current_path)}])
-    with scenario_col:
-        scenario = st.selectbox(
-            "Case View",
-            ["Base", "Best", "Worst"],
-            index=["Base", "Best", "Worst"].index(assumptions.scenario),
+def _render_sidebar(current_page: str) -> str:
+    selected_page = current_page
+    for title, options in SECTIONS.items():
+        st.sidebar.markdown(f"### {title}")
+        index = options.index(current_page) if current_page in options else None
+        choice = st.sidebar.radio(
+            "",
+            options,
+            index=index,
+            key=f"nav_{title}",
+            label_visibility="collapsed",
         )
-        st.markdown("Applies to input view only.")
-        if scenario != assumptions.scenario:
-            assumptions = replace(assumptions, scenario=scenario)
+        if choice:
+            selected_page = choice
+    return selected_page
 
-    with st.expander("Manage Cases", expanded=False):
-        name_col, load_col = st.columns([2, 2])
-        with name_col:
-            new_case_table = st.data_editor(
-                [{"Parameter": "New Case Name", "Value": ""}],
-                use_container_width=True,
-            )
-            if hasattr(new_case_table, "to_dict"):
-                records = new_case_table.to_dict(orient="records")
-            else:
-                records = new_case_table
-            new_case_name = str(records[0].get("Value", "") or "").strip()
-        with load_col:
-            load_choice = st.selectbox(
-                "Load Case",
-                ["Select case..."] + case_options,
-                index=0,
-            )
 
-        button_cols = st.columns([1, 1, 1, 1])
-        with button_cols[0]:
-            save_pressed = st.button("Save")
-        with button_cols[1]:
-            save_as_pressed = st.button("Save As")
-        with button_cols[2]:
-            load_pressed = st.button("Load Selected Case")
-        with button_cols[3]:
-            reset_pressed = st.button("Reset to Base")
-
-    actions = {
-        "save": save_pressed,
-        "save_as": save_as_pressed,
-        "load": load_pressed,
-        "reset": reset_pressed,
-        "load_choice": load_choice,
-        "new_case_name": new_case_name,
-    }
+def _render_case_badge(current_path: str, scenario: str) -> None:
+    st.markdown(f"Case: **{_case_name(current_path)}** | Scenario: **{scenario}**")
     st.markdown("---")
-    return assumptions, actions
 
 
 def _case_name(path: str) -> str:
@@ -109,86 +74,107 @@ def main() -> None:
     if "data_path" not in st.session_state:
         st.session_state["data_path"] = "data/base_case.json"
 
-    page = st.sidebar.selectbox("Navigate", PAGES, index=0, key="page")
+    if "page" not in st.session_state:
+        st.session_state["page"] = DEFAULT_PAGE
+    page = _render_sidebar(st.session_state["page"])
+    st.session_state["page"] = page
 
     data_path = st.session_state["data_path"]
     original_assumptions = load_assumptions(data_path)
     assumptions = original_assumptions
     base_case = load_assumptions("data/base_case.json")
     case_options = list_cases()
-    assumptions, actions = _render_case_bar(assumptions, data_path, case_options)
 
-    if actions["save_as"] and not actions["new_case_name"]:
-        st.markdown("Enter a case name before saving a copy.")
-    if actions["load"] and actions["load_choice"] == "Select case...":
-        st.markdown("Select a case to load, then click Load Selected Case.")
+    _render_case_badge(data_path, assumptions.scenario)
 
-    if page.startswith("Planning —") or page == "Start Here — Planning Wizard":
+    if page == "Overview":
+        st.markdown("Use the selector below to switch between saved cases.")
+        overview_choice = st.selectbox(
+            "Case",
+            ["Select case..."] + ["Base Case"] + case_options,
+            index=0,
+        )
+        if overview_choice == "Base Case":
+            data_path = "data/base_case.json"
+            st.session_state["data_path"] = data_path
+            assumptions = load_assumptions(data_path)
+        elif overview_choice != "Select case...":
+            data_path = str(case_path(overview_choice))
+            st.session_state["data_path"] = data_path
+            assumptions = load_case(data_path)
+        st.markdown("---")
+
+    if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
         st.markdown("Percent inputs use whole numbers (70 = 70%).")
 
-    if actions["reset"]:
-        data_path = "data/base_case.json"
-        st.session_state["data_path"] = data_path
-        assumptions = load_assumptions(data_path)
-    elif actions["load"] and actions["load_choice"] != "Select case...":
-        data_path = str(case_path(actions["load_choice"]))
-        st.session_state["data_path"] = data_path
-        assumptions = load_case(data_path)
-
-    if page == "Planning — Revenue Inputs":
+    if page == "Revenue Model":
         updated_assumptions = revenue_model.render(assumptions)
-    elif page == "Start Here — Planning Wizard":
-        updated_assumptions = planning_wizard.render_inputs(assumptions)
-    elif page == "Planning — Cost Inputs":
+    elif page == "Cost Model":
         updated_assumptions = cost_model.render(assumptions)
-    elif page == "Planning — Financing Inputs":
-        updated_assumptions = financing_assumptions.render(assumptions)
-    elif page == "Planning — Other Inputs":
+    elif page == "Other Assumptions":
         updated_assumptions = other_assumptions.render(assumptions)
     else:
         updated_assumptions = assumptions
 
+    if data_path.endswith("base_case.json") and asdict(updated_assumptions) != asdict(original_assumptions):
+        working_path = str(case_path("Working Copy"))
+        save_case(updated_assumptions, working_path)
+        st.session_state["data_path"] = working_path
+        data_path = working_path
+        st.markdown("Base Case cloned to Working Copy for edits.")
+
     if asdict(updated_assumptions) != asdict(original_assumptions):
         save_case(updated_assumptions, data_path)
 
-    if actions["save"]:
-        save_case(updated_assumptions, data_path)
-    if actions["save_as"] and actions["new_case_name"]:
-        new_path = str(case_path(actions["new_case_name"]))
-        save_case(updated_assumptions, new_path)
-        st.session_state["data_path"] = new_path
-        data_path = new_path
-    if actions["load_choice"] == "Select case...":
-        pass
+    if page == "Case Management":
+        case_actions = case_management.render(updated_assumptions, data_path, case_options)
+        scenario = case_actions["scenario"]
+        if scenario != updated_assumptions.scenario:
+            updated_assumptions = replace(updated_assumptions, scenario=scenario)
+            save_case(updated_assumptions, data_path)
+        if case_actions["reset"]:
+            data_path = "data/base_case.json"
+            st.session_state["data_path"] = data_path
+            updated_assumptions = load_assumptions(data_path)
+        elif case_actions["load"] and case_actions["load_choice"] != "Select case...":
+            data_path = str(case_path(case_actions["load_choice"]))
+            st.session_state["data_path"] = data_path
+            updated_assumptions = load_case(data_path)
+        if case_actions["save"]:
+            save_case(updated_assumptions, data_path)
+        if case_actions["save_as"] and case_actions["new_case_name"]:
+            new_path = str(case_path(case_actions["new_case_name"]))
+            save_case(updated_assumptions, new_path)
+            st.session_state["data_path"] = new_path
+            data_path = new_path
+        if case_actions["save_as"] and not case_actions["new_case_name"]:
+            st.markdown("Enter a case name before saving a copy.")
+        if case_actions["load"] and case_actions["load_choice"] == "Select case...":
+            st.markdown("Select a case to load, then click Load Selected Case.")
 
     result = run_model(updated_assumptions)
 
-    if page in {
-        "Planning — Revenue Inputs",
-        "Planning — Cost Inputs",
-        "Planning — Financing Inputs",
-        "Planning — Other Inputs",
-    }:
+    if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
         outputs.render_input_summary(result)
 
-    if page == "Analysis — Overview":
+    if page == "Overview":
         overview.render(result, updated_assumptions, base_case)
-    elif page == "Analysis — Operating Model":
+    elif page == "Operating Model (Profit & Loss)":
         pnl.render(result)
-    elif page == "Analysis — Cash Flow":
+    elif page == "Cashflow & Liquidity":
         cashflow.render(result)
-    elif page == "Analysis — Balance Sheet":
+    elif page == "Balance Sheet":
         balance_sheet.render(result)
-    elif page == "Financing — Loan View":
+    elif page == "Financing & Debt":
         financing_debt.render(result)
-    elif page == "Financing — Owner Returns":
+    elif page == "Equity Case":
         equity_case.render(result)
-    elif page == "Value — Purchase Price":
+    elif page == "Valuation & Purchase Price":
         valuation.render(result)
-    elif page == "Settings — Model Settings":
+    elif page == "Model Settings":
         model_settings.render(data_path)
-    elif page == "Start Here — Planning Wizard":
-        planning_wizard.render_outputs(result)
+    elif page == "Model Export / Snapshot":
+        model_export.render(updated_assumptions)
 
 
 if __name__ == "__main__":

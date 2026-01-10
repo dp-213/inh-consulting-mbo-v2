@@ -21,3 +21,7 @@ Use this file to append findings and decisions after each iteration.
 ## Iteration 5
 - Findings: Residual jargon in labels, missing read-only summaries on planning pages, and inconsistent unit/formatting cues for currency and Year 0.
 - Decisions: Simplified labels to plain language, added read-only summary blocks on every input page, standardized € units with thousand separators, and made Year 0 visually distinct.
+
+## Iteration 6
+- Findings: Sidebar structure diverged from required IA, case controls were too visible outside settings, statements lacked grouping emphasis, and number formatting did not meet k€/m€ and % rules.
+- Decisions: Rebuilt sidebar into sectioned radio nav, moved case management/export into settings pages, added statement section headers and total emphasis, standardized k€/m€ and percent display, and added Base Case auto-clone protection.

@@ -649,7 +649,7 @@ def _row_value(table: List[dict], name: str):
         if row.get("Parameter") == name:
             value = row.get("Value", row.get(YEARS[0], 0.0))
             unit = str(row.get("Unit", "")).strip()
-            if isinstance(value, str) and any(char.isalpha() for char in value):
+            if isinstance(value, str) and _looks_like_text(value):
                 return value
             if _is_percent_unit(unit):
                 return _to_float(value) / 100
@@ -663,7 +663,18 @@ def _to_float(value) -> float:
     if isinstance(value, (int, float)):
         return float(value)
     try:
-        return float(str(value).replace(",", "").strip())
+        text = str(value).replace(",", "").strip().lower()
+        multiplier = 1.0
+        if text.endswith("%"):
+            text = text[:-1]
+        text = text.replace("€", "").strip()
+        if text.endswith("k"):
+            multiplier = 1_000.0
+            text = text[:-1]
+        if text.endswith("m"):
+            multiplier = 1_000_000.0
+            text = text[:-1]
+        return float(text) * multiplier
     except ValueError:
         return 0.0
 
@@ -673,9 +684,9 @@ def _display_value(value, unit: str):
     if isinstance(value, str):
         return value
     if _is_percent_unit(str(unit).strip()):
-        return f"{float(number) * 100:,.2f}" if number is not None else "0.00"
+        return f"{float(number) * 100:,.1f}%" if number is not None else "0.0%"
     if _is_currency_unit(str(unit).strip()):
-        return f"{float(number):,.0f}" if number is not None else "0"
+        return _format_currency_display(number)
     return f"{float(number):,.2f}" if number is not None else "0.00"
 
 
@@ -685,6 +696,26 @@ def _is_percent_unit(unit: str) -> bool:
 
 def _is_currency_unit(unit: str) -> bool:
     return "€" in unit and "%" not in unit
+
+
+def _format_currency_display(value: float) -> str:
+    if value is None:
+        return "0"
+    abs_value = abs(value)
+    if abs_value >= 1_000_000:
+        return f"{value / 1_000_000:,.2f}m€"
+    if abs_value >= 1_000:
+        return f"{value / 1_000:,.1f}k€"
+    return f"{value:,.0f}€"
+
+
+def _looks_like_text(value: str) -> bool:
+    text = value.strip().lower()
+    if text in {"yes", "no", "linear", "bullet", "straight-line", "lump-sum", "none"}:
+        return True
+    if text.startswith("year"):
+        return True
+    return not any(char.isdigit() for char in text)
 
 
 def _format_special_year(value: int | None) -> str:
