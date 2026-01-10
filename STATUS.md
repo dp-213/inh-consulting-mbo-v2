@@ -166,3 +166,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Restructured Valuation & Purchase Price into four bank-style blocks separating value, range, affordability, and negotiation levers.
+- Replaced the metric grid with method-specific valuation and range tables to keep value vs price distinct.
+- Simplified detailed analysis to factual net-debt and seller-view tables only.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
