@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import streamlit as st
 
 from model.run_model import ModelResult, run_model
@@ -41,6 +43,21 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     with st.expander("Key Assumptions", expanded=False):
         updated_assumptions = inputs.render_balance_sheet_key_assumptions(
             assumptions, "balance.assumptions"
+        )
+    if (
+        updated_assumptions.balance_sheet.opening_equity_eur
+        != updated_assumptions.cashflow.opening_cash_balance_eur
+    ):
+        st.markdown(
+            '<div class="subtle">Opening equity is aligned with opening cash to keep the balance sheet in balance.</div>',
+            unsafe_allow_html=True,
+        )
+        updated_assumptions = replace(
+            updated_assumptions,
+            cashflow=replace(
+                updated_assumptions.cashflow,
+                opening_cash_balance_eur=updated_assumptions.balance_sheet.opening_equity_eur,
+            ),
         )
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
