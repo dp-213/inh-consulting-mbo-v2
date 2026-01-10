@@ -13,14 +13,11 @@ from state.json_export import export_case_snapshot_json
 
 def render(assumptions: Assumptions, result: ModelResult) -> None:
     st.markdown("# Model Export")
-    st.markdown(
-        "Generate an IC-ready Excel model from the current case and scenario. "
-        "The export mirrors the tool structure and keeps formulas live."
-    )
+    st.caption("This page lets you export the current case exactly as shown in the tool.")
 
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
-    st.markdown(f"Case: {case_name} | Scenario: {scenario}")
+    st.caption(f"Current selection: {case_name} · {scenario}")
 
     export_key = (case_name, scenario)
     if st.session_state.get("export_key") != export_key:
@@ -30,8 +27,20 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
         st.session_state.pop("json_export_filename", None)
         st.session_state["export_key"] = export_key
 
-    actions = st.columns(2)
-    with actions[0]:
+    st.markdown("---")
+
+    with st.container():
+        st.subheader("Excel model export")
+        st.write(
+            "Exports a fully integrated Excel model that matches the structure of the tool."
+        )
+        st.write(
+            "Use this when you want to share the model for IC discussion, offline analysis, or review in Excel."
+        )
+        st.write(
+            "The exported file keeps formulas, formatting, and links across sheets, and reflects the current case and scenario."
+        )
+
         if st.button("Export IC-Ready Excel Model", type="primary"):
             try:
                 export_bytes = export_ic_excel(assumptions, result, case_name)
@@ -54,7 +63,18 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
-    with actions[1]:
+    st.markdown("---")
+
+    with st.container():
+        st.subheader("JSON case export")
+        st.write(
+            "Exports a complete snapshot of the current inputs for this case, including Base / Best / Worst assumptions."
+        )
+        st.write(
+            "Use this to version cases, store them in the repository, or share a reproducible case snapshot."
+        )
+        st.write("The JSON can be re-loaded later without losing information.")
+
         if st.button("Download Case (JSON)"):
             try:
                 export_bytes = export_case_snapshot_json(
