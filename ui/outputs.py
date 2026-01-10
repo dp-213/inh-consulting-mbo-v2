@@ -170,7 +170,7 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         ("EBITDA", ebitda),
         ("EBIT", ebit),
         ("Net Income", net_income),
-        ("__kpi_divider__", None),
+        ("KPI", None),
         *kpi_rows,
     ]
     _render_statement_table_html(
@@ -183,10 +183,13 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
             "EBIT",
             "Net Income",
         },
-        row_classes={label: "kpi-row" for label, _ in kpi_rows},
+        row_classes={
+            **{label: "kpi-row" for label, _ in kpi_rows},
+            "KPI": "kpi-section",
+        },
     )
 
-    with st.expander("Detailed P&L Breakdown & Logic", expanded=False):
+    with st.expander("Detailed analysis", expanded=False):
         st.markdown("#### Full P&L")
         detailed_rows = [
             ("REVENUE", None),
@@ -553,16 +556,13 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     )
 
 
-def render_valuation(result: ModelResult) -> None:
+def render_valuation_summary(result: ModelResult) -> None:
     st.markdown(
         '<div class="subtle">This page compares seller expectations with a conservative buyer view. The buyer view focuses on cash generation, financing constraints and downside risk.</div>',
         unsafe_allow_html=True,
     )
     enterprise_value = result.equity.get("enterprise_value", 0.0)
-    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
-    excess_cash = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
-
     gap = exit_value - enterprise_value
     gap_pct = (gap / enterprise_value * 100) if enterprise_value else 0.0
     metric_items = [
@@ -578,6 +578,43 @@ def render_valuation(result: ModelResult) -> None:
         )
     metric_html.append("</div>")
     st.markdown("".join(metric_html), unsafe_allow_html=True)
+
+    debt_year0 = result.debt[0] if result.debt else {}
+    closing_debt = debt_year0.get("closing_debt", 0.0)
+    cash_at_close = result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
+    net_debt_close = closing_debt - cash_at_close
+    free_cf = [row["free_cashflow"] for row in result.cashflow]
+    discount_rate = 0.10
+    discount_factors = [(1 / ((1 + discount_rate) ** (idx + 1))) for idx in range(5)]
+    pv_fcf = [free_cf[idx] * discount_factors[idx] for idx in range(5)]
+    cumulative_pv = []
+    running = 0.0
+    for value in pv_fcf:
+        running += value
+        cumulative_pv.append(running)
+    buyer_rows = [
+        ("Free Cashflow", free_cf),
+        ("Discount Factor", [f"{value:.2f}" for value in discount_factors]),
+        ("Present Value of FCF", pv_fcf),
+        ("Cumulative PV of FCF", cumulative_pv),
+        ("PV of FCF (no terminal)", cumulative_pv),
+        ("Net Debt at Close", [net_debt_close for _ in range(5)]),
+        ("Transaction Costs", [0.0 for _ in range(5)]),
+        ("Equity Value (Buyer View)", [exit_value for _ in range(5)]),
+    ]
+    _render_statement_table_html(
+        buyer_rows,
+        bold_labels={"Equity Value (Buyer View)"},
+    )
+
+
+def render_valuation_detail(result: ModelResult) -> None:
+    enterprise_value = result.equity.get("enterprise_value", 0.0)
+    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
+    excess_cash = result.equity.get("excess_cash_exit", 0.0)
+    exit_value = result.equity.get("exit_value", 0.0)
+    gap = exit_value - enterprise_value
+    gap_pct = (gap / enterprise_value * 100) if enterprise_value else 0.0
 
     st.markdown(
         '<div class="callout-bar">Net Debt at Close is taken from the Debt Schedule (Year 0): Closing Debt.</div>',
@@ -620,29 +657,6 @@ def render_valuation(result: ModelResult) -> None:
         '<div class="subtle">Note: No terminal value included (conservative downside view).</div>',
         unsafe_allow_html=True,
     )
-    free_cf = [row["free_cashflow"] for row in result.cashflow]
-    discount_rate = 0.10
-    discount_factors = [(1 / ((1 + discount_rate) ** (idx + 1))) for idx in range(5)]
-    pv_fcf = [free_cf[idx] * discount_factors[idx] for idx in range(5)]
-    cumulative_pv = []
-    running = 0.0
-    for value in pv_fcf:
-        running += value
-        cumulative_pv.append(running)
-    buyer_rows = [
-        ("Free Cashflow", free_cf),
-        ("Discount Factor", [f"{value:.2f}" for value in discount_factors]),
-        ("Present Value of FCF", pv_fcf),
-        ("Cumulative PV of FCF", cumulative_pv),
-        ("PV of FCF (no terminal)", cumulative_pv),
-        ("Net Debt at Close", [net_debt_close for _ in range(5)]),
-        ("Transaction Costs", [0.0 for _ in range(5)]),
-        ("Equity Value (Buyer View)", [exit_value for _ in range(5)]),
-    ]
-    _render_statement_table_html(
-        buyer_rows,
-        bold_labels={"Equity Value (Buyer View)"},
-    )
 
     st.markdown("### Purchase Price Logic")
     st.markdown(
@@ -674,6 +688,8 @@ def render_valuation(result: ModelResult) -> None:
     st.markdown("### Buyer View (Active Scenario)")
     buyer_summary_rows = [
         {"Metric": "Equity Value (Buyer View)", "Value": _format_money(exit_value)},
+        {"Metric": "Net Debt at Exit", "Value": _format_money(net_debt_exit)},
+        {"Metric": "Excess Cash at Exit", "Value": _format_money(excess_cash)},
     ]
     _render_kpi_table_html(
         buyer_summary_rows,
@@ -807,14 +823,12 @@ def _render_statement_table_html(
         html.append(f"<th>{header}</th>")
     html.append("</tr></thead><tbody>")
     for label, values in rows:
-        if label == "__kpi_divider__" and values is None:
-            html.append(f'<tr class="kpi-divider"><td colspan="{years + 1}"></td></tr>')
-            continue
         if label == "" and values is None:
             html.append(f'<tr class="spacer"><td colspan="{years + 1}"></td></tr>')
             continue
         if values is None:
-            html.append('<tr class="section">')
+            row_class = class_map.get(label, "section")
+            html.append(f'<tr class="{row_class}">')
             html.append(f"<td>{label}</td>")
             html.extend(["<td></td>" for _ in range(years)])
             html.append("</tr>")

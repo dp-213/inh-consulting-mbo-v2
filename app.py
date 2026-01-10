@@ -190,6 +190,16 @@ def _inject_base_styles() -> None:
             color: #6b7280;
             font-size: 0.74rem;
           }
+          .statement-table .kpi-section td {
+            border-top: 1px solid #e5e7eb;
+            color: #9ca3af;
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding-top: 0.35rem;
+            padding-bottom: 0.2rem;
+            background: transparent;
+          }
           .subtle {
             color: #6b7280;
             font-size: 0.9rem;

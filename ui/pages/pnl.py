@@ -123,7 +123,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             key=f"pnl.quick.overhead_pct.{scenario}",
         )
         st.markdown(
-            '<div class="hint-text">Temporary what-if overrides for this page only; values are not saved and do not change the Revenue Model inputs.</div>',
+            '<div class="hint-text">What-if sliders for this page only. Nothing is saved. Revenue Model stays the source of truth.</div>',
             unsafe_allow_html=True,
         )
 
@@ -135,4 +135,5 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         overhead_pct=overhead_pct,
     )
     updated_result = run_model(updated_assumptions)
+    st.markdown("### P&L (Summary)")
     outputs.render_operating_model(updated_result, updated_assumptions)
