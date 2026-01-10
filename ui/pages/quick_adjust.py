@@ -99,14 +99,13 @@ def render_quick_adjust_cashflow(assumptions: Assumptions, key_prefix: str) -> A
         f"{key_prefix}.tax_rate": cashflow.tax_cash_rate_pct,
         f"{key_prefix}.capex_pct": cashflow.capex_pct_revenue,
         f"{key_prefix}.wc_pct": cashflow.working_capital_pct_revenue,
-        f"{key_prefix}.opening_cash": cashflow.opening_cash_balance_eur,
     }
     with st.expander("Key Cashflow Drivers (Quick Adjust)", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)
             st.rerun()
-        cols = st.columns(4)
+        cols = st.columns(3)
         tax_rate = cols[0].number_input(
             "Cash tax rate",
             min_value=0.0,
@@ -131,13 +130,6 @@ def render_quick_adjust_cashflow(assumptions: Assumptions, key_prefix: str) -> A
             value=float(cashflow.working_capital_pct_revenue),
             key=f"{key_prefix}.wc_pct",
         )
-        opening_cash = cols[3].number_input(
-            "Opening cash (EUR)",
-            min_value=0.0,
-            step=10000.0,
-            value=float(cashflow.opening_cash_balance_eur),
-            key=f"{key_prefix}.opening_cash",
-        )
         st.markdown(
             '<div class="hint-text">What-if sliders for this page only. Nothing is saved. Revenue Model stays the source of truth.</div>',
             unsafe_allow_html=True,
@@ -147,7 +139,7 @@ def render_quick_adjust_cashflow(assumptions: Assumptions, key_prefix: str) -> A
         tax_payment_lag_years=cashflow.tax_payment_lag_years,
         capex_pct_revenue=capex_pct,
         working_capital_pct_revenue=wc_pct,
-        opening_cash_balance_eur=opening_cash,
+        opening_cash_balance_eur=cashflow.opening_cash_balance_eur,
     )
     return replace(assumptions, cashflow=updated_cashflow)
 
@@ -157,14 +149,13 @@ def render_quick_adjust_balance_sheet(assumptions: Assumptions, key_prefix: str)
     defaults = {
         f"{key_prefix}.opening_equity": balance.opening_equity_eur,
         f"{key_prefix}.depr_rate": balance.depreciation_rate_pct,
-        f"{key_prefix}.opening_cash": assumptions.cashflow.opening_cash_balance_eur,
     }
     with st.expander("Key Balance Sheet Drivers (Quick Adjust)", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)
             st.rerun()
-        cols = st.columns(3)
+        cols = st.columns(2)
         opening_equity = cols[0].number_input(
             "Opening equity (EUR)",
             min_value=0.0,
@@ -180,13 +171,6 @@ def render_quick_adjust_balance_sheet(assumptions: Assumptions, key_prefix: str)
             value=float(balance.depreciation_rate_pct),
             key=f"{key_prefix}.depr_rate",
         )
-        opening_cash = cols[2].number_input(
-            "Opening cash (EUR)",
-            min_value=0.0,
-            step=10000.0,
-            value=float(assumptions.cashflow.opening_cash_balance_eur),
-            key=f"{key_prefix}.opening_cash",
-        )
         st.markdown(
             '<div class="hint-text">What-if sliders for this page only. Nothing is saved. Revenue Model stays the source of truth.</div>',
             unsafe_allow_html=True,
@@ -195,10 +179,7 @@ def render_quick_adjust_balance_sheet(assumptions: Assumptions, key_prefix: str)
         opening_equity_eur=opening_equity,
         depreciation_rate_pct=depr_rate,
     )
-    updated_cashflow = replace(
-        assumptions.cashflow, opening_cash_balance_eur=opening_cash
-    )
-    return replace(assumptions, balance_sheet=updated_balance, cashflow=updated_cashflow)
+    return replace(assumptions, balance_sheet=updated_balance)
 
 
 def render_quick_adjust_valuation(assumptions: Assumptions, key_prefix: str) -> Assumptions:

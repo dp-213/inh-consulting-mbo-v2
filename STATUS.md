@@ -9,6 +9,7 @@ Changes:
 - Added page-specific quick-adjust drivers with a reset-to-planning button for P&L, Overview, Cashflow, Balance Sheet, and Valuation.
 - Refined sidebar active state with a darker blue highlight and clearer section headers.
 - Added a break-even line chart to the Overview page.
+- Removed opening cash quick-adjusts from Cashflow and Balance Sheet to prevent balance sheet errors.
 
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` to confirm the app starts without errors.
