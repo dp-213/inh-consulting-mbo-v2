@@ -118,6 +118,15 @@ def _inject_base_styles() -> None:
             gap: 0.45rem;
             text-align: left;
           }
+          [data-testid="stSidebar"] .stButton > button > div {
+            justify-content: flex-start;
+            width: 100%;
+          }
+          [data-testid="stSidebar"] .stButton > button p {
+            margin: 0;
+            width: 100%;
+            text-align: left;
+          }
           [data-testid="stSidebar"] .stButton > button:hover {
             background: #e9edf3;
           }
