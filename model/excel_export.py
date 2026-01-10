@@ -907,11 +907,11 @@ def _build_cashflow_sheet(
         styles,
         lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}*({assumptions_map['cashflow.wc_pct']}/100)",
     )
-        ws.row_dimensions[row_map["working_capital_balance"]].hidden = True
-        row = _write_formula_row(
-            ws,
-            row,
-            "Depreciation",
+    ws.row_dimensions[row_map["working_capital_balance"]].hidden = True
+    row = _write_formula_row(
+        ws,
+        row,
+        "Depreciation",
         "EUR",
         row_map,
         "depreciation",
@@ -922,33 +922,33 @@ def _build_cashflow_sheet(
         ),
     )
     ws.row_dimensions[row_map["depreciation"]].hidden = True
-        row = _write_formula_row(
-            ws,
-            row,
-            "Fixed Assets",
-            "EUR",
-            row_map,
-            "fixed_assets",
-            styles,
-            lambda c, idx=None: (
-                f"=MAX(IF({idx}=0,0,INDEX(C{row_map['fixed_assets']}:G{row_map['fixed_assets']},{idx}))"
-                f"+C{row_map['capex']}-C{row_map['depreciation']},0)"
-            ),
-        )
-        ws.row_dimensions[row_map["fixed_assets"]].hidden = True
-        row = _write_formula_row(
-            ws,
-            row,
-            "Taxes Due",
-            "EUR",
-            row_map,
-            "taxes_due",
-            styles,
-            lambda c, idx=None: (
-                f"=IF({pnl_map['ebt'][idx]}<=0,0,{pnl_map['ebt'][idx]}*{rate})"
-            ),
-        )
-        ws.row_dimensions[row_map["taxes_due"]].hidden = True
+    row = _write_formula_row(
+        ws,
+        row,
+        "Fixed Assets",
+        "EUR",
+        row_map,
+        "fixed_assets",
+        styles,
+        lambda c, idx=None: (
+            f"=MAX(IF({idx}=0,0,INDEX(C{row_map['fixed_assets']}:G{row_map['fixed_assets']},{idx}))"
+            f"+C{row_map['capex']}-C{row_map['depreciation']},0)"
+        ),
+    )
+    ws.row_dimensions[row_map["fixed_assets"]].hidden = True
+    row = _write_formula_row(
+        ws,
+        row,
+        "Taxes Due",
+        "EUR",
+        row_map,
+        "taxes_due",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({pnl_map['ebt'][idx]}<=0,0,{pnl_map['ebt'][idx]}*{rate})"
+        ),
+    )
+    ws.row_dimensions[row_map["taxes_due"]].hidden = True
 
     _apply_total_style(ws, row_map["operating_cf"], styles, 7)
     _apply_total_style(ws, row_map["free_cashflow"], styles, 7)
