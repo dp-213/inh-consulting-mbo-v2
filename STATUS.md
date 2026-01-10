@@ -14,3 +14,15 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` to confirm the app starts without errors.
 - Visual checks for quick-adjust placement and sidebar highlight not performed in this environment.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None.
+
+Changes:
+- Calmed the Streamlit sidebar by lightening the palette, tightening the nav section spacing, and flattening button padding while keeping every control left-aligned for a dense, Excel-like feel.
+- Switched the active navigation state to a neutral fill with a dark left accent so the current page reads as a location marker rather than a CTA while avoiding bright colors.
+
+Manual verification:
+- Mental smoke test: sidebar styling tweaks do not affect logic, so the app should still start cleanly, all pages render, and inputs continue to drive outputs.

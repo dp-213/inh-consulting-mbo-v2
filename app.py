@@ -70,41 +70,46 @@ def _inject_base_styles() -> None:
           }
           [data-testid="stSidebar"],
           [data-testid="stSidebarContent"] {
-            background: #f3f4f6;
+            background: #f6f6f8;
+            color: #111827;
           }
           [data-testid="stSidebar"] {
             min-width: 260px;
             max-width: 260px;
           }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.7rem;
-            letter-spacing: 0.14em;
+            font-size: 0.65rem;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: #4b5563;
+            color: #6b7280;
             font-weight: 600;
-            margin: 0.6rem 0 0.25rem;
-          }
+            margin: 1rem 0 0.35rem;
+            padding-left: 0.65rem;
+            }
           [data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             border: none;
-            padding: 0.25rem 0.55rem 0.25rem 0.7rem;
-            border-radius: 5px;
-            margin: 0.05rem 0;
-            color: #111827;
+            padding: 0.35rem 0.55rem 0.35rem 0.65rem;
+            border-radius: 0;
+            margin: 0;
+            color: #0f172a;
             background: transparent;
-            font-size: 0.78rem;
-            line-height: 1.2;
+            font-size: 0.85rem;
+            line-height: 1.35;
+            min-height: 34px;
           }
           [data-testid="stSidebar"] .stButton > button:hover {
-            background: #eef2f5;
+            background: #eceff4;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #dbe7ff;
-            border-left: 4px solid #1e3a8a;
+            background: #e4e7eb;
+            border-left: 4px solid #0f172a;
             font-weight: 600;
+            color: #0f172a;
+            box-shadow: none;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button:hover {
-            background: #c8ddff;
+            background: #d9dde2;
           }
           [data-testid="stRadio"] {
             background: #f8fafc;
