@@ -38,10 +38,28 @@ SECTIONS = {
 
 DEFAULT_PAGE = "Overview"
 NAV_PAGES = [page for pages in SECTIONS.values() for page in pages]
+NAV_ICONS = {
+    "Overview": "🏠",
+    "Operating Model (P&L)": "📊",
+    "Cashflow & Liquidity": "💧",
+    "Balance Sheet": "🧾",
+    "Valuation & Purchase Price": "💼",
+    "Revenue Model": "🧮",
+    "Cost Model": "🧱",
+    "Other Assumptions": "🧩",
+    "Financing & Debt": "🏦",
+    "Equity Case": "🤝",
+    "Case Management": "🗂️",
+    "Model Settings": "⚙️",
+    "Model Export": "📤",
+}
 
 
 def _render_sidebar(current_page: str) -> str:
-    st.sidebar.markdown("**MBO Financial Model**")
+    st.sidebar.markdown(
+        '<div class="sidebar-title">MBO Financial Model</div>',
+        unsafe_allow_html=True,
+    )
     if "page" not in st.session_state:
         st.session_state["page"] = current_page
     for section, pages in SECTIONS.items():
@@ -51,8 +69,10 @@ def _render_sidebar(current_page: str) -> str:
         )
         for page in pages:
             is_active = st.session_state["page"] == page
+            icon = NAV_ICONS.get(page, "•")
+            label = f"{icon} {page}"
             if st.sidebar.button(
-                page,
+                label,
                 key=f"nav-{page}",
                 type="primary" if is_active else "secondary",
                 use_container_width=True,
@@ -77,39 +97,55 @@ def _inject_base_styles() -> None:
             min-width: 260px;
             max-width: 260px;
           }
+          [data-testid="stSidebarContent"] {
+            padding: 0.75rem 0.6rem 0.9rem;
+          }
+          [data-testid="stSidebar"] .sidebar-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #0f172a;
+            margin: 0.15rem 0 0.85rem;
+            padding-left: 0.4rem;
+          }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.65rem;
-            letter-spacing: 0.22em;
+            font-size: 0.6rem;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
             color: #6b7280;
             font-weight: 600;
-            margin: 1rem 0 0.35rem;
-            padding-left: 0.65rem;
+            margin: 0.75rem 0 0.25rem;
+            padding-left: 0.45rem;
             }
           [data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             border: none;
-            padding: 0.35rem 0.55rem 0.35rem 0.65rem;
-            border-radius: 0;
-            margin: 0;
+            padding: 0.3rem 0.5rem;
+            border-radius: 8px;
+            margin: 0.1rem 0;
             color: #0f172a;
             background: transparent;
-            font-size: 0.85rem;
-            line-height: 1.35;
-            min-height: 34px;
+            font-size: 0.82rem;
+            line-height: 1.2;
+            min-height: 30px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
           }
           [data-testid="stSidebar"] .stButton > button:hover {
-            background: #eceff4;
+            background: #e9edf3;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #e4e7eb;
-            border-left: 4px solid #0f172a;
+            background: #e4e9f2;
+            border-left: 3px solid #1f2937;
             font-weight: 600;
-            color: #0f172a;
-            box-shadow: none;
+            color: #0b1220;
+            padding-left: 0.45rem;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button:hover {
-            background: #d9dde2;
+            background: #dbe2ec;
           }
           [data-testid="stRadio"] {
             background: #f8fafc;

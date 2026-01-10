@@ -26,3 +26,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: sidebar styling tweaks do not affect logic, so the app should still start cleanly, all pages render, and inputs continue to drive outputs.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None.
+
+Changes:
+- Rebuilt the sidebar presentation with a compact, app-like title, tighter section spacing, and dense buttons to reduce empty vertical space.
+- Added per-page emoji icons in the existing sidebar items and reinforced the active state with a strong fill, left accent, and subtle inset outline.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` and stopped after startup output.
+- Mental smoke test: app should still start without errors, all pages render, inputs drive outputs, and navigation remains unchanged with clearer active state.
