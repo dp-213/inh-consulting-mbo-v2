@@ -11,16 +11,6 @@ YEAR_LABELS = [f"Year {i}" for i in range(5)]
 
 
 def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
-    st.markdown("## Deal Summary (Committee View)")
-    st.markdown(
-        '<div class="subtle">Conservative decision view based on current inputs and selected output scenario.</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div class="subtle">Scenario being viewed: {assumptions.scenario}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown("---")
     st.markdown("### A. Deal Snapshot (What are we buying and how is it funded?)")
 
     purchase_price = assumptions.transaction_and_financing.purchase_price_eur
@@ -47,6 +37,17 @@ def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
         )
     metric_html.append("</div>")
     st.markdown("".join(metric_html), unsafe_allow_html=True)
+
+    revenue = [row["revenue"] for row in result.pnl]
+    total_costs = [
+        row["personnel_costs"] + row["overhead_and_variable_costs"]
+        for row in result.pnl
+    ]
+    st.markdown("### Break-even View")
+    st.line_chart(
+        {"Revenue": revenue, "Total Costs": total_costs},
+        use_container_width=True,
+    )
 
     st.markdown("**Interpretation**")
     st.markdown(

@@ -18,6 +18,23 @@ def _case_name(path: str) -> str:
     return name or "Unnamed Case"
 
 
+def _render_scenario_selector(current: str) -> None:
+    options = ["Worst", "Base", "Best"]
+    if "view_scenario" not in st.session_state:
+        st.session_state["view_scenario"] = current
+    current_value = st.session_state["view_scenario"]
+    if current_value not in options:
+        current_value = current
+    st.radio(
+        "Scenario",
+        options,
+        index=options.index(current_value),
+        horizontal=True,
+        key="view_scenario",
+        label_visibility="collapsed",
+    )
+
+
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
@@ -26,6 +43,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
     )
+    _render_scenario_selector(assumptions.scenario)
     st.markdown(
         '<div class="subtle">Simplified balance sheet (5-year plan)</div>',
         unsafe_allow_html=True,

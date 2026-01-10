@@ -24,7 +24,7 @@ from ui.pages import (
 )
 
 SECTIONS = {
-    "ANALYSIS (read-only)": [
+    "ANALYSIS": [
         "Overview",
         "Operating Model (P&L)",
         "Cashflow & Liquidity",
@@ -80,7 +80,8 @@ def _inject_base_styles() -> None:
             font-size: 0.58rem;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: #6b7280;
+            color: #4b5563;
+            font-weight: 600;
             margin: 0.6rem 0 0.25rem;
           }
           [data-testid="stSidebar"] .stButton > button {
@@ -98,9 +99,23 @@ def _inject_base_styles() -> None:
             background: #eef2f5;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #e5e7eb;
-            border-left: 2px solid #9ca3af;
+            background: #dfe4ea;
+            border-left: 3px solid #6b7280;
             font-weight: 600;
+          }
+          [data-testid="stRadio"] {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 0.25rem 0.6rem;
+            border-radius: 8px;
+            margin: 0.25rem 0 0.8rem;
+          }
+          [data-testid="stRadio"] [role="radiogroup"] {
+            gap: 0.45rem;
+          }
+          [data-testid="stRadio"] label {
+            font-size: 0.78rem;
+            color: #4b5563;
           }
           .statement-table,
           .kpi-table,
@@ -253,16 +268,6 @@ def _inject_base_styles() -> None:
             font-size: 0.82rem;
             margin: 0.3rem 0 0.8rem;
           }
-          .read-only-badge {
-            display: inline-block;
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #e5e7eb;
-            border-radius: 999px;
-            padding: 0.2rem 0.55rem;
-            font-size: 0.72rem;
-            margin-bottom: 0.6rem;
-          }
           .page-indicator {
             color: #6b7280;
             font-size: 0.85rem;
@@ -296,19 +301,10 @@ def _case_name(path: str) -> str:
     return name or "Unnamed Case"
 
 
-def _render_scenario_selector(current: str) -> str:
-    options = ["Worst", "Base", "Best"]
+def _get_view_scenario(current: str) -> str:
     if "view_scenario" not in st.session_state:
         st.session_state["view_scenario"] = current
-    current_index = options.index(st.session_state["view_scenario"])
-    scenario = st.radio(
-        "Scenario (View Only)",
-        options,
-        index=current_index,
-        horizontal=True,
-        key="view_scenario",
-    )
-    return scenario
+    return st.session_state["view_scenario"]
 
 
 def main() -> None:
@@ -331,9 +327,11 @@ def main() -> None:
         st.markdown("# Financial Model")
 
     view_only_scenario_pages = {
+        "Overview",
         "Operating Model (P&L)",
         "Cashflow & Liquidity",
         "Balance Sheet",
+        "Valuation & Purchase Price",
     }
     analysis_pages = {
         "Overview",
@@ -342,15 +340,12 @@ def main() -> None:
         "Balance Sheet",
         "Valuation & Purchase Price",
     }
-    if page in analysis_pages and page != "Operating Model (P&L)":
-        st.markdown(
-            '<div class="read-only-badge">Read-only analysis</div>',
-            unsafe_allow_html=True,
-        )
 
     view_assumptions = assumptions
-    if page in view_only_scenario_pages and page != "Operating Model (P&L)":
-        scenario = _render_scenario_selector(assumptions.scenario)
+    if page in view_only_scenario_pages:
+        scenario = _get_view_scenario(assumptions.scenario)
+        if scenario not in {"Worst", "Base", "Best"}:
+            scenario = assumptions.scenario
         if scenario != assumptions.scenario:
             view_assumptions = replace(assumptions, scenario=scenario)
 
@@ -364,8 +359,12 @@ def main() -> None:
         updated_assumptions = assumptions
 
     can_persist = page in {"Revenue Model", "Cost Model", "Other Assumptions", "Case Management"}
-    if can_persist and data_path.endswith("base_case.json") and asdict(updated_assumptions) != asdict(original_assumptions):
-        st.markdown("Base Case is read-only. Use Case Management to create a copy.")
+    if (
+        can_persist
+        and data_path.endswith("base_case.json")
+        and asdict(updated_assumptions) != asdict(original_assumptions)
+    ):
+        pass
     elif can_persist and asdict(updated_assumptions) != asdict(original_assumptions):
         save_case(updated_assumptions, data_path)
 

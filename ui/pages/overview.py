@@ -1,9 +1,50 @@
 from __future__ import annotations
 
+import streamlit as st
+
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
 from ui import outputs
 
 
+def _case_name(path: str) -> str:
+    if not path:
+        return "Unnamed Case"
+    if path.endswith("base_case.json"):
+        return "Base Case"
+    name = path.split("/")[-1].replace(".json", "")
+    return name or "Unnamed Case"
+
+
+def _render_scenario_selector(current: str) -> None:
+    options = ["Worst", "Base", "Best"]
+    if "view_scenario" not in st.session_state:
+        st.session_state["view_scenario"] = current
+    current_value = st.session_state["view_scenario"]
+    if current_value not in options:
+        current_value = current
+    st.radio(
+        "Scenario",
+        options,
+        index=options.index(current_value),
+        horizontal=True,
+        key="view_scenario",
+        label_visibility="collapsed",
+    )
+
+
 def render(result: ModelResult, assumptions: Assumptions) -> None:
+    case_name = _case_name(st.session_state.get("data_path", ""))
+    scenario = assumptions.scenario
+    st.markdown("## Deal Summary (Committee View)")
+    st.markdown(
+        f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
+        unsafe_allow_html=True,
+    )
+    _render_scenario_selector(assumptions.scenario)
+    st.markdown(
+        '<div class="subtle">Conservative decision view based on current inputs and selected output scenario.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
     outputs.render_overview(result, assumptions)
