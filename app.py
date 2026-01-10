@@ -178,6 +178,7 @@ def _inject_base_styles() -> None:
             font-weight: 600;
             background: #f8fafc;
             border-top: 1px solid #d1d5db;
+            padding-top: 0.45rem;
           }
           .subtle {
             color: #6b7280;
@@ -238,6 +239,11 @@ def _inject_base_styles() -> None:
             font-size: 0.72rem;
             margin-bottom: 0.6rem;
           }
+          .page-indicator {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin-bottom: 0.9rem;
+          }
           .info-box {
             background: #f3f4f6;
             border-radius: 8px;
@@ -297,7 +303,8 @@ def main() -> None:
     assumptions = original_assumptions
     case_options = list_cases()
 
-    st.markdown("# Financial Model")
+    if page != "Operating Model (P&L)":
+        st.markdown("# Financial Model")
 
     view_only_scenario_pages = {
         "Operating Model (P&L)",
@@ -311,14 +318,14 @@ def main() -> None:
         "Balance Sheet",
         "Valuation & Purchase Price",
     }
-    if page in analysis_pages:
+    if page in analysis_pages and page != "Operating Model (P&L)":
         st.markdown(
             '<div class="read-only-badge">Read-only analysis</div>',
             unsafe_allow_html=True,
         )
 
     view_assumptions = assumptions
-    if page in view_only_scenario_pages:
+    if page in view_only_scenario_pages and page != "Operating Model (P&L)":
         scenario = _render_scenario_selector(assumptions.scenario)
         if scenario != assumptions.scenario:
             view_assumptions = replace(assumptions, scenario=scenario)

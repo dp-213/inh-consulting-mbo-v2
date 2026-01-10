@@ -1,11 +1,10 @@
 Re-read ACCEPTANCE.md.
 
-Violated criteria:
-- None observed for sidebar navigation or Operating Model (P&L) statement rendering.
+Violations:
+- None observed in code for Operating Model (P&L) structure, hierarchy, or navigation.
 
 Changes:
-- Rebuilt sidebar structure to match required sections and labels, using Streamlit buttons only.
-- Renamed Operating Model page and P&L headings to match screenshots.
-- Updated scenario selector to a horizontal radio control.
-- Refined statement table styling and P&L line-item labels to match Excel-like layout.
-- Updated read-only badge text to “Read-only analysis”.
+- Operating Model (P&L) page now renders a minimal header with case + scenario indicator only.
+- Primary P&L table, KPI block, and collapsed detail sections are split and ordered per spec.
+- Removed scenario radio and global header/badge from the P&L page.
+- Added spacing above totals and a dedicated page indicator style.

@@ -98,7 +98,6 @@ def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
 
 
 def render_operating_model(result: ModelResult, assumptions: Assumptions) -> None:
-    scenario = assumptions.scenario
     revenue = [row["revenue"] for row in result.pnl]
     personnel_costs = [row["personnel_costs"] for row in result.pnl]
     overhead_costs = [row["overhead_and_variable_costs"] for row in result.pnl]
@@ -106,7 +105,6 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
     depreciation = [row["depreciation"] for row in result.pnl]
     ebit = [row["ebit"] for row in result.pnl]
     interest = [row["interest_expense"] for row in result.pnl]
-    ebt = [row["ebt"] for row in result.pnl]
     taxes = [row["taxes"] for row in result.pnl]
     net_income = [row["net_income"] for row in result.pnl]
 
@@ -155,39 +153,13 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         ("Other Services", other_services),
         ("Total Operating Expenses", overhead_costs),
         ("", None),
+        ("PROFITABILITY", None),
         ("EBITDA", ebitda),
         ("Depreciation", depreciation),
         ("EBIT", ebit),
         ("Interest Expense", interest),
-        ("EBT", ebt),
         ("Taxes", taxes),
-        ("Net Income (Jahresueberschuss)", net_income),
-        ("", None),
-        ("KPI", None),
-        (
-            "Revenue per Consultant",
-            [
-                (revenue[idx] / assumptions.cost.personnel_by_year[idx].consultant_fte)
-                if assumptions.cost.personnel_by_year[idx].consultant_fte
-                else 0.0
-                for idx in range(5)
-            ],
-        ),
-        ("EBITDA Margin", [_format_percent(ebitda[idx], revenue[idx]) for idx in range(5)]),
-        ("EBIT Margin", [_format_percent(ebit[idx], revenue[idx]) for idx in range(5)]),
-        (
-            "Personnel Cost Ratio",
-            [_format_percent(personnel_costs[idx], revenue[idx]) for idx in range(5)],
-        ),
-        (
-            "Guaranteed Revenue %",
-            [
-                f"{result.revenue['components_by_year'][idx]['share_guaranteed'] * 100:.1f}%"
-                for idx in range(5)
-            ],
-        ),
-        ("Net Margin", [_format_percent(net_income[idx], revenue[idx]) for idx in range(5)]),
-        ("Opex Ratio", [_format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)]),
+        ("Net Income", net_income),
     ]
     _render_statement_table_html(
         rows,
@@ -197,9 +169,162 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
             "Total Operating Expenses",
             "EBITDA",
             "EBIT",
-            "Net Income (Jahresueberschuss)",
+            "Net Income",
         },
     )
+
+    revenue_per_consultant = []
+    for idx in range(5):
+        fte = assumptions.cost.personnel_by_year[idx].consultant_fte
+        value = revenue[idx] / fte if fte else 0.0
+        revenue_per_consultant.append(_format_money(value))
+
+    kpi_rows = [
+        {
+            "KPI": "Revenue per Consultant",
+            **{YEAR_LABELS[idx]: revenue_per_consultant[idx] for idx in range(5)},
+        },
+        {
+            "KPI": "EBITDA Margin",
+            **{YEAR_LABELS[idx]: _format_percent(ebitda[idx], revenue[idx]) for idx in range(5)},
+        },
+        {
+            "KPI": "EBIT Margin",
+            **{YEAR_LABELS[idx]: _format_percent(ebit[idx], revenue[idx]) for idx in range(5)},
+        },
+        {
+            "KPI": "Personnel Cost Ratio",
+            **{YEAR_LABELS[idx]: _format_percent(personnel_costs[idx], revenue[idx]) for idx in range(5)},
+        },
+        {
+            "KPI": "Net Margin",
+            **{YEAR_LABELS[idx]: _format_percent(net_income[idx], revenue[idx]) for idx in range(5)},
+        },
+        {
+            "KPI": "Opex Ratio",
+            **{YEAR_LABELS[idx]: _format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)},
+        },
+    ]
+    _render_kpi_table_html(
+        kpi_rows,
+        columns=["KPI"] + YEAR_LABELS,
+        table_class="kpi-table",
+    )
+
+    with st.expander("Explain P&L Logic", expanded=False):
+        st.markdown(
+            "The P&L aggregates revenue from the operating model and deducts personnel and operating expenses. "
+            "EBITDA is calculated before depreciation, then EBIT and net income follow after interest and taxes."
+        )
+
+    with st.expander("Revenue Logic & Revenue Bridge", expanded=False):
+        components = result.revenue.get("components_by_year", [])
+        rows = [
+            (
+                "Consultant Headcount (FTE)",
+                [
+                    f"{components[idx].get('consulting_fte', 0.0):,.1f}"
+                    if idx < len(components)
+                    else "0.0"
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Capacity Days",
+                [
+                    f"{components[idx].get('capacity_days', 0.0):,.0f}"
+                    if idx < len(components)
+                    else "0"
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Adjusted Capacity Days",
+                [
+                    f"{components[idx].get('adjusted_capacity_days', 0.0):,.0f}"
+                    if idx < len(components)
+                    else "0"
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Modeled Group Revenue",
+                [
+                    components[idx].get("modeled_group_revenue", 0.0)
+                    if idx < len(components)
+                    else 0.0
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Modeled External Revenue",
+                [
+                    components[idx].get("modeled_external_revenue", 0.0)
+                    if idx < len(components)
+                    else 0.0
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Guaranteed Revenue Floor",
+                [
+                    components[idx].get("guaranteed_floor", 0.0)
+                    if idx < len(components)
+                    else 0.0
+                    for idx in range(5)
+                ],
+            ),
+            (
+                "Total Revenue",
+                [
+                    components[idx].get("final_total", 0.0)
+                    if idx < len(components)
+                    else 0.0
+                    for idx in range(5)
+                ],
+            ),
+        ]
+        _render_statement_table_html(rows, bold_labels={"Total Revenue"})
+
+    with st.expander("Personnel Costs Logic", expanded=False):
+        rows = [
+            ("Consultant Compensation", consultant_costs),
+            ("Backoffice Compensation", backoffice_costs),
+            ("Management / MD Compensation", management_costs),
+            ("Total Personnel Costs", personnel_costs),
+        ]
+        _render_statement_table_html(rows, bold_labels={"Total Personnel Costs"})
+
+    with st.expander("Operating Expenses Logic", expanded=False):
+        rows = [
+            ("External Consulting / Advisors", external_consulting),
+            ("IT", it_costs),
+            ("Office", office_costs),
+            ("Other Services", other_services),
+            ("Total Operating Expenses", overhead_costs),
+        ]
+        _render_statement_table_html(rows, bold_labels={"Total Operating Expenses"})
+
+    with st.expander("Earnings Bridge", expanded=False):
+        rows = [
+            ("EBITDA", ebitda),
+            ("Depreciation", depreciation),
+            ("EBIT", ebit),
+            ("Interest Expense", interest),
+            ("Taxes", taxes),
+            ("Net Income", net_income),
+        ]
+        _render_statement_table_html(rows, bold_labels={"EBIT", "Net Income"})
+
+    with st.expander("KPI Definitions", expanded=False):
+        st.markdown(
+            "- Revenue per Consultant: Total Revenue divided by consultant FTE.\n"
+            "- EBITDA Margin: EBITDA divided by Total Revenue.\n"
+            "- EBIT Margin: EBIT divided by Total Revenue.\n"
+            "- Personnel Cost Ratio: Total Personnel Costs divided by Total Revenue.\n"
+            "- Net Margin: Net Income divided by Total Revenue.\n"
+            "- Opex Ratio: Total Operating Expenses divided by Total Revenue."
+        )
 
 
 def render_cashflow_liquidity(result: ModelResult) -> None:
