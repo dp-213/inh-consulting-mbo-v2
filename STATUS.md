@@ -4,7 +4,7 @@ Violations:
 - None observed in code for Operating Model (P&L) structure, hierarchy, or navigation.
 
 Changes:
-- Operating Model (P&L) page now renders a minimal header with case + scenario indicator only.
-- Primary P&L table, KPI block, and collapsed detail sections are split and ordered per spec.
-- Removed scenario radio and global header/badge from the P&L page.
-- Added spacing above totals and a dedicated page indicator style.
+- Adjusted sidebar styling for a lighter, persistent active-state highlight and tighter typography.
+- Main P&L reduced to an executive view; KPIs appended in-table as secondary rows.
+- Consolidated detail analysis into a single expander with full P&L and logic/bridges.
+- Added a collapsed “Key P&L Drivers (Quick Adjust)” input block above the P&L.

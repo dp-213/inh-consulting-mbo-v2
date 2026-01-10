@@ -136,30 +136,42 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         office_costs.append(office_value)
         other_services.append(remainder)
 
+    kpi_rows = [
+        (
+            "Revenue per Consultant",
+            [
+                _format_money(
+                    revenue[idx] / assumptions.cost.personnel_by_year[idx].consultant_fte
+                )
+                if assumptions.cost.personnel_by_year[idx].consultant_fte
+                else _format_money(0.0)
+                for idx in range(5)
+            ],
+        ),
+        ("EBITDA Margin", [_format_percent(ebitda[idx], revenue[idx]) for idx in range(5)]),
+        ("EBIT Margin", [_format_percent(ebit[idx], revenue[idx]) for idx in range(5)]),
+        (
+            "Personnel Cost Ratio",
+            [_format_percent(personnel_costs[idx], revenue[idx]) for idx in range(5)],
+        ),
+        ("Net Margin", [_format_percent(net_income[idx], revenue[idx]) for idx in range(5)]),
+        ("Opex Ratio", [_format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)]),
+    ]
+
     rows = [
         ("REVENUE", None),
         ("Total Revenue", revenue),
         ("", None),
-        ("PERSONNEL COSTS", None),
-        ("Consultant Compensation", consultant_costs),
-        ("Backoffice Compensation", backoffice_costs),
-        ("Management / MD Compensation", management_costs),
+        ("COSTS", None),
         ("Total Personnel Costs", personnel_costs),
-        ("", None),
-        ("OPERATING EXPENSES", None),
-        ("External Consulting / Advisors", external_consulting),
-        ("IT", it_costs),
-        ("Office", office_costs),
-        ("Other Services", other_services),
         ("Total Operating Expenses", overhead_costs),
         ("", None),
         ("PROFITABILITY", None),
         ("EBITDA", ebitda),
-        ("Depreciation", depreciation),
         ("EBIT", ebit),
-        ("Interest Expense", interest),
-        ("Taxes", taxes),
         ("Net Income", net_income),
+        ("__kpi_divider__", None),
+        *kpi_rows,
     ]
     _render_statement_table_html(
         rows,
@@ -171,55 +183,51 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
             "EBIT",
             "Net Income",
         },
+        row_classes={label: "kpi-row" for label, _ in kpi_rows},
     )
 
-    revenue_per_consultant = []
-    for idx in range(5):
-        fte = assumptions.cost.personnel_by_year[idx].consultant_fte
-        value = revenue[idx] / fte if fte else 0.0
-        revenue_per_consultant.append(_format_money(value))
-
-    kpi_rows = [
-        {
-            "KPI": "Revenue per Consultant",
-            **{YEAR_LABELS[idx]: revenue_per_consultant[idx] for idx in range(5)},
-        },
-        {
-            "KPI": "EBITDA Margin",
-            **{YEAR_LABELS[idx]: _format_percent(ebitda[idx], revenue[idx]) for idx in range(5)},
-        },
-        {
-            "KPI": "EBIT Margin",
-            **{YEAR_LABELS[idx]: _format_percent(ebit[idx], revenue[idx]) for idx in range(5)},
-        },
-        {
-            "KPI": "Personnel Cost Ratio",
-            **{YEAR_LABELS[idx]: _format_percent(personnel_costs[idx], revenue[idx]) for idx in range(5)},
-        },
-        {
-            "KPI": "Net Margin",
-            **{YEAR_LABELS[idx]: _format_percent(net_income[idx], revenue[idx]) for idx in range(5)},
-        },
-        {
-            "KPI": "Opex Ratio",
-            **{YEAR_LABELS[idx]: _format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)},
-        },
-    ]
-    _render_kpi_table_html(
-        kpi_rows,
-        columns=["KPI"] + YEAR_LABELS,
-        table_class="kpi-table",
-    )
-
-    with st.expander("Explain P&L Logic", expanded=False):
-        st.markdown(
-            "The P&L aggregates revenue from the operating model and deducts personnel and operating expenses. "
-            "EBITDA is calculated before depreciation, then EBIT and net income follow after interest and taxes."
+    with st.expander("Detailed P&L Breakdown & Logic", expanded=False):
+        st.markdown("#### Full P&L")
+        detailed_rows = [
+            ("REVENUE", None),
+            ("Total Revenue", revenue),
+            ("", None),
+            ("PERSONNEL COSTS", None),
+            ("Consultant Compensation", consultant_costs),
+            ("Backoffice Compensation", backoffice_costs),
+            ("Management / MD Compensation", management_costs),
+            ("Total Personnel Costs", personnel_costs),
+            ("", None),
+            ("OPERATING EXPENSES", None),
+            ("External Consulting / Advisors", external_consulting),
+            ("IT", it_costs),
+            ("Office", office_costs),
+            ("Other Services", other_services),
+            ("Total Operating Expenses", overhead_costs),
+            ("", None),
+            ("PROFITABILITY", None),
+            ("EBITDA", ebitda),
+            ("Depreciation", depreciation),
+            ("EBIT", ebit),
+            ("Interest Expense", interest),
+            ("Taxes", taxes),
+            ("Net Income", net_income),
+        ]
+        _render_statement_table_html(
+            detailed_rows,
+            bold_labels={
+                "Total Revenue",
+                "Total Personnel Costs",
+                "Total Operating Expenses",
+                "EBITDA",
+                "EBIT",
+                "Net Income",
+            },
         )
 
-    with st.expander("Revenue Logic & Revenue Bridge", expanded=False):
+        st.markdown("#### Revenue Bridge")
         components = result.revenue.get("components_by_year", [])
-        rows = [
+        bridge_rows = [
             (
                 "Consultant Headcount (FTE)",
                 [
@@ -284,29 +292,29 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
                 ],
             ),
         ]
-        _render_statement_table_html(rows, bold_labels={"Total Revenue"})
+        _render_statement_table_html(bridge_rows, bold_labels={"Total Revenue"})
 
-    with st.expander("Personnel Costs Logic", expanded=False):
-        rows = [
+        st.markdown("#### Personnel Cost Logic")
+        personnel_rows = [
             ("Consultant Compensation", consultant_costs),
             ("Backoffice Compensation", backoffice_costs),
             ("Management / MD Compensation", management_costs),
             ("Total Personnel Costs", personnel_costs),
         ]
-        _render_statement_table_html(rows, bold_labels={"Total Personnel Costs"})
+        _render_statement_table_html(personnel_rows, bold_labels={"Total Personnel Costs"})
 
-    with st.expander("Operating Expenses Logic", expanded=False):
-        rows = [
+        st.markdown("#### Operating Expense Logic")
+        operating_rows = [
             ("External Consulting / Advisors", external_consulting),
             ("IT", it_costs),
             ("Office", office_costs),
             ("Other Services", other_services),
             ("Total Operating Expenses", overhead_costs),
         ]
-        _render_statement_table_html(rows, bold_labels={"Total Operating Expenses"})
+        _render_statement_table_html(operating_rows, bold_labels={"Total Operating Expenses"})
 
-    with st.expander("Earnings Bridge", expanded=False):
-        rows = [
+        st.markdown("#### Earnings Bridge")
+        earnings_rows = [
             ("EBITDA", ebitda),
             ("Depreciation", depreciation),
             ("EBIT", ebit),
@@ -314,9 +322,9 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
             ("Taxes", taxes),
             ("Net Income", net_income),
         ]
-        _render_statement_table_html(rows, bold_labels={"EBIT", "Net Income"})
+        _render_statement_table_html(earnings_rows, bold_labels={"EBIT", "Net Income"})
 
-    with st.expander("KPI Definitions", expanded=False):
+        st.markdown("#### KPI Definitions")
         st.markdown(
             "- Revenue per Consultant: Total Revenue divided by consultant FTE.\n"
             "- EBITDA Margin: EBITDA divided by Total Revenue.\n"
@@ -789,14 +797,19 @@ def _render_statement_table_html(
     rows: List[tuple[str, List[float] | List[str] | None]],
     bold_labels: Iterable[str] | None = None,
     years: int = 5,
+    row_classes: Dict[str, str] | None = None,
 ) -> None:
     bold_set = set(bold_labels or [])
+    class_map = dict(row_classes or {})
     headers = ["Line Item"] + [f"Year {i}" for i in range(years)]
     html = ['<table class="statement-table">', "<thead><tr>"]
     for header in headers:
         html.append(f"<th>{header}</th>")
     html.append("</tr></thead><tbody>")
     for label, values in rows:
+        if label == "__kpi_divider__" and values is None:
+            html.append(f'<tr class="kpi-divider"><td colspan="{years + 1}"></td></tr>')
+            continue
         if label == "" and values is None:
             html.append(f'<tr class="spacer"><td colspan="{years + 1}"></td></tr>')
             continue
@@ -806,8 +819,12 @@ def _render_statement_table_html(
             html.extend(["<td></td>" for _ in range(years)])
             html.append("</tr>")
             continue
-        row_class = "total" if label in bold_set else ""
-        class_attr = f' class="{row_class}"' if row_class else ""
+        row_classes_list = []
+        if label in bold_set:
+            row_classes_list.append("total")
+        if label in class_map:
+            row_classes_list.append(class_map[label])
+        class_attr = f' class="{" ".join(row_classes_list)}"' if row_classes_list else ""
         html.append(f"<tr{class_attr}><td>{label}</td>")
         for year_index in range(years):
             value = values[year_index] if year_index < len(values) else ""

@@ -77,27 +77,29 @@ def _inject_base_styles() -> None:
             max-width: 260px;
           }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.65rem;
+            font-size: 0.58rem;
             letter-spacing: 0.14em;
             text-transform: uppercase;
             color: #6b7280;
-            margin: 0.9rem 0 0.35rem;
+            margin: 0.6rem 0 0.25rem;
           }
           [data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             border: none;
-            padding: 0.35rem 0.6rem 0.35rem 0.8rem;
-            border-radius: 6px;
-            margin: 0.1rem 0;
+            padding: 0.25rem 0.55rem 0.25rem 0.7rem;
+            border-radius: 5px;
+            margin: 0.05rem 0;
             color: #111827;
             background: transparent;
+            font-size: 0.78rem;
+            line-height: 1.2;
           }
           [data-testid="stSidebar"] .stButton > button:hover {
-            background: #eceff3;
+            background: #eef2f5;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #e9edf2;
-            border-left: 3px solid #2563eb;
+            background: #e5e7eb;
+            border-left: 2px solid #9ca3af;
             font-weight: 600;
           }
           .statement-table,
@@ -179,6 +181,14 @@ def _inject_base_styles() -> None:
             background: #f8fafc;
             border-top: 1px solid #d1d5db;
             padding-top: 0.45rem;
+          }
+          .statement-table .kpi-divider td {
+            border-top: 1px solid #e5e7eb;
+            padding: 0.35rem 0;
+          }
+          .statement-table .kpi-row td {
+            color: #6b7280;
+            font-size: 0.74rem;
           }
           .subtle {
             color: #6b7280;
