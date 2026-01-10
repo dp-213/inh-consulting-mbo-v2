@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, replace
-import re
 
 import streamlit as st
 
@@ -25,54 +24,239 @@ from ui.pages import (
 )
 
 SECTIONS = {
-    "OVERVIEW": ["Overview"],
-    "OPERATING MODEL (OUTPUT / ANALYSIS)": [
+    "ANALYSIS (read-only)": [
+        "Overview",
         "Operating Model (P&L)",
         "Cashflow & Liquidity",
         "Balance Sheet",
+        "Valuation & Purchase Price",
     ],
-    "PLANNING (MODEL INPUTS)": ["Revenue Model", "Cost Model", "Other Assumptions"],
+    "PLANNING": ["Revenue Model", "Cost Model", "Other Assumptions"],
     "FINANCING": ["Financing & Debt", "Equity Case"],
-    "VALUATION": ["Valuation & Purchase Price"],
-    "SETTINGS": ["Model Settings", "Case Management", "Model Export / Snapshot"],
+    "SETTINGS": ["Case Management", "Model Settings", "Model Export / Snapshot"],
 }
 
 DEFAULT_PAGE = "Overview"
+NAV_PAGES = [page for pages in SECTIONS.values() for page in pages]
 
 
 def _render_sidebar(current_page: str) -> str:
-    selected_page = current_page
     st.sidebar.markdown("**MBO Financial Model**")
-    for title, options in SECTIONS.items():
-        st.sidebar.caption(title)
-        for option in options:
-            if option == current_page:
-                label = f"**| {option}**"
-            else:
-                label = option
-            st.sidebar.markdown(f"[{label}](?page={_slug(option)})")
-    return selected_page
+    if "page" not in st.session_state:
+        st.session_state["page"] = current_page
+    for section, pages in SECTIONS.items():
+        st.sidebar.markdown(
+            f'<div class="nav-section">{section}</div>',
+            unsafe_allow_html=True,
+        )
+        for page in pages:
+            is_active = st.session_state["page"] == page
+            if st.sidebar.button(
+                page,
+                key=f"nav-{page}",
+                type="primary" if is_active else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state["page"] = page
+    return st.session_state["page"]
 
 
-def _slug(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-
-
-def _unslug(text: str) -> str:
-    return text.replace("-", " ").title()
-
-
-def _page_from_query() -> str | None:
-    params = st.query_params
-    raw = params.get("page")
-    if not raw:
-        return None
-    slug = raw if isinstance(raw, str) else raw[0]
-    for options in SECTIONS.values():
-        for option in options:
-            if _slug(option) == slug:
-                return option
-    return None
+def _inject_base_styles() -> None:
+    st.markdown(
+        """
+        <style>
+          [data-testid="stAppViewContainer"] {
+            background: #ffffff;
+          }
+          [data-testid="stSidebar"],
+          [data-testid="stSidebarContent"] {
+            background: #f3f4f6;
+          }
+          [data-testid="stSidebar"] {
+            min-width: 260px;
+            max-width: 260px;
+          }
+          [data-testid="stSidebar"] .nav-section {
+            font-size: 0.65rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin: 0.9rem 0 0.35rem;
+          }
+          [data-testid="stSidebar"] .stButton > button {
+            justify-content: flex-start;
+            border: none;
+            padding: 0.35rem 0.6rem 0.35rem 0.8rem;
+            border-radius: 6px;
+            margin: 0.1rem 0;
+            color: #111827;
+            background: transparent;
+          }
+          [data-testid="stSidebar"] .stButton > button:hover {
+            background: #eceff3;
+          }
+          [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
+            background: #e9edf2;
+            border-left: 3px solid #2563eb;
+            font-weight: 600;
+          }
+          .statement-table,
+          .kpi-table,
+          .input-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+          }
+          .statement-table th,
+          .statement-table td,
+          .kpi-table th,
+          .kpi-table td,
+          .input-table th,
+          .input-table td {
+            padding: 0.2rem 0.45rem;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
+          }
+          .statement-table thead th,
+          .kpi-table thead th,
+          .input-table thead th {
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            background: #f6f7f9;
+          }
+          .statement-table td:not(:first-child),
+          .kpi-table td:not(:first-child),
+          .input-table td:not(:first-child),
+          .statement-table th:not(:first-child),
+          .kpi-table th:not(:first-child),
+          .input-table th:not(:first-child) {
+            text-align: right;
+          }
+          .statement-table th:nth-child(2),
+          .statement-table td:nth-child(2),
+          .year-table th:nth-child(2),
+          .year-table td:nth-child(2),
+          .input-table th:nth-child(3),
+          .input-table td:nth-child(3) {
+            background: #f3f4f6;
+          }
+          .statement-table th:first-child,
+          .statement-table td:first-child {
+            width: 40%;
+          }
+          .statement-table th:not(:first-child),
+          .statement-table td:not(:first-child) {
+            width: 12%;
+          }
+          .statement-table .section td {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+            border-bottom: none;
+            padding-top: 0.55rem;
+            background: #f8fafc;
+          }
+          .statement-table .spacer td {
+            border-bottom: none;
+            padding: 0.25rem 0;
+          }
+          .input-table .section td {
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #6b7280;
+            border-bottom: none;
+            padding-top: 0.5rem;
+            background: #f8fafc;
+          }
+          .input-table .spacer td {
+            border-bottom: none;
+            padding: 0.25rem 0;
+          }
+          .statement-table .total td {
+            font-weight: 600;
+            background: #f8fafc;
+            border-top: 1px solid #d1d5db;
+          }
+          .subtle {
+            color: #6b7280;
+            font-size: 0.9rem;
+          }
+          .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 1.4rem;
+            margin: 0.5rem 0 1rem;
+          }
+          .metric-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1.4rem;
+            margin: 0.4rem 0 1.1rem;
+          }
+          .metric-item-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-transform: none;
+          }
+          .metric-item-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+          }
+          .assumption-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            color: #374151;
+            font-size: 0.85rem;
+            margin: 0.3rem 0 1rem;
+          }
+          .assumption-bar .chevron {
+            font-size: 0.9rem;
+            color: #6b7280;
+          }
+          .callout-bar {
+            background: #eef2ff;
+            color: #1f2937;
+            border-radius: 6px;
+            padding: 0.55rem 0.8rem;
+            font-size: 0.82rem;
+            margin: 0.3rem 0 0.8rem;
+          }
+          .read-only-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 0.2rem 0.55rem;
+            font-size: 0.72rem;
+            margin-bottom: 0.6rem;
+          }
+          .info-box {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 0.9rem 1.1rem;
+            color: #111827;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+          }
+          .info-box h4 {
+            margin: 0.6rem 0 0.2rem;
+            font-size: 0.85rem;
+          }
+          .info-box ul {
+            margin: 0.2rem 0 0.4rem 1rem;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _case_name(path: str) -> str:
@@ -82,16 +266,29 @@ def _case_name(path: str) -> str:
     return name or "Unnamed Case"
 
 
+def _render_scenario_selector(current: str) -> str:
+    options = ["Worst", "Base", "Best"]
+    if "view_scenario" not in st.session_state:
+        st.session_state["view_scenario"] = current
+    current_index = options.index(st.session_state["view_scenario"])
+    scenario = st.radio(
+        "Scenario (View Only)",
+        options,
+        index=current_index,
+        horizontal=True,
+        key="view_scenario",
+    )
+    return scenario
+
+
 def main() -> None:
     st.set_page_config(page_title="INH Consulting MBO Model", layout="wide")
+    _inject_base_styles()
     if "data_path" not in st.session_state:
         st.session_state["data_path"] = "data/base_case.json"
 
     if "page" not in st.session_state:
         st.session_state["page"] = DEFAULT_PAGE
-    query_page = _page_from_query()
-    if query_page:
-        st.session_state["page"] = query_page
     page = _render_sidebar(st.session_state["page"])
     st.session_state["page"] = page
 
@@ -107,15 +304,22 @@ def main() -> None:
         "Cashflow & Liquidity",
         "Balance Sheet",
     }
+    analysis_pages = {
+        "Overview",
+        "Operating Model (P&L)",
+        "Cashflow & Liquidity",
+        "Balance Sheet",
+        "Valuation & Purchase Price",
+    }
+    if page in analysis_pages:
+        st.markdown(
+            '<div class="read-only-badge">Read-only analysis</div>',
+            unsafe_allow_html=True,
+        )
 
     view_assumptions = assumptions
     if page in view_only_scenario_pages:
-        scenario = st.radio(
-            "Scenario (View Only)",
-            ["Worst", "Base", "Best"],
-            index=["Worst", "Base", "Best"].index(assumptions.scenario),
-            horizontal=True,
-        )
+        scenario = _render_scenario_selector(assumptions.scenario)
         if scenario != assumptions.scenario:
             view_assumptions = replace(assumptions, scenario=scenario)
 

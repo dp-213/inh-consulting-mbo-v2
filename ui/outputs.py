@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 import streamlit as st
 
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
 
+YEAR_LABELS = [f"Year {i}" for i in range(5)]
+
 
 def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
-    st.markdown("## Deal Summary (IC View)")
+    st.markdown("## Deal Summary (Committee View)")
     st.markdown(
-        "Conservative decision view based on current inputs and selected output scenario."
+        '<div class="subtle">Conservative decision view based on current inputs and selected output scenario.</div>',
+        unsafe_allow_html=True,
     )
-    st.markdown(f"Scenario being viewed: {assumptions.scenario}")
+    st.markdown(
+        f'<div class="subtle">Scenario being viewed: {assumptions.scenario}</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
     st.markdown("### A. Deal Snapshot (What are we buying and how is it funded?)")
 
@@ -25,19 +31,27 @@ def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
     ebitda = result.pnl[0]["ebitda"] if result.pnl else 0.0
     debt_ebitda = debt_at_close / ebitda if ebitda else 0.0
 
-    cols = st.columns(6)
-    cols[0].metric("Purchase Price", _format_money(purchase_price))
-    cols[1].metric("Debt at Close", _format_money(debt_at_close))
-    cols[2].metric("Equity at Close", _format_money(equity_at_close))
-    cols[3].metric("Debt/EBITDA", f"{debt_ebitda:.2f}x")
-    cols[4].metric("Exit Year", f"Year {last_year}")
-    cols[5].metric("Exit Multiple", f"{exit_multiple:.2f}x")
+    metric_items = [
+        ("Purchase Price", _format_money(purchase_price)),
+        ("Debt at Close", _format_money(debt_at_close)),
+        ("Equity at Close", _format_money(equity_at_close)),
+        ("Debt / Operating Profit (EBITDA)", f"{debt_ebitda:.2f}x"),
+        ("Exit Year", f"Year {last_year}"),
+        ("Exit Multiple", f"{exit_multiple:.2f}x"),
+    ]
+    metric_html = ['<div class="metric-grid">']
+    for label, value in metric_items:
+        metric_html.append(
+            f'<div><div class="metric-item-label">{label}</div>'
+            f'<div class="metric-item-value">{value}</div></div>'
+        )
+    metric_html.append("</div>")
+    st.markdown("".join(metric_html), unsafe_allow_html=True)
 
     st.markdown("**Interpretation**")
     st.markdown(
         "- Debt at Close shows the initial borrowing that must be serviced from operating cash.\n"
         "- Equity at Close is the cash contributed by management and investors before debt service begins.\n"
-        "- Debt/EBITDA indicates leverage intensity at entry and is monitored against lender limits."
     )
 
 
@@ -76,7 +90,11 @@ def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
         _driver_row("Purchase Price", current.transaction_and_financing.purchase_price_eur, base.transaction_and_financing.purchase_price_eur, "EUR"),
         _driver_row("Seller Multiple", current.valuation.seller_multiple, base.valuation.seller_multiple, "x"),
     ]
-    st.dataframe(rows, use_container_width=True)
+    _render_kpi_table_html(
+        rows,
+        columns=["Driver", "Current", "Base", "Delta", "Unit"],
+        table_class="kpi-table",
+    )
 
 
 def render_operating_model(result: ModelResult, assumptions: Assumptions) -> None:
@@ -120,39 +138,12 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         office_costs.append(office_value)
         other_services.append(remainder)
 
-    consultant_fte = [
-        row.consultant_fte for row in assumptions.cost.personnel_by_year
-    ]
-    revenue_per_consultant = [
-        _format_money(rev / fte) if fte else "n/a"
-        for rev, fte in zip(revenue, consultant_fte)
-    ]
-    ebitda_margin = [
-        _format_percent(value, revenue[idx]) for idx, value in enumerate(ebitda)
-    ]
-    ebit_margin = [
-        _format_percent(value, revenue[idx]) for idx, value in enumerate(ebit)
-    ]
-    personnel_ratio = [
-        _format_percent(value, revenue[idx])
-        for idx, value in enumerate(personnel_costs)
-    ]
-    guarantee_pct = assumptions.revenue.scenarios[scenario].guarantee_pct_by_year
-    guarantee_values = [f"{value * 100:,.1f}%" for value in guarantee_pct]
-    net_margin = [
-        _format_percent(value, revenue[idx]) for idx, value in enumerate(net_income)
-    ]
-    opex_ratio = [
-        _format_percent(value, revenue[idx])
-        for idx, value in enumerate(overhead_costs)
-    ]
-
     rows = [
         ("REVENUE", None),
         ("Total Revenue", revenue),
         ("", None),
         ("PERSONNEL COSTS", None),
-        ("Consultant Costs", consultant_costs),
+        ("Consultant Compensation", consultant_costs),
         ("Backoffice Compensation", backoffice_costs),
         ("Management / MD Compensation", management_costs),
         ("Total Personnel Costs", personnel_costs),
@@ -173,22 +164,49 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         ("Net Income (Jahresueberschuss)", net_income),
         ("", None),
         ("KPI", None),
-        ("Revenue per Consultant", revenue_per_consultant),
-        ("EBITDA Margin", ebitda_margin),
-        ("EBIT Margin", ebit_margin),
-        ("Personnel Cost Ratio", personnel_ratio),
-        ("Guaranteed Revenue %", guarantee_values),
-        ("Net Margin", net_margin),
-        ("Opex Ratio", opex_ratio),
+        (
+            "Revenue per Consultant",
+            [
+                (revenue[idx] / assumptions.cost.personnel_by_year[idx].consultant_fte)
+                if assumptions.cost.personnel_by_year[idx].consultant_fte
+                else 0.0
+                for idx in range(5)
+            ],
+        ),
+        ("EBITDA Margin", [_format_percent(ebitda[idx], revenue[idx]) for idx in range(5)]),
+        ("EBIT Margin", [_format_percent(ebit[idx], revenue[idx]) for idx in range(5)]),
+        (
+            "Personnel Cost Ratio",
+            [_format_percent(personnel_costs[idx], revenue[idx]) for idx in range(5)],
+        ),
+        (
+            "Guaranteed Revenue %",
+            [
+                f"{result.revenue['components_by_year'][idx]['share_guaranteed'] * 100:.1f}%"
+                for idx in range(5)
+            ],
+        ),
+        ("Net Margin", [_format_percent(net_income[idx], revenue[idx]) for idx in range(5)]),
+        ("Opex Ratio", [_format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)]),
     ]
-    st.dataframe(_statement_table(rows), use_container_width=True)
+    _render_statement_table_html(
+        rows,
+        bold_labels={
+            "Total Revenue",
+            "Total Personnel Costs",
+            "Total Operating Expenses",
+            "EBITDA",
+            "EBIT",
+            "Net Income (Jahresueberschuss)",
+        },
+    )
 
 
 def render_cashflow_liquidity(result: ModelResult) -> None:
     rows = [
         ("OPERATING CASHFLOW", None),
-        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
-        ("Cash Taxes", [row["taxes_paid"] for row in result.cashflow]),
+        ("Operating Profit (EBITDA)", [row["ebitda"] for row in result.cashflow]),
+        ("Taxes Paid", [row["taxes_paid"] for row in result.cashflow]),
         ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
         ("Operating Cashflow", [row["operating_cf"] for row in result.cashflow]),
         ("", None),
@@ -197,7 +215,7 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
         ("Free Cashflow", [row["free_cashflow"] for row in result.cashflow]),
         ("", None),
         ("FINANCING CASHFLOW", None),
-        ("Debt Drawdown", [row["debt_drawdown"] for row in result.cashflow]),
+        ("Debt Drawdowns", [row["debt_drawdown"] for row in result.cashflow]),
         ("Interest Paid", [row["interest_paid"] for row in result.cashflow]),
         ("Debt Repayment", [row["debt_repayment"] for row in result.cashflow]),
         ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
@@ -207,7 +225,15 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
         ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
         ("Closing Cash", [row["cash_balance"] for row in result.cashflow]),
     ]
-    st.dataframe(_statement_table(rows), use_container_width=True)
+    _render_statement_table_html(
+        rows,
+        bold_labels={
+            "Operating Cashflow",
+            "Free Cashflow",
+            "Net Cashflow",
+            "Closing Cash",
+        },
+    )
 
 
 def render_balance_sheet(result: ModelResult) -> None:
@@ -229,10 +255,19 @@ def render_balance_sheet(result: ModelResult) -> None:
         ("Equity Buybacks / Exit Payouts", [row["equity_buyback"] for row in result.balance_sheet]),
         ("Equity at End of Year", [row["equity_end"] for row in result.balance_sheet]),
         ("", None),
+        ("CHECK", None),
         ("Total Assets", [row["total_assets"] for row in result.balance_sheet]),
         ("Total Liabilities + Equity", [row["total_liabilities_equity"] for row in result.balance_sheet]),
     ]
-    st.dataframe(_statement_table(rows), use_container_width=True)
+    _render_statement_table_html(
+        rows,
+        bold_labels={
+            "Total Assets",
+            "Total Liabilities",
+            "Equity at End of Year",
+            "Total Liabilities + Equity",
+        },
+    )
 
 
 def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None:
@@ -240,19 +275,22 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
     debt_service = [row.get("debt_service", 0.0) for row in result.debt]
     cfads = [row.get("cfads", 0.0) or 0.0 for row in result.debt]
     rows = [
-        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
+        ("Operating Profit (EBITDA)", [row["ebitda"] for row in result.cashflow]),
         ("Cash Taxes", [row["taxes_paid"] for row in result.cashflow]),
         ("Capex (Maintenance)", [row["capex"] for row in result.cashflow]),
         ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
-        ("CFADS", cfads),
+        ("Cash Available for Debt Service", cfads),
         ("Interest Expense", [row["interest_expense"] for row in result.debt]),
         ("Scheduled Repayment", [row["total_repayment"] for row in result.debt]),
         ("Debt Service", debt_service),
-        ("DSCR", [f"{value:.2f}" if value is not None else "n/a" for value in coverage]),
-        ("Minimum Required DSCR", [f"{assumptions.financing.minimum_dscr:.2f}" for _ in result.debt]),
+        ("Debt Service Coverage", [f"{value:.2f}" if value is not None else "n/a" for value in coverage]),
+        ("Minimum Required Coverage", [f"{assumptions.financing.minimum_dscr:.2f}" for _ in result.debt]),
         ("Covenant Breach", ["YES" if row.get("covenant_breach") else "NO" for row in result.debt]),
     ]
-    st.dataframe(_statement_table(rows), use_container_width=True)
+    _render_statement_table_html(
+        rows,
+        bold_labels={"Cash Available for Debt Service", "Debt Service"},
+    )
 
 
 def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
@@ -268,116 +306,247 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     management_share = management_equity / total_equity if total_equity else 0.0
     external_share = external_equity / total_equity if total_equity else 0.0
 
-    st.table(
-        [
-            {
-                "Line Item": "Management (Sponsor) Equity",
-                "Equity (EUR)": _format_money(management_equity),
-                "Ownership (%)": f"{management_share * 100:.1f}%",
-            },
-            {
-                "Line Item": "External Investor Equity",
-                "Equity (EUR)": _format_money(external_equity),
-                "Ownership (%)": f"{external_share * 100:.1f}%",
-            },
-            {
-                "Line Item": "Total Equity",
-                "Equity (EUR)": _format_money(total_equity),
-                "Ownership (%)": "100.0%",
-            },
-        ]
+    equity_rows = [
+        {
+            "Line Item": "Management (Sponsor) Equity",
+            "Equity (EUR)": _format_money(management_equity),
+            "Ownership (%)": f"{management_share * 100:.1f}%",
+        },
+        {
+            "Line Item": "External Investor Equity",
+            "Equity (EUR)": _format_money(external_equity),
+            "Ownership (%)": f"{external_share * 100:.1f}%",
+        },
+        {
+            "Line Item": "Total Equity",
+            "Equity (EUR)": _format_money(total_equity),
+            "Ownership (%)": "100.0%",
+        },
+    ]
+    _render_kpi_table_html(
+        equity_rows,
+        columns=["Line Item", "Equity (EUR)", "Ownership (%)"],
+        table_class="kpi-table",
+        bold_rows={"Total Equity"},
     )
 
     st.markdown("### Headline Outcomes")
     external_exit = exit_value * external_share if total_equity else 0.0
     management_exit = exit_value * management_share if total_equity else 0.0
 
-    cols = st.columns(4)
-    cols[0].metric("External Investor - Investment", _format_money(external_equity))
-    cols[1].metric("External Investor - Exit Value", _format_money(external_exit))
-    cols[2].metric(
-        "External Investor - Multiple",
-        f"{external_exit / external_equity:.2f}x" if external_equity else "n/a",
-    )
-    cols[3].metric(
-        "External Investor - IRR",
-        f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a",
+    metrics = [
+        ("External Investor - Invested Equity", _format_money(external_equity)),
+        ("External Investor - Exit Proceeds", _format_money(external_exit)),
+        (
+            "External Investor - Multiple on Invested Capital",
+            f"{external_exit / external_equity:.2f}x" if external_equity else "n/a",
+        ),
+        (
+            "External Investor - Internal Rate of Return",
+            f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a",
+        ),
+        ("Management - Invested Equity", _format_money(management_equity)),
+        ("Management - Cash Proceeds at Exit", _format_money(management_exit)),
+        (
+            "Management - Internal Rate of Return",
+            f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a",
+        ),
+        ("Management - Ownership After Exit", "100%"),
+    ]
+    metric_html = ['<div class="metric-grid-4">']
+    for label, value in metrics:
+        metric_html.append(
+            f'<div><div class="metric-item-label">{label}</div>'
+            f'<div class="metric-item-value">{value}</div></div>'
+        )
+    metric_html.append("</div>")
+    st.markdown("".join(metric_html), unsafe_allow_html=True)
+
+    st.markdown("### Exit Equity Bridge (Exit Year)")
+    enterprise_value = result.equity.get("enterprise_value", 0.0)
+    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
+    excess_cash = result.equity.get("excess_cash_exit", 0.0)
+    equity_bridge_rows = [
+        {"Line Item": "Enterprise Value at Exit (Operating Profit x Multiple)", "Year 4": _format_money(enterprise_value)},
+        {"Line Item": "Net Debt at Exit", "Year 4": _format_money(-net_debt_exit)},
+        {"Line Item": "Excess Cash at Exit", "Year 4": _format_money(excess_cash)},
+        {"Line Item": "Total Equity Value at Exit", "Year 4": _format_money(exit_value)},
+        {"Line Item": "Investor Exit Proceeds", "Year 4": _format_money(external_exit)},
+        {
+            "Line Item": "Management Residual Equity Value",
+            "Year 4": _format_money(management_exit),
+        },
+    ]
+    _render_kpi_table_html(
+        equity_bridge_rows,
+        columns=["Line Item", "Year 4"],
+        table_class="kpi-table",
+        bold_rows={"Total Equity Value at Exit", "Management Residual Equity Value"},
     )
 
-    cols = st.columns(4)
-    cols[0].metric("Management - Investment", _format_money(management_equity))
-    cols[1].metric("Management - Exit Value", _format_money(management_exit))
-    cols[2].metric(
-        "Management - Multiple",
-        f"{management_exit / management_equity:.2f}x" if management_equity else "n/a",
+    st.markdown("### Equity Cashflows")
+    year_labels = [f"Year {i}" for i in range(5)]
+    equity_cashflows = result.equity.get("equity_cashflows", [])
+    cashflow_years = equity_cashflows[1:6] if len(equity_cashflows) >= 6 else equity_cashflows
+    investor_cashflows = [
+        (value * external_share) if idx < len(cashflow_years) else 0.0
+        for idx, value in enumerate(cashflow_years)
+    ]
+    management_cashflows = [
+        (value * management_share) if idx < len(cashflow_years) else 0.0
+        for idx, value in enumerate(cashflow_years)
+    ]
+    investor_rows = [
+        {
+            "Line Item": "Investor Cashflow",
+            **{year_labels[i]: _format_money(investor_cashflows[i]) for i in range(len(year_labels))},
+        }
+    ]
+    management_rows = [
+        {
+            "Line Item": "Management Cashflow",
+            **{year_labels[i]: _format_money(management_cashflows[i]) for i in range(len(year_labels))},
+        }
+    ]
+    _render_kpi_table_html(
+        investor_rows,
+        columns=["Line Item"] + year_labels,
+        table_class="kpi-table",
     )
-    cols[3].metric(
-        "Management - IRR",
-        f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a",
+    _render_kpi_table_html(
+        management_rows,
+        columns=["Line Item"] + year_labels,
+        table_class="kpi-table",
     )
 
 
 def render_valuation(result: ModelResult) -> None:
-    st.markdown("### Purchase Price & Exit")
-    st.markdown("Owner value bridge from business value to exit proceeds.")
+    st.markdown(
+        '<div class="subtle">This page compares seller expectations with a conservative buyer view. The buyer view focuses on cash generation, financing constraints and downside risk.</div>',
+        unsafe_allow_html=True,
+    )
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
 
-    kpi_cols = st.columns(3)
-    kpi_cols[0].metric("Seller Equity Value", _format_money(enterprise_value))
-    kpi_cols[1].metric("Buyer Affordability", _format_money(exit_value))
     gap = exit_value - enterprise_value
     gap_pct = (gap / enterprise_value * 100) if enterprise_value else 0.0
-    kpi_cols[2].metric("Gap (EUR / %)", f"{_format_money(gap)} | {gap_pct:.1f}%")
+    metric_items = [
+        ("Seller Equity Value", _format_money(enterprise_value)),
+        ("Buyer Affordability", _format_money(exit_value)),
+        ("Gap (EUR / %)", f"{_format_money(gap)} | {gap_pct:.1f}%"),
+    ]
+    metric_html = ['<div class="metric-grid">']
+    for label, value in metric_items:
+        metric_html.append(
+            f'<div><div class="metric-item-label">{label}</div>'
+            f'<div class="metric-item-value">{value}</div></div>'
+        )
+    metric_html.append("</div>")
+    st.markdown("".join(metric_html), unsafe_allow_html=True)
 
-    st.dataframe(
-        [
-            {"Line Item": "Business Value", "Amount": _format_money(enterprise_value)},
-            {"Line Item": "Loan Balance minus Cash at Exit", "Amount": _format_money(-net_debt_exit)},
-            {"Line Item": "Excess Cash", "Amount": _format_money(excess_cash)},
-            {"Line Item": "Owner Value", "Amount": _format_money(exit_value)},
-        ],
-        use_container_width=True,
+    st.markdown(
+        '<div class="callout-bar">Net Debt at Close is taken from the Debt Schedule (Year 0): Closing Debt.</div>',
+        unsafe_allow_html=True,
+    )
+    debt_year0 = result.debt[0] if result.debt else {}
+    opening_debt = debt_year0.get("opening_debt", 0.0)
+    drawdown = debt_year0.get("debt_drawdown", 0.0)
+    repayment = debt_year0.get("total_repayment", 0.0)
+    closing_debt = debt_year0.get("closing_debt", 0.0)
+    cash_at_close = result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
+    net_debt_close = closing_debt - cash_at_close
+    net_debt_rows = [
+        {"Metric": "Opening Debt (Year 0)", "Value": _format_money(opening_debt)},
+        {"Metric": "Drawdown (Year 0)", "Value": _format_money(drawdown)},
+        {"Metric": "Repayment (Year 0)", "Value": _format_money(repayment)},
+        {"Metric": "Closing Debt (Year 0)", "Value": _format_money(closing_debt)},
+        {"Metric": "Net Debt at Close", "Value": _format_money(net_debt_close)},
+    ]
+    _render_kpi_table_html(
+        net_debt_rows,
+        columns=["Metric", "Value"],
+        table_class="kpi-table",
+        bold_rows={"Net Debt at Close"},
     )
 
+    st.markdown(
+        '<div class="assumption-bar"><span class="chevron">›</span>Seller Valuation (Multiple-Based)</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="assumption-bar"><span class="chevron">›</span>Buyer Valuation (Cash-Based)</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="subtle">Buyer view is based on discounted free cashflow and explicitly allows for negative equity values if pricing is too high.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="subtle">Note: No terminal value included (conservative downside view).</div>',
+        unsafe_allow_html=True,
+    )
+    free_cf = [row["free_cashflow"] for row in result.cashflow]
+    discount_rate = 0.10
+    discount_factors = [(1 / ((1 + discount_rate) ** (idx + 1))) for idx in range(5)]
+    pv_fcf = [free_cf[idx] * discount_factors[idx] for idx in range(5)]
+    cumulative_pv = []
+    running = 0.0
+    for value in pv_fcf:
+        running += value
+        cumulative_pv.append(running)
+    buyer_rows = [
+        ("Free Cashflow", free_cf),
+        ("Discount Factor", [f"{value:.2f}" for value in discount_factors]),
+        ("Present Value of FCF", pv_fcf),
+        ("Cumulative PV of FCF", cumulative_pv),
+        ("PV of FCF (no terminal)", cumulative_pv),
+        ("Net Debt at Close", [net_debt_close for _ in range(5)]),
+        ("Transaction Costs", [0.0 for _ in range(5)]),
+        ("Equity Value (Buyer View)", [exit_value for _ in range(5)]),
+    ]
+    _render_statement_table_html(
+        buyer_rows,
+        bold_labels={"Equity Value (Buyer View)"},
+    )
 
-def _year_table(
-    rows: Dict[str, List[float]],
-    years: int = 5,
-    start_year: int = 0,
-) -> List[dict]:
-    table = []
-    for row_name, values in rows.items():
-        row = {"Line Item": row_name}
-        for year_index in range(years):
-            year = start_year + year_index
-            col = "Year 0" if year == 0 else f"Year {year}"
-            value = values[year_index] if year_index < len(values) else 0.0
-            row[col] = _format_table_value(value)
-        table.append(row)
-    return table
+    st.markdown("### Purchase Price Logic")
+    st.markdown(
+        '<div class="subtle">Affordability (Equity Value after financing) is the equity value that does not break liquidity or financing constraints.</div>',
+        unsafe_allow_html=True,
+    )
+    affordability_rows = [
+        {"Metric": "Affordability (Equity Value after financing)", "Value": _format_money(exit_value)},
+    ]
+    _render_kpi_table_html(
+        affordability_rows,
+        columns=["Metric", "Value"],
+        table_class="kpi-table",
+    )
 
+    st.markdown("### Purchase Price Bridge")
+    bridge_rows = [
+        ("Seller Equity Value", [enterprise_value for _ in range(5)]),
+        ("Buyer Equity Value", [exit_value for _ in range(5)]),
+        ("Net Debt at Close", [net_debt_close for _ in range(5)]),
+        ("Valuation Gap (EUR)", [gap for _ in range(5)]),
+        ("Valuation Gap (%)", [f"{gap_pct:.1f}%" for _ in range(5)]),
+    ]
+    _render_statement_table_html(
+        bridge_rows,
+        bold_labels={"Valuation Gap (EUR)"},
+    )
 
-def _statement_table(
-    rows: List[tuple[str, List[float] | List[str] | None]],
-    years: int = 5,
-    start_year: int = 0,
-) -> List[dict]:
-    table = []
-    for label, values in rows:
-        row = {"Line Item": label}
-        for year_index in range(years):
-            year = start_year + year_index
-            col = "Year 0" if year == 0 else f"Year {year}"
-            if values is None:
-                row[col] = ""
-            else:
-                value = values[year_index] if year_index < len(values) else ""
-                row[col] = _format_table_value(value)
-        table.append(row)
-    return table
+    st.markdown("### Buyer View (Active Scenario)")
+    buyer_summary_rows = [
+        {"Metric": "Equity Value (Buyer View)", "Value": _format_money(exit_value)},
+    ]
+    _render_kpi_table_html(
+        buyer_summary_rows,
+        columns=["Metric", "Value"],
+        table_class="kpi-table",
+    )
 
 
 def render_input_summary(result: ModelResult) -> None:
@@ -405,7 +574,11 @@ def render_input_summary(result: ModelResult) -> None:
             "Unit": "x",
         },
     ]
-    st.table(summary_rows)
+    _render_kpi_table_html(
+        summary_rows,
+        columns=["Metric", "Value", "Unit"],
+        table_class="kpi-table",
+    )
 
 
 def _min_dscr(debt_schedule: List[dict]) -> float | None:
@@ -451,26 +624,94 @@ def _format_delta(value: float, unit: str) -> str:
     return f"{sign}{value:,.2f}"
 
 
-def _format_table_value(value) -> str:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, (int, float)):
-        return _format_money(value)
-    return "0.00"
-
-
 def _format_money(value: float) -> str:
     if value is None:
         return ""
     abs_value = abs(value)
     if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.2f} m EUR"
+        return _format_compact(value, 1_000_000, "m€", 2)
     if abs_value >= 1_000:
-        return f"{value / 1_000:,.2f} k EUR"
-    return f"{value:,.0f} EUR"
+        return _format_compact(value, 1_000, "k€", 1)
+    return f"{value:,.0f} €"
+
+
+def _format_compact(value: float, scale: float, suffix: str, decimals: int) -> str:
+    formatted = f"{value / scale:,.{decimals}f}"
+    if formatted.endswith(".00"):
+        formatted = formatted[:-3]
+    if formatted.endswith(".0"):
+        formatted = formatted[:-2]
+    return f"{formatted} {suffix}"
 
 
 def _format_percent(value: float, base: float) -> str:
     if base == 0:
         return "0.0%"
     return f"{(value / base) * 100:.1f}%"
+
+
+def _format_output_value(value) -> str:
+    if value is None or value == "":
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)):
+        return _format_money(value)
+    return str(value)
+
+
+def _render_statement_table_html(
+    rows: List[tuple[str, List[float] | List[str] | None]],
+    bold_labels: Iterable[str] | None = None,
+    years: int = 5,
+) -> None:
+    bold_set = set(bold_labels or [])
+    headers = ["Line Item"] + [f"Year {i}" for i in range(years)]
+    html = ['<table class="statement-table">', "<thead><tr>"]
+    for header in headers:
+        html.append(f"<th>{header}</th>")
+    html.append("</tr></thead><tbody>")
+    for label, values in rows:
+        if label == "" and values is None:
+            html.append(f'<tr class="spacer"><td colspan="{years + 1}"></td></tr>')
+            continue
+        if values is None:
+            html.append('<tr class="section">')
+            html.append(f"<td>{label}</td>")
+            html.extend(["<td></td>" for _ in range(years)])
+            html.append("</tr>")
+            continue
+        row_class = "total" if label in bold_set else ""
+        class_attr = f' class="{row_class}"' if row_class else ""
+        html.append(f"<tr{class_attr}><td>{label}</td>")
+        for year_index in range(years):
+            value = values[year_index] if year_index < len(values) else ""
+            html.append(f"<td>{_format_output_value(value)}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table>")
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+
+def _render_kpi_table_html(
+    rows: List[dict],
+    columns: List[str],
+    table_class: str = "kpi-table",
+    bold_rows: Iterable[str] | None = None,
+) -> None:
+    if "Year 0" in columns:
+        table_class = f"{table_class} year-table"
+    html = [f'<table class="{table_class}">', "<thead><tr>"]
+    bold_set = set(bold_rows or [])
+    for header in columns:
+        html.append(f"<th>{header}</th>")
+    html.append("</tr></thead><tbody>")
+    for row in rows:
+        row_label = row.get(columns[0], "")
+        row_class = "total" if row_label in bold_set else ""
+        class_attr = f' class="{row_class}"' if row_class else ""
+        html.append(f"<tr{class_attr}>")
+        for col in columns:
+            html.append(f"<td>{row.get(col, '')}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table>")
+    st.markdown("".join(html), unsafe_allow_html=True)

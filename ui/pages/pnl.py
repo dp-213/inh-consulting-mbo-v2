@@ -9,5 +9,5 @@ from ui import outputs
 
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     st.markdown("## Operating Model (P&L)")
-    st.markdown("P&L (GuV)")
+    st.markdown("### P&L (GuV)")
     outputs.render_operating_model(result, assumptions)
