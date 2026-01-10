@@ -38,21 +38,6 @@ SECTIONS = {
 
 DEFAULT_PAGE = "Overview"
 NAV_PAGES = [page for pages in SECTIONS.values() for page in pages]
-NAV_ICONS = {
-    "Overview": "🏠",
-    "Operating Model (P&L)": "📊",
-    "Cashflow & Liquidity": "💧",
-    "Balance Sheet": "🧾",
-    "Valuation & Purchase Price": "💼",
-    "Revenue Model": "🧮",
-    "Cost Model": "🧱",
-    "Other Assumptions": "🧩",
-    "Financing & Debt": "🏦",
-    "Equity Case": "🤝",
-    "Case Management": "🗂️",
-    "Model Settings": "⚙️",
-    "Model Export": "📤",
-}
 
 
 def _render_sidebar(current_page: str) -> str:
@@ -69,10 +54,8 @@ def _render_sidebar(current_page: str) -> str:
         )
         for page in pages:
             is_active = st.session_state["page"] == page
-            icon = NAV_ICONS.get(page, "•")
-            label = f"{icon} {page}"
             if st.sidebar.button(
-                label,
+                page,
                 key=f"nav-{page}",
                 type="primary" if is_active else "secondary",
                 use_container_width=True,
@@ -132,20 +115,33 @@ def _inject_base_styles() -> None:
             display: flex;
             align-items: center;
             gap: 0.45rem;
+            text-align: left;
           }
           [data-testid="stSidebar"] .stButton > button:hover {
             background: #e9edf3;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #e4e9f2;
-            border-left: 3px solid #1f2937;
+            background: #dde5f4;
+            border-left: 4px solid #2563eb;
             font-weight: 600;
             color: #0b1220;
             padding-left: 0.45rem;
-            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button:hover {
-            background: #dbe2ec;
+            background: #d2dcf1;
+          }
+          [data-testid="stSidebar"] .stButton > button[aria-label="Case Management"]::before {
+            content: "🗂️";
+            font-size: 0.9rem;
+          }
+          [data-testid="stSidebar"] .stButton > button[aria-label="Model Settings"]::before {
+            content: "⚙️";
+            font-size: 0.9rem;
+          }
+          [data-testid="stSidebar"] .stButton > button[aria-label="Model Export"]::before {
+            content: "📤";
+            font-size: 0.9rem;
           }
           [data-testid="stRadio"] {
             background: #f8fafc;

@@ -39,3 +39,16 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` and stopped after startup output.
 - Mental smoke test: app should still start without errors, all pages render, inputs drive outputs, and navigation remains unchanged with clearer active state.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None.
+
+Changes:
+- Removed non-settings icons and tightened sidebar alignment/spacing while keeping labels unchanged.
+- Added icon-only styling for Settings items via CSS pseudo-elements and strengthened the active highlight with a clear background and left accent bar.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` and stopped after startup output.
+- Mental smoke test: app should still start without errors, all pages render, inputs drive outputs, and navigation remains unchanged with clearer active state.
