@@ -101,7 +101,7 @@ def render_quick_adjust_cashflow(assumptions: Assumptions, key_prefix: str) -> A
         f"{key_prefix}.wc_pct": cashflow.working_capital_pct_revenue,
         f"{key_prefix}.opening_cash": cashflow.opening_cash_balance_eur,
     }
-    with st.expander("Key P&L Drivers (Quick Adjust)", expanded=False):
+    with st.expander("Key Cashflow Drivers (Quick Adjust)", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)
@@ -159,7 +159,7 @@ def render_quick_adjust_balance_sheet(assumptions: Assumptions, key_prefix: str)
         f"{key_prefix}.depr_rate": balance.depreciation_rate_pct,
         f"{key_prefix}.opening_cash": assumptions.cashflow.opening_cash_balance_eur,
     }
-    with st.expander("Key P&L Drivers (Quick Adjust)", expanded=False):
+    with st.expander("Key Balance Sheet Drivers (Quick Adjust)", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)
@@ -210,7 +210,7 @@ def render_quick_adjust_valuation(assumptions: Assumptions, key_prefix: str) -> 
         f"{key_prefix}.debt_amount": financing.senior_debt_amount_eur,
         f"{key_prefix}.seller_multiple": assumptions.valuation.seller_multiple,
     }
-    with st.expander("Key P&L Drivers (Quick Adjust)", expanded=False):
+    with st.expander("Key Valuation Drivers (Quick Adjust)", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)
