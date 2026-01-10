@@ -139,3 +139,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Rebuilt Cashflow & Liquidity into four bank-style blocks focused on cash survival, with clear subtotals and a strong Closing Cash line.
+- Reduced KPI summary to minimum cash balance, years with negative cash, and peak funding gap.
+- Removed detailed KPI tables and explanatory blocks from the default view.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

@@ -361,23 +361,26 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
 
 def render_cashflow_liquidity(result: ModelResult) -> None:
     rows = [
-        ("OPERATING CASHFLOW", None),
-        ("Operating Profit (EBITDA)", [row["ebitda"] for row in result.cashflow]),
-        ("Taxes Paid", [row["taxes_paid"] for row in result.cashflow]),
-        ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
+        ("CASH GENERATION (OPERATING REALITY)", None),
+        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
+        ("Cash Taxes Paid", [row["taxes_paid"] for row in result.cashflow]),
+        (
+            "Working Capital Change",
+            [row["working_capital_change"] for row in result.cashflow],
+        ),
         ("Operating Cashflow", [row["operating_cf"] for row in result.cashflow]),
         ("", None),
-        ("INVESTING CASHFLOW", None),
+        ("INVESTMENT & FREE CASHFLOW", None),
         ("Capex", [row["capex"] for row in result.cashflow]),
         ("Free Cashflow", [row["free_cashflow"] for row in result.cashflow]),
         ("", None),
-        ("FINANCING CASHFLOW", None),
+        ("FINANCING & DEBT BURDEN", None),
         ("Debt Drawdowns", [row["debt_drawdown"] for row in result.cashflow]),
         ("Interest Paid", [row["interest_paid"] for row in result.cashflow]),
         ("Debt Repayment", [row["debt_repayment"] for row in result.cashflow]),
         ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
         ("", None),
-        ("LIQUIDITY", None),
+        ("LIQUIDITY POSITION", None),
         ("Opening Cash", [row["opening_cash"] for row in result.cashflow]),
         ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
         ("Closing Cash", [row["cash_balance"] for row in result.cashflow]),
@@ -390,6 +393,7 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
             "Net Cashflow",
             "Closing Cash",
         },
+        row_classes={"Closing Cash": "key-metric"},
     )
 
 

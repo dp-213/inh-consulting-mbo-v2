@@ -7,8 +7,6 @@ from state.assumptions import Assumptions
 from ui import outputs
 from ui.pages.quick_adjust import render_quick_adjust_cashflow
 
-YEAR_LABELS = [f"Year {i}" for i in range(5)]
-
 
 def _case_name(path: str) -> str:
     if not path:
@@ -45,53 +43,19 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
-    st.markdown(
-        '<div class="subtle">Consolidated cashflow statement (5-year plan)</div>',
-        unsafe_allow_html=True,
-    )
     updated_assumptions = render_quick_adjust_cashflow(assumptions, "cashflow.quick")
     updated_result = run_model(updated_assumptions)
+    cash_balances = [row["cash_balance"] for row in updated_result.cashflow]
+    min_cash = min(cash_balances) if cash_balances else 0.0
+    negative_years = len([value for value in cash_balances if value < 0])
+    peak_funding = abs(min_cash) if min_cash < 0 else 0.0
+    kpi_rows = [
+        {"Metric": "Minimum Cash Balance", "Value": outputs._format_money(min_cash)},
+        {"Metric": "Years with Negative Cash", "Value": str(negative_years)},
+        {
+            "Metric": "Peak Cash Requirement (Max funding gap)",
+            "Value": outputs._format_money(peak_funding),
+        },
+    ]
+    outputs._render_kpi_table_html(kpi_rows, ["Metric", "Value"])
     outputs.render_cashflow_liquidity(updated_result)
-
-    with st.expander("Detailed analysis", expanded=False):
-        st.markdown("#### KPI Summary")
-        operating_cf = [row["operating_cf"] for row in updated_result.cashflow]
-        free_cf = [row["free_cashflow"] for row in updated_result.cashflow]
-        ebitda = [row["ebitda"] for row in updated_result.cashflow]
-        cash_conversion = [
-            outputs._format_percent(free_cf[idx], ebitda[idx])
-            for idx in range(len(free_cf))
-        ]
-
-        kpi_rows = [
-            {
-                "KPI": "Operating Cashflow",
-                **{YEAR_LABELS[i]: outputs._format_money(operating_cf[i]) for i in range(5)},
-            },
-            {
-                "KPI": "Free Cashflow",
-                **{YEAR_LABELS[i]: outputs._format_money(free_cf[i]) for i in range(5)},
-            },
-            {
-                "KPI": "Cash Conversion",
-                **{YEAR_LABELS[i]: cash_conversion[i] for i in range(5)},
-            },
-        ]
-        outputs._render_kpi_table_html(kpi_rows, ["KPI"] + YEAR_LABELS)
-        st.markdown("#### Cash Volatility")
-        cash_balances = [row["cash_balance"] for row in updated_result.cashflow]
-        min_cash = min(cash_balances) if cash_balances else 0.0
-        max_cash = max(cash_balances) if cash_balances else 0.0
-        negative_years = len([value for value in cash_balances if value < 0])
-        metric_rows = [
-            {"Metric": "Minimum Cash Balance", "Value": outputs._format_money(min_cash)},
-            {
-                "Metric": "Cash Volatility (Max - Min)",
-                "Value": outputs._format_money(max_cash - min_cash),
-            },
-            {
-                "Metric": "Years with Negative Cash",
-                "Value": "None" if negative_years == 0 else str(negative_years),
-            },
-        ]
-        outputs._render_kpi_table_html(metric_rows, ["Metric", "Value"])
