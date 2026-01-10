@@ -99,9 +99,12 @@ def _inject_base_styles() -> None:
             background: #eef2f5;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #d2d9e3;
-            border-left: 4px solid #4b5563;
+            background: #dbe7ff;
+            border-left: 4px solid #1e3a8a;
             font-weight: 600;
+          }
+          [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button:hover {
+            background: #c8ddff;
           }
           [data-testid="stRadio"] {
             background: #f8fafc;

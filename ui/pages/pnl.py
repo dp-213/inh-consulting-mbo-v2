@@ -5,7 +5,7 @@ import streamlit as st
 from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
-from ui.pages.quick_adjust import render_quick_adjust
+from ui.pages.quick_adjust import render_quick_adjust_pnl
 
 
 def _case_name(path: str) -> str:
@@ -44,7 +44,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
     )
     _render_scenario_selector(assumptions.scenario)
 
-    updated_assumptions = render_quick_adjust(assumptions, "pnl.quick")
+    updated_assumptions = render_quick_adjust_pnl(assumptions, "pnl.quick")
     updated_result = run_model(updated_assumptions)
     st.markdown("### P&L (Summary)")
     outputs.render_operating_model(updated_result, updated_assumptions)

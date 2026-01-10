@@ -5,7 +5,7 @@ import streamlit as st
 from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
-from ui.pages.quick_adjust import render_quick_adjust
+from ui.pages.quick_adjust import render_quick_adjust_balance_sheet
 
 YEAR_LABELS = [f"Year {i}" for i in range(5)]
 
@@ -49,7 +49,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         '<div class="subtle">Simplified balance sheet (5-year plan)</div>',
         unsafe_allow_html=True,
     )
-    updated_assumptions = render_quick_adjust(assumptions, "balance.quick")
+    updated_assumptions = render_quick_adjust_balance_sheet(assumptions, "balance.quick")
     updated_result = run_model(updated_assumptions)
     outputs.render_balance_sheet(updated_result)
 
