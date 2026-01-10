@@ -13,20 +13,25 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
     with st.expander("Financing Assumptions", expanded=True):
         st.table(
             [
-                {"Parameter": "Senior Debt Amount", "Value": _format_money(assumptions.financing.senior_debt_amount_eur), "Unit": "EUR", "Notes": "Opening senior term loan."},
-                {"Parameter": "Interest Rate", "Value": f"{assumptions.financing.interest_rate_pct*100:.1f}%", "Unit": "%", "Notes": "Fixed interest rate."},
+                {"Parameter": "Senior Debt Amount", "Value": _format_amount(assumptions.financing.senior_debt_amount_eur), "Unit": "EUR", "Notes": "Opening senior term loan."},
+                {"Parameter": "Interest Rate", "Value": f"{assumptions.financing.interest_rate_pct*100:.1f}", "Unit": "%", "Notes": "Fixed interest rate."},
                 {"Parameter": "Amortisation Years", "Value": assumptions.financing.amortization_period_years, "Unit": "Years", "Notes": "Linear amortisation period."},
             ]
         )
+    st.markdown("Bank View")
     outputs.render_financing_debt(result, assumptions)
+    st.markdown(
+        "CFADS = EBITDA - Cash Taxes - Maintenance Capex + Working Capital Change."
+    )
+    st.markdown(
+        "DSCR = CFADS / (Interest Expense + Scheduled Repayment)."
+    )
+    st.markdown(
+        "Peak debt may differ from initial drawdown when repayments occur within Year 0."
+    )
 
 
-def _format_money(value: float) -> str:
+def _format_amount(value: float) -> str:
     if value is None:
         return ""
-    abs_value = abs(value)
-    if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.1f} m€"
-    if abs_value >= 1_000:
-        return f"{value / 1_000:,.1f} k€"
-    return f"{value:,.0f} €"
+    return f"{value:,.0f}"

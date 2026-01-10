@@ -49,3 +49,8 @@ Iteration 10
 Iteration 11
 - Changes made: added left-rail highlight indicator in sidebar, aligned Revenue/Cost/Other inputs to screenshot sectioning, added scenario controls for planning pages, and corrected financing bank view formatting.
 - Still wrong: Equity Case lacks split management vs external investor detail; Other Assumptions missing investor exit year/distribution rule; valuation missing full seller/buyer bridge tables from screenshots.
+
+Iteration 12
+- Violations found: scenario selector placement mismatched screenshots on planning pages; output tables used "Year 0 (Entry)" and k€/m€ formatting; P&L/Cashflow/Balance Sheet statements lacked screenshot row order and section headers; assumption tables showed % symbols and abbreviated EUR values; equity case lacked management vs external split; valuation buyer view lacked structured rows; duplicate headings and separators reduced fidelity.
+- Changes made: moved scenario selectors into Revenue/Cost pages, removed extra separators, standardized Year 0 labels, rebuilt P&L/CF/BS tables with section headers and KPI rows, aligned output formatting to m EUR, updated assumption tables to show full EUR and % without symbols, added equity split and headline outcomes, rebuilt valuation buyer table and KPI gap %, and added financing footnotes + balance sheet KPI summary.
+- Still wrong: Wizard default entry (Acceptance) conflicts with screenshot rebuild; acceptance forbids radio controls but screenshots show scenario radios; acceptance demands G&V summary on input pages (not shown in screenshots); exact statement row labels/spacing may still diverge from missing screenshots; buyer valuation discount logic is a proxy (interest rate) due to missing discount rate input.

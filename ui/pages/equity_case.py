@@ -9,26 +9,25 @@ from ui import outputs
 
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     st.markdown("## Equity Case")
+    st.markdown(
+        "Management Buy-Out with an external minority investor. Holding period defined by the investor exit year. "
+        "Exit mechanism: management buys out the investor."
+    )
     with st.expander("Equity Assumptions", expanded=True):
         st.table(
             [
                 {
                     "Parameter": "Sponsor Equity Contribution",
-                    "Value": _format_money(assumptions.transaction_and_financing.equity_contribution_eur),
+                    "Value": _format_amount(assumptions.transaction_and_financing.equity_contribution_eur),
                     "Unit": "EUR",
                     "Notes": "Management equity contribution.",
                 }
             ]
         )
-    outputs.render_equity_case(result)
+    outputs.render_equity_case(result, assumptions)
 
 
-def _format_money(value: float) -> str:
+def _format_amount(value: float) -> str:
     if value is None:
         return ""
-    abs_value = abs(value)
-    if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.1f} m€"
-    if abs_value >= 1_000:
-        return f"{value / 1_000:,.1f} k€"
-    return f"{value:,.0f} €"
+    return f"{value:,.0f}"

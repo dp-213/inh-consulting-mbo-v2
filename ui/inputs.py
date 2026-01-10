@@ -20,7 +20,7 @@ from state.assumptions import (
     VariableCostYearAssumptions,
 )
 
-YEARS = ["Year 0 (Entry)", "Year 1", "Year 2", "Year 3", "Year 4"]
+YEARS = ["Year 0", "Year 1", "Year 2", "Year 3", "Year 4"]
 
 
 def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
@@ -57,14 +57,6 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     )
     allocation_table = _edit_table(allocation_table, key="revenue.allocation")
 
-    st.markdown("### Guarantee")
-    guarantee_table = _year_table(
-        [
-            ("Guarantee %", "%", current.guarantee_pct_by_year, "Floor applied to group revenue."),
-        ]
-    )
-    guarantee_table = _edit_table(guarantee_table, key="revenue.guarantee")
-
     st.markdown("### Reference Revenue")
     reference_table = _value_table(
         [
@@ -83,7 +75,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         group_capacity_share_pct=_row_years_numeric(allocation_table, "Group Capacity Share %"),
         external_capacity_share_pct=_row_years_numeric(allocation_table, "External Capacity Share %"),
         reference_revenue_eur=_to_float(_row_value(reference_table, "Reference Revenue")),
-        guarantee_pct_by_year=_row_years_numeric(guarantee_table, "Guarantee %"),
+        guarantee_pct_by_year=current.guarantee_pct_by_year,
     )
 
     return Assumptions(
@@ -150,7 +142,7 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     )
     fixed_table = _edit_table(fixed_table, key="cost.fixed")
 
-    st.markdown("### Variable Costs — Type")
+    st.markdown("### Variable Costs - Type")
     variable_type_table = _year_table(
         [
             ("Training Type", "EUR/%", [row.training_type for row in cost.variable_costs_by_year], ""),
@@ -160,7 +152,7 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     )
     variable_type_table = _edit_table(variable_type_table, key="cost.variable.type")
 
-    st.markdown("### Variable Costs — Value")
+    st.markdown("### Variable Costs - Value")
     variable_value_table = _year_table(
         [
             ("Training Value", "EUR or %", [row.training_value for row in cost.variable_costs_by_year], ""),
@@ -607,27 +599,26 @@ def _scenario_table(assumptions: Assumptions) -> str:
 
 def _year_table(rows: List[tuple]) -> List[dict]:
     table = []
-    for name, unit, values, notes in rows:
-        row = {"Parameter": name}
+    for name, unit, values, _notes in rows:
+        row = {"Parameter": name, "Unit": unit}
         for idx, year in enumerate(YEARS):
             row[year] = _display_value(values[idx], unit)
-        row["Unit"] = unit
-        row["Notes"] = notes
         table.append(row)
     return table
 
 
 def _value_table(rows: List[tuple]) -> List[dict]:
     table = []
-    for name, unit, value, notes in rows:
-        table.append(
-            {
-                "Parameter": name,
-                "Value": _display_value(value, unit),
-                "Unit": unit,
-                "Notes": notes,
-            }
-        )
+    has_notes = any(note for _, _, _, note in rows)
+    for name, unit, value, note in rows:
+        row = {
+            "Parameter": name,
+            "Value": _display_value(value, unit),
+            "Unit": unit,
+        }
+        if has_notes:
+            row["Notes"] = note
+        table.append(row)
     return table
 
 
@@ -689,7 +680,7 @@ def _to_float(value) -> float:
         multiplier = 1.0
         if text.endswith("%"):
             text = text[:-1]
-        text = text.replace("€", "").strip()
+        text = text.replace("eur", "").strip()
         if text.endswith("k"):
             multiplier = 1_000.0
             text = text[:-1]
@@ -706,7 +697,7 @@ def _display_value(value, unit: str):
     if isinstance(value, str):
         return value
     if _is_percent_unit(str(unit).strip()):
-        return f"{float(number) * 100:,.1f}%" if number is not None else "0.0%"
+        return f"{float(number) * 100:,.1f}" if number is not None else "0.0"
     if _is_currency_unit(str(unit).strip()):
         return _format_currency_display(number)
     return f"{float(number):,.2f}" if number is not None else "0.00"
@@ -717,18 +708,16 @@ def _is_percent_unit(unit: str) -> bool:
 
 
 def _is_currency_unit(unit: str) -> bool:
-    return ("€" in unit or "EUR" in unit) and "%" not in unit
+    return "EUR" in unit and "%" not in unit
 
 
 def _format_currency_display(value: float) -> str:
     if value is None:
         return "0"
     abs_value = abs(value)
-    if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.2f}m€"
-    if abs_value >= 1_000:
-        return f"{value / 1_000:,.1f}k€"
-    return f"{value:,.0f}€"
+    if abs_value >= 1:
+        return f"{value:,.0f}"
+    return f"{value:,.2f}"
 
 
 def _looks_like_text(value: str) -> bool:

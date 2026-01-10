@@ -8,5 +8,4 @@ from ui import inputs
 
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("## Other Assumptions")
-    st.markdown("Master input sheet – all remaining assumptions.")
     return inputs.render_other_assumptions(assumptions)

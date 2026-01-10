@@ -77,15 +77,15 @@ def _key_inputs(assumptions: Assumptions) -> list[dict]:
     rows = [
         {"Area": "Revenue", "Driver": "Workdays (Year 0)", "Value": revenue.workdays_per_year[0], "Unit": "Days"},
         {"Area": "Revenue", "Driver": "Utilization (Year 0)", "Value": f"{revenue.utilization_rate_pct[0]*100:.1f}%", "Unit": "%"},
-        {"Area": "Revenue", "Driver": "Group Day Rate (Year 0)", "Value": _format_money(revenue.group_day_rate_eur[0]), "Unit": "€"},
-        {"Area": "Revenue", "Driver": "External Day Rate (Year 0)", "Value": _format_money(revenue.external_day_rate_eur[0]), "Unit": "€"},
+        {"Area": "Revenue", "Driver": "Group Day Rate (Year 0)", "Value": _format_money(revenue.group_day_rate_eur[0]), "Unit": "EUR"},
+        {"Area": "Revenue", "Driver": "External Day Rate (Year 0)", "Value": _format_money(revenue.external_day_rate_eur[0]), "Unit": "EUR"},
         {"Area": "Revenue", "Driver": "Guarantee (Year 0)", "Value": f"{revenue.guarantee_pct_by_year[0]*100:.1f}%", "Unit": "%"},
         {"Area": "Cost", "Driver": "Consultant Headcount (Year 0)", "Value": assumptions.cost.personnel_by_year[0].consultant_fte, "Unit": "People"},
-        {"Area": "Cost", "Driver": "Consultant Cost (All-in)", "Value": _format_money(assumptions.cost.personnel_by_year[0].consultant_loaded_cost_eur), "Unit": "€"},
+        {"Area": "Cost", "Driver": "Consultant Cost (All-in)", "Value": _format_money(assumptions.cost.personnel_by_year[0].consultant_loaded_cost_eur), "Unit": "EUR"},
         {"Area": "Cost", "Driver": "Backoffice Headcount (Year 0)", "Value": assumptions.cost.personnel_by_year[0].backoffice_fte, "Unit": "People"},
-        {"Area": "Financing", "Driver": "Purchase Price", "Value": _format_money(assumptions.transaction_and_financing.purchase_price_eur), "Unit": "€"},
-        {"Area": "Financing", "Driver": "Owner Contribution", "Value": _format_money(assumptions.transaction_and_financing.equity_contribution_eur), "Unit": "€"},
-        {"Area": "Financing", "Driver": "Senior Loan Amount", "Value": _format_money(assumptions.financing.senior_debt_amount_eur), "Unit": "€"},
+        {"Area": "Financing", "Driver": "Purchase Price", "Value": _format_money(assumptions.transaction_and_financing.purchase_price_eur), "Unit": "EUR"},
+        {"Area": "Financing", "Driver": "Owner Contribution", "Value": _format_money(assumptions.transaction_and_financing.equity_contribution_eur), "Unit": "EUR"},
+        {"Area": "Financing", "Driver": "Senior Loan Amount", "Value": _format_money(assumptions.financing.senior_debt_amount_eur), "Unit": "EUR"},
         {"Area": "Financing", "Driver": "Interest Rate", "Value": f"{assumptions.financing.interest_rate_pct*100:.1f}%", "Unit": "%"},
         {"Area": "Financing", "Driver": "Repayment Type", "Value": assumptions.financing.amortization_type, "Unit": ""},
         {"Area": "Financing", "Driver": "Repayment Period", "Value": assumptions.financing.amortization_period_years, "Unit": "Years"},
@@ -123,10 +123,10 @@ def _format_money(value: float) -> str:
         return ""
     abs_value = abs(value)
     if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.1f} m€"
+        return f"{value / 1_000_000:,.2f} m EUR"
     if abs_value >= 1_000:
-        return f"{value / 1_000:,.1f} k€"
-    return f"{value:,.0f} €"
+        return f"{value / 1_000:,.2f} k EUR"
+    return f"{value:,.0f} EUR"
 
 
 def _min_dscr(debt_schedule: list[dict]) -> float | None:

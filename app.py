@@ -44,10 +44,10 @@ def _render_sidebar(current_page: str) -> str:
     selected_page = current_page
     st.sidebar.markdown("**MBO Financial Model**")
     for title, options in SECTIONS.items():
-        st.sidebar.markdown(f"### {title}")
+        st.sidebar.caption(title)
         for option in options:
             if option == current_page:
-                label = f"**▌ {option}**"
+                label = f"**| {option}**"
             else:
                 label = option
             st.sidebar.markdown(f"[{label}](?page={_slug(option)})")
@@ -98,35 +98,26 @@ def main() -> None:
     data_path = st.session_state["data_path"]
     original_assumptions = load_assumptions(data_path)
     assumptions = original_assumptions
-    base_case = load_assumptions("data/base_case.json")
     case_options = list_cases()
 
     st.markdown("# Financial Model")
 
-    output_pages = {
-        "Overview",
+    view_only_scenario_pages = {
         "Operating Model (P&L)",
         "Cashflow & Liquidity",
         "Balance Sheet",
-        "Financing & Debt",
-        "Equity Case",
-        "Valuation & Purchase Price",
     }
 
-    if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
-        st.markdown("Percent inputs use whole numbers (70 = 70%).")
+    view_assumptions = assumptions
+    if page in view_only_scenario_pages:
         scenario = st.radio(
-            "Scenario",
+            "Scenario (View Only)",
             ["Worst", "Base", "Best"],
             index=["Worst", "Base", "Best"].index(assumptions.scenario),
             horizontal=True,
         )
         if scenario != assumptions.scenario:
-            assumptions = replace(assumptions, scenario=scenario)
-        st.markdown("---")
-    elif page in output_pages:
-        st.markdown(f"Scenario being viewed: {assumptions.scenario}")
-        st.markdown("---")
+            view_assumptions = replace(assumptions, scenario=scenario)
 
     if page == "Revenue Model":
         updated_assumptions = revenue_model.render(assumptions)
@@ -137,27 +128,30 @@ def main() -> None:
     else:
         updated_assumptions = assumptions
 
-    if data_path.endswith("base_case.json") and asdict(updated_assumptions) != asdict(original_assumptions):
+    can_persist = page in {"Revenue Model", "Cost Model", "Other Assumptions", "Case Management"}
+    if can_persist and data_path.endswith("base_case.json") and asdict(updated_assumptions) != asdict(original_assumptions):
         st.markdown("Base Case is read-only. Use Case Management to create a copy.")
-    elif asdict(updated_assumptions) != asdict(original_assumptions):
+    elif can_persist and asdict(updated_assumptions) != asdict(original_assumptions):
         save_case(updated_assumptions, data_path)
 
-    result = run_model(updated_assumptions)
+    result = run_model(
+        view_assumptions if page in view_only_scenario_pages else updated_assumptions
+    )
 
     if page == "Overview":
-        overview.render(result, updated_assumptions, base_case)
+        overview.render(result, assumptions)
     elif page == "Operating Model (P&L)":
-        pnl.render(result)
+        pnl.render(result, view_assumptions)
     elif page == "Cashflow & Liquidity":
-        cashflow.render(result, updated_assumptions)
+        cashflow.render(result, view_assumptions)
     elif page == "Balance Sheet":
-        balance_sheet.render(result, updated_assumptions)
+        balance_sheet.render(result, view_assumptions)
     elif page == "Financing & Debt":
-        financing_debt.render(result, updated_assumptions)
+        financing_debt.render(result, view_assumptions)
     elif page == "Equity Case":
-        equity_case.render(result, updated_assumptions)
+        equity_case.render(result, view_assumptions)
     elif page == "Valuation & Purchase Price":
-        valuation.render(result, updated_assumptions)
+        valuation.render(result, view_assumptions)
     elif page == "Model Settings":
         model_settings.render(data_path)
     elif page == "Case Management":

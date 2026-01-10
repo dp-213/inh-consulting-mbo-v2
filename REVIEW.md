@@ -45,3 +45,7 @@ Use this file to append findings and decisions after each iteration.
 ## Iteration 11
 - Findings: Sidebar highlight needed left rail indicator; planning inputs still diverged from screenshot structure; financing Bank View formatting needed correction.
 - Decisions: Added left-rail highlight, restructured planning inputs into screenshot sections, and aligned Bank View row formatting.
+
+## Iteration 12
+- Findings: Scenario controls were placed above planning titles; Year 0 labels and currency abbreviations did not match screenshots; statement tables lacked full section grouping; assumption tables showed % symbols and abbreviated EUR; equity case lacked management vs external split; valuation buyer view lacked structured rows.
+- Decisions: Moved scenario selectors into Revenue/Cost pages, standardized Year 0 labels, rebuilt P&L/CF/BS tables with section headers and KPI rows, switched outputs to m EUR formatting and inputs to full EUR, added equity split/headline outcomes, rebuilt valuation buyer table with discount factors, and added financing footnotes plus balance sheet KPI summary.

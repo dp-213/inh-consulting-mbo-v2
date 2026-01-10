@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import streamlit as st
 
 from state.assumptions import Assumptions
@@ -8,7 +10,14 @@ from ui import inputs
 
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("## Revenue Model")
-    st.markdown("Editable revenue input sheet for the selected scenario.")
+    scenario = st.radio(
+        "Scenario",
+        ["Worst", "Base", "Best"],
+        index=["Worst", "Base", "Best"].index(assumptions.scenario),
+        horizontal=True,
+    )
+    if scenario != assumptions.scenario:
+        assumptions = replace(assumptions, scenario=scenario)
     if st.checkbox("Explain revenue logic & assumptions", value=False):
         st.markdown("Revenue is driven by capacity, utilization, and day rates across the planning period.")
     st.markdown("### Consultant Capacity (Derived)")
