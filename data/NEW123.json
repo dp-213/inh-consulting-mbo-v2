@@ -352,12 +352,23 @@
   },
   "balance_sheet": {
     "opening_equity_eur": 0.0,
-    "depreciation_rate_pct": 0.1
+    "depreciation_rate_pct": 0.1,
+    "minimum_cash_balance_eur": 0.0
   },
   "tax_and_distributions": {
     "tax_rate_pct": 0.25
   },
   "valuation": {
-    "seller_multiple": 6.0
+    "seller_multiple": 6.0,
+    "reference_year": 4,
+    "discount_rate_pct": 0.1,
+    "valuation_start_year": 0,
+    "transaction_costs_pct": 0.0
+  },
+  "equity": {
+    "exit_year": 4,
+    "exit_mechanism": "Management buys out investor",
+    "investor_participation": "Pro-rata",
+    "management_participation": "Pro-rata"
   }
 }

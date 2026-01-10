@@ -5,7 +5,7 @@ import streamlit as st
 from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
-from ui.pages.quick_adjust import render_quick_adjust_cashflow
+from ui import inputs
 
 
 def _case_name(path: str) -> str:
@@ -34,7 +34,7 @@ def _render_scenario_selector(current: str) -> None:
     )
 
 
-def render(result: ModelResult, assumptions: Assumptions) -> None:
+def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
     st.markdown("# Cashflow & Liquidity")
@@ -43,7 +43,11 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
-    updated_assumptions = render_quick_adjust_cashflow(assumptions, "cashflow.quick")
+    output_container = st.container()
+    with st.expander("Key Assumptions", expanded=False):
+        updated_assumptions = inputs.render_cashflow_key_assumptions(
+            assumptions, "cashflow.assumptions"
+        )
     updated_result = run_model(updated_assumptions)
     cash_balances = [row["cash_balance"] for row in updated_result.cashflow]
     min_cash = min(cash_balances) if cash_balances else 0.0
@@ -57,5 +61,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             "Value": outputs._format_money(peak_funding),
         },
     ]
-    outputs._render_kpi_table_html(kpi_rows, ["Metric", "Value"])
-    outputs.render_cashflow_liquidity(updated_result)
+    with output_container:
+        outputs._render_kpi_table_html(kpi_rows, ["Metric", "Value"])
+        outputs.render_cashflow_liquidity(updated_result)
+    return updated_assumptions

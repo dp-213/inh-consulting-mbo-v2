@@ -97,6 +97,7 @@ class CashflowAssumptions:
 class BalanceSheetAssumptions:
     opening_equity_eur: float
     depreciation_rate_pct: float
+    minimum_cash_balance_eur: float
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,18 @@ class TaxAssumptions:
 @dataclass(frozen=True)
 class ValuationAssumptions:
     seller_multiple: float
+    reference_year: int
+    discount_rate_pct: float
+    valuation_start_year: int
+    transaction_costs_pct: float
+
+
+@dataclass(frozen=True)
+class EquityAssumptions:
+    exit_year: int
+    exit_mechanism: str
+    investor_participation: str
+    management_participation: str
 
 
 @dataclass(frozen=True)
@@ -120,6 +133,7 @@ class Assumptions:
     balance_sheet: BalanceSheetAssumptions
     tax_and_distributions: TaxAssumptions
     valuation: ValuationAssumptions
+    equity: EquityAssumptions
 
 
 def _year_list(value: float) -> List[float]:
@@ -235,11 +249,25 @@ def default_assumptions() -> Assumptions:
     balance_sheet = BalanceSheetAssumptions(
         opening_equity_eur=0.0,
         depreciation_rate_pct=0.1,
+        minimum_cash_balance_eur=0.0,
     )
 
     tax_and_distributions = TaxAssumptions(tax_rate_pct=0.25)
 
-    valuation = ValuationAssumptions(seller_multiple=6.0)
+    valuation = ValuationAssumptions(
+        seller_multiple=6.0,
+        reference_year=4,
+        discount_rate_pct=0.10,
+        valuation_start_year=0,
+        transaction_costs_pct=0.0,
+    )
+
+    equity = EquityAssumptions(
+        exit_year=4,
+        exit_mechanism="Management buys out investor",
+        investor_participation="Pro-rata",
+        management_participation="Pro-rata",
+    )
 
     return Assumptions(
         scenario="Base",
@@ -251,4 +279,5 @@ def default_assumptions() -> Assumptions:
         balance_sheet=balance_sheet,
         tax_and_distributions=tax_and_distributions,
         valuation=valuation,
+        equity=equity,
     )

@@ -218,3 +218,68 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Removed standalone Other Assumptions from navigation and added per-page collapsed Key Assumptions blocks for Cashflow, Balance Sheet, Financing & Debt, Valuation, and Equity.
+- Added explicit assumption fields (balance sheet minimum cash, valuation reference/discount/start/transaction costs, equity exit/participation) and wired them to UI and data.
+- Standardized assumption tables to the same visual style as statements and ensured valuation discount rate is assumption-driven.
+- Adjusted page flows to save updated assumptions from their respective pages while keeping results above assumptions.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Removed quick-adjust sections from Cashflow, Balance Sheet, Valuation, Financing & Debt, and Equity Case; each now uses only its Key Assumptions block.
+- Retired the Other Assumptions page content and removed its input logic; assumptions now live only on their respective pages.
+- Hardened key-assumption editing with required-field checks to avoid hidden defaults and applied statement-style table visuals.
+- Updated valuation discount rate usage and assumption export wiring to use explicit model assumptions.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Removed Quick Steering from the Overview page so only the Operating Model retains it.
+- Cleaned Overview to use the base scenario output without quick adjust overrides.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Retired the Financing Inputs page to remove legacy input fields and direct users to the Financing & Debt page.
+- Retired the Other Assumptions page content to avoid duplicate assumption entry.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Added explicit Purchase Price and Management Equity Contribution to the Equity Case assumptions and wired them into ownership logic.
+- Added Opening Loan Balance to Financing & Debt assumptions to avoid hidden debt inputs.
+- Hardened required-value checks to prevent blank assumptions.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

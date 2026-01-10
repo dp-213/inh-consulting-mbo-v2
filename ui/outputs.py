@@ -537,10 +537,18 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     )
 
     st.markdown("### Ownership & Control")
+    control_logic = (
+        "Management control (majority ownership)"
+        if management_share >= 0.5
+        else "Shared control (minority management)"
+    )
     control_rows = [
         ("Ownership Split", [ownership_split]),
-        ("Control Logic", ["Management control with minority investor protection"]),
-        ("Exit Mechanism", ["Management buys out investor at exit"]),
+        ("Control Logic", [control_logic]),
+        ("Exit Year", [f"Year {assumptions.equity.exit_year}"]),
+        ("Exit Mechanism", [assumptions.equity.exit_mechanism]),
+        ("Investor Participation", [assumptions.equity.investor_participation]),
+        ("Management Participation", [assumptions.equity.management_participation]),
     ]
     _render_statement_table_html(control_rows, years=1, year_labels=["Statement"])
 
@@ -624,7 +632,7 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     _render_statement_table_html(management_rows, years=1, year_labels=["Value"])
 
 
-def render_valuation_summary(result: ModelResult) -> None:
+def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> None:
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash_exit = result.equity.get("excess_cash_exit", 0.0)
@@ -639,7 +647,7 @@ def render_valuation_summary(result: ModelResult) -> None:
     )
     net_debt_close = closing_debt - cash_at_close
     free_cf = [row["free_cashflow"] for row in result.cashflow]
-    discount_rate = 0.10
+    discount_rate = assumptions.valuation.discount_rate_pct
     discount_factors = [(1 / ((1 + discount_rate) ** (idx + 1))) for idx in range(5)]
     pv_fcf = [free_cf[idx] * discount_factors[idx] for idx in range(5)]
     cumulative_pv = []

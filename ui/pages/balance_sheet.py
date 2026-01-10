@@ -5,7 +5,7 @@ import streamlit as st
 from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
-from ui.pages.quick_adjust import render_quick_adjust_balance_sheet
+from ui import inputs
 
 
 def _case_name(path: str) -> str:
@@ -34,7 +34,7 @@ def _render_scenario_selector(current: str) -> None:
     )
 
 
-def render(result: ModelResult, assumptions: Assumptions) -> None:
+def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
     st.markdown("# Balance Sheet")
@@ -43,7 +43,11 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
-    updated_assumptions = render_quick_adjust_balance_sheet(assumptions, "balance.quick")
+    output_container = st.container()
+    with st.expander("Key Assumptions", expanded=False):
+        updated_assumptions = inputs.render_balance_sheet_key_assumptions(
+            assumptions, "balance.assumptions"
+        )
     updated_result = run_model(updated_assumptions)
     net_debt = [
         row["financial_debt"] - row["cash"] for row in updated_result.balance_sheet
@@ -72,5 +76,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             **{year_labels[i]: f"{net_debt_ebitda[i]:.2f}x" for i in range(5)},
         },
     ]
-    outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
-    outputs.render_balance_sheet(updated_result)
+    with output_container:
+        outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
+        outputs.render_balance_sheet(updated_result)
+    return updated_assumptions

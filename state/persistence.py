@@ -18,6 +18,7 @@ from state.assumptions import (
     TransactionFinancingAssumptions,
     ValuationAssumptions,
     VariableCostYearAssumptions,
+    EquityAssumptions,
 )
 
 
@@ -64,6 +65,7 @@ def _assumptions_from_dict(data: dict) -> Assumptions:
     balance_sheet = BalanceSheetAssumptions(**data["balance_sheet"])
     tax_and_distributions = TaxAssumptions(**data["tax_and_distributions"])
     valuation = ValuationAssumptions(**data["valuation"])
+    equity = EquityAssumptions(**data["equity"])
 
     return Assumptions(
         scenario=data["scenario"],
@@ -75,6 +77,7 @@ def _assumptions_from_dict(data: dict) -> Assumptions:
         balance_sheet=balance_sheet,
         tax_and_distributions=tax_and_distributions,
         valuation=valuation,
+        equity=equity,
     )
 
 

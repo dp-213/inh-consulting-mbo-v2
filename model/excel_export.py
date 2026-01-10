@@ -283,6 +283,7 @@ def _build_assumptions_sheet(
         [
             ("Opening Equity", "EUR", assumptions.balance_sheet.opening_equity_eur, "balance.opening_equity"),
             ("Depreciation Rate", "%", assumptions.balance_sheet.depreciation_rate_pct, "balance.depr_rate"),
+            ("Minimum Cash Balance", "EUR", assumptions.balance_sheet.minimum_cash_balance_eur, "balance.min_cash"),
         ],
         styles,
         assumption_cells,
@@ -294,10 +295,9 @@ def _build_assumptions_sheet(
         [
             ("Profit Tax Rate", "%", assumptions.tax_and_distributions.tax_rate_pct, "tax.rate"),
             ("Seller Multiple", "x", assumptions.valuation.seller_multiple, "valuation.multiple"),
-            ("Discount Rate (Cost of Capital)", "%", 0.10, "valuation.discount_rate"),
-            ("Transaction Costs (%)", "%", 0.01, "valuation.txn_cost_pct"),
-            ("Investor Exit Year", "Year", 4, "valuation.exit_year"),
-            ("Minimum Cash Balance", "EUR", 250_000.0, "valuation.min_cash"),
+            ("Discount Rate (Cost of Capital)", "%", assumptions.valuation.discount_rate_pct, "valuation.discount_rate"),
+            ("Transaction Costs (%)", "%", assumptions.valuation.transaction_costs_pct, "valuation.txn_cost_pct"),
+            ("Investor Exit Year", "Year", assumptions.equity.exit_year, "valuation.exit_year"),
         ],
         styles,
         assumption_cells,

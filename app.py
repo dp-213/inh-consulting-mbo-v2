@@ -16,7 +16,6 @@ from ui.pages import (
     financing_debt,
     model_settings,
     model_export,
-    other_assumptions,
     overview,
     pnl,
     revenue_model,
@@ -31,7 +30,7 @@ SECTIONS = {
         "Balance Sheet",
         "Valuation & Purchase Price",
     ],
-    "PLANNING": ["Revenue Model", "Cost Model", "Other Assumptions"],
+    "PLANNING": ["Revenue Model", "Cost Model"],
     "FINANCING": ["Financing & Debt", "Equity Case"],
     "SETTINGS": ["Case Management", "Model Settings", "Model Export"],
 }
@@ -216,6 +215,27 @@ def _inject_base_styles() -> None:
           }
           .fin-table .neg {
               color: #c0392b;
+          }
+          [data-testid="stDataFrame"] table {
+              width: 100%;
+              border-collapse: collapse;
+              font-family: Arial, sans-serif;
+              font-size: 13px;
+          }
+          [data-testid="stDataFrame"] thead th {
+              text-align: left;
+              background-color: #f2f2f2;
+              font-weight: 600;
+              padding: 4px 6px;
+              border-bottom: 1px solid #ccc;
+          }
+          [data-testid="stDataFrame"] tbody td {
+              padding: 3px 6px;
+              border-bottom: 1px solid #e0e0e0;
+          }
+          [data-testid="stDataFrame"] tbody td:not(:first-child),
+          [data-testid="stDataFrame"] thead th:not(:first-child) {
+              text-align: right;
           }
           .statement-table,
           .kpi-table,
@@ -417,6 +437,9 @@ def main() -> None:
         st.session_state["page"] = DEFAULT_PAGE
     page = _render_sidebar(st.session_state["page"])
     st.session_state["page"] = page
+    if page not in NAV_PAGES:
+        page = DEFAULT_PAGE
+        st.session_state["page"] = page
 
     data_path = st.session_state["data_path"]
     original_assumptions = load_assumptions(data_path)
@@ -452,12 +475,10 @@ def main() -> None:
         updated_assumptions = revenue_model.render(assumptions)
     elif page == "Cost Model":
         updated_assumptions = cost_model.render(assumptions)
-    elif page == "Other Assumptions":
-        updated_assumptions = other_assumptions.render(assumptions)
     else:
         updated_assumptions = assumptions
 
-    can_persist = page in {"Revenue Model", "Cost Model", "Other Assumptions", "Case Management"}
+    can_persist = page in {"Revenue Model", "Cost Model", "Case Management"}
     if (
         can_persist
         and data_path.endswith("base_case.json")
@@ -471,20 +492,21 @@ def main() -> None:
         view_assumptions if page in view_only_scenario_pages else updated_assumptions
     )
 
+    page_updated_assumptions = None
     if page == "Overview":
         overview.render(result, assumptions)
     elif page == "Operating Model (P&L)":
         pnl.render(result, view_assumptions)
     elif page == "Cashflow & Liquidity":
-        cashflow.render(result, view_assumptions)
+        page_updated_assumptions = cashflow.render(result, view_assumptions)
     elif page == "Balance Sheet":
-        balance_sheet.render(result, view_assumptions)
+        page_updated_assumptions = balance_sheet.render(result, view_assumptions)
     elif page == "Financing & Debt":
-        financing_debt.render(result, view_assumptions)
+        page_updated_assumptions = financing_debt.render(result, view_assumptions)
     elif page == "Equity Case":
-        equity_case.render(result, view_assumptions)
+        page_updated_assumptions = equity_case.render(result, view_assumptions)
     elif page == "Valuation & Purchase Price":
-        valuation.render(result, view_assumptions)
+        page_updated_assumptions = valuation.render(result, view_assumptions)
     elif page == "Model Settings":
         model_settings.render(data_path)
     elif page == "Case Management":
@@ -519,6 +541,20 @@ def main() -> None:
             st.markdown("Select a case to load, then click Load Selected Case.")
     elif page == "Model Export":
         model_export.render(updated_assumptions, result)
+
+    if page_updated_assumptions is not None:
+        persist_assumptions = (
+            replace(page_updated_assumptions, scenario=assumptions.scenario)
+            if page in view_only_scenario_pages
+            else page_updated_assumptions
+        )
+        if (
+            data_path.endswith("base_case.json")
+            and asdict(persist_assumptions) != asdict(original_assumptions)
+        ):
+            pass
+        elif asdict(persist_assumptions) != asdict(original_assumptions):
+            save_case(persist_assumptions, data_path)
 
 
 if __name__ == "__main__":

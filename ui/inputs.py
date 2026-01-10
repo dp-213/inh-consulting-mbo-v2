@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import List
 
 import streamlit as st
 
 from state.assumptions import (
     Assumptions,
+    BalanceSheetAssumptions,
+    CashflowAssumptions,
     CostAssumptions,
+    EquityAssumptions,
     FinancingAssumptions,
     FixedOverheadYearAssumptions,
     PersonnelYearAssumptions,
@@ -95,6 +99,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -237,6 +242,7 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -329,6 +335,7 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -376,6 +383,7 @@ def render_revenue_quick_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -419,6 +427,7 @@ def render_cost_quick_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -461,6 +470,7 @@ def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=assumptions.valuation,
+        equity=assumptions.equity,
     )
 
 
@@ -487,116 +497,176 @@ def render_valuation_quick_inputs(assumptions: Assumptions) -> Assumptions:
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=ValuationAssumptions(
-            seller_multiple=_to_float(_row_value(table, "Seller Multiple (x Operating Profit)"))
+            seller_multiple=_to_float(_row_value(table, "Seller Multiple (x Operating Profit)")),
+            reference_year=assumptions.valuation.reference_year,
+            discount_rate_pct=assumptions.valuation.discount_rate_pct,
+            valuation_start_year=assumptions.valuation.valuation_start_year,
+            transaction_costs_pct=assumptions.valuation.transaction_costs_pct,
         ),
+        equity=assumptions.equity,
     )
 
 
-def render_other_assumptions(assumptions: Assumptions) -> Assumptions:
-    st.markdown("### Financing Assumptions")
-    financing_table = _value_table(
+def render_cashflow_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
+    cashflow = assumptions.cashflow
+    table = _value_table(
         [
-            ("Senior Debt Amount", "EUR", assumptions.financing.senior_debt_amount_eur, "Opening senior term loan."),
-            ("Interest Rate", "%", assumptions.financing.interest_rate_pct, "Fixed interest rate."),
-            ("Amortisation Years", "Years", assumptions.financing.amortization_period_years, "Linear amortisation period."),
-            ("Transaction Fees (%)", "%", 0.01, "Fees as % of EV."),
+            ("Tax Cash Rate", "%", cashflow.tax_cash_rate_pct, ""),
+            ("Tax Payment Lag", "Years", cashflow.tax_payment_lag_years, ""),
+            ("Capex (% of Revenue)", "%", cashflow.capex_pct_revenue, ""),
+            ("Working Capital (% of Revenue)", "%", cashflow.working_capital_pct_revenue, ""),
+            ("Opening Cash Balance", "EUR", cashflow.opening_cash_balance_eur, ""),
         ]
     )
-    financing_table = _edit_table(financing_table, key="other.financing")
-
-    st.markdown("### Equity & Investor Assumptions")
-    investor_equity = max(
-        assumptions.transaction_and_financing.purchase_price_eur
-        - assumptions.financing.senior_debt_amount_eur
-        - assumptions.transaction_and_financing.equity_contribution_eur,
-        0.0,
+    table = _edit_table(table, key=f"{key_prefix}.cashflow")
+    _require_value(table, "Tax Cash Rate")
+    _require_value(table, "Tax Payment Lag")
+    _require_value(table, "Capex (% of Revenue)")
+    _require_value(table, "Working Capital (% of Revenue)")
+    _require_value(table, "Opening Cash Balance")
+    updated_cashflow = CashflowAssumptions(
+        tax_cash_rate_pct=_to_float(_row_value(table, "Tax Cash Rate")),
+        tax_payment_lag_years=int(_to_float(_row_value(table, "Tax Payment Lag"))),
+        capex_pct_revenue=_to_float(_row_value(table, "Capex (% of Revenue)")),
+        working_capital_pct_revenue=_to_float(_row_value(table, "Working Capital (% of Revenue)")),
+        opening_cash_balance_eur=_to_float(_row_value(table, "Opening Cash Balance")),
     )
-    equity_table = _value_table(
+    return replace(assumptions, cashflow=updated_cashflow)
+
+
+def render_balance_sheet_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
+    balance_sheet = assumptions.balance_sheet
+    table = _value_table(
         [
-            ("Sponsor Equity Contribution", "EUR", assumptions.transaction_and_financing.equity_contribution_eur, "Management equity contribution."),
-            ("Investor Equity Contribution", "EUR", investor_equity, "External investor contribution."),
-            ("Investor Exit Year", "Year", 4, "Exit year for investor."),
-            ("Exit Multiple (x Operating Profit)", "x", assumptions.valuation.seller_multiple, "Exit multiple on operating profit."),
-            ("Distribution Rule", "", "Pro-rata", "Fixed distribution rule."),
+            ("Opening Equity", "EUR", balance_sheet.opening_equity_eur, ""),
+            ("Depreciation Rate", "%", balance_sheet.depreciation_rate_pct, ""),
+            ("Minimum Cash Balance", "EUR", balance_sheet.minimum_cash_balance_eur, ""),
         ]
     )
-    equity_table = _edit_table(equity_table, key="other.equity")
-    exit_multiple_value = _to_float(_row_value(equity_table, "Exit Multiple (x Operating Profit)"))
+    table = _edit_table(table, key=f"{key_prefix}.balance_sheet")
+    _require_value(table, "Opening Equity")
+    _require_value(table, "Depreciation Rate")
+    _require_value(table, "Minimum Cash Balance")
+    updated_balance_sheet = BalanceSheetAssumptions(
+        opening_equity_eur=_to_float(_row_value(table, "Opening Equity")),
+        depreciation_rate_pct=_to_float(_row_value(table, "Depreciation Rate")),
+        minimum_cash_balance_eur=_to_float(_row_value(table, "Minimum Cash Balance")),
+    )
+    return replace(assumptions, balance_sheet=updated_balance_sheet)
 
-    st.markdown("### Cashflow Assumptions")
-    cashflow_table = _value_table(
+
+def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
+    financing = assumptions.financing
+    table = _value_table(
         [
-            ("Tax Cash Rate", "%", assumptions.cashflow.tax_cash_rate_pct, "Cash tax rate on profit before tax."),
-            ("Tax Payment Lag", "Years", assumptions.cashflow.tax_payment_lag_years, "Timing lag for cash taxes."),
-            ("Capex (% of Revenue)", "%", assumptions.cashflow.capex_pct_revenue, "Capex as % of revenue."),
-            (
-                "Working Capital (% of Revenue)",
-                "%",
-                assumptions.cashflow.working_capital_pct_revenue,
-                "Working capital adjustment.",
-            ),
-            ("Opening Cash Balance", "EUR", assumptions.cashflow.opening_cash_balance_eur, "Opening cash balance."),
+            ("Debt Amount", "EUR", financing.senior_debt_amount_eur, ""),
+            ("Opening Loan Balance", "EUR", financing.initial_debt_eur, ""),
+            ("Interest Rate", "% p.a.", financing.interest_rate_pct, ""),
+            ("Repayment Type", "", financing.amortization_type, ""),
+            ("Repayment Period (Years)", "Years", financing.amortization_period_years, ""),
+            ("Interest-Only Period (Years)", "Years", financing.grace_period_years, ""),
+            ("One-Time Repayment Year (None/Year X)", "", _format_special_year(financing.special_repayment_year), ""),
+            ("One-Time Repayment Amount", "EUR", financing.special_repayment_amount_eur, ""),
+            ("Minimum DSCR", "", financing.minimum_dscr, ""),
         ]
     )
-    cashflow_table = _edit_table(cashflow_table, key="other.cashflow")
+    table = _edit_table(table, key=f"{key_prefix}.financing")
+    _require_value(table, "Debt Amount")
+    _require_value(table, "Opening Loan Balance")
+    _require_value(table, "Interest Rate")
+    _require_value(table, "Repayment Type")
+    _require_value(table, "Repayment Period (Years)")
+    _require_value(table, "Interest-Only Period (Years)")
+    _require_value(table, "One-Time Repayment Year (None/Year X)")
+    _require_value(table, "One-Time Repayment Amount")
+    _require_value(table, "Minimum DSCR")
+    repayment_type = str(_row_value(table, "Repayment Type")).strip()
+    if not repayment_type:
+        st.error("Repayment Type is required.")
+        st.stop()
+    updated_financing = FinancingAssumptions(
+        senior_debt_amount_eur=_to_float(_row_value(table, "Debt Amount")),
+        initial_debt_eur=_to_float(_row_value(table, "Opening Loan Balance")),
+        interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
+        amortization_type=repayment_type,
+        amortization_period_years=int(_to_float(_row_value(table, "Repayment Period (Years)"))),
+        grace_period_years=int(_to_float(_row_value(table, "Interest-Only Period (Years)"))),
+        special_repayment_year=_parse_special_year(
+            str(_row_value(table, "One-Time Repayment Year (None/Year X)")).strip()
+        ),
+        special_repayment_amount_eur=_to_float(_row_value(table, "One-Time Repayment Amount")),
+        minimum_dscr=_to_float(_row_value(table, "Minimum DSCR")),
+    )
+    return replace(assumptions, financing=updated_financing)
 
-    st.markdown("### Balance Sheet Assumptions")
-    balance_sheet_table = _value_table(
+
+def render_valuation_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
+    valuation = assumptions.valuation
+    table = _value_table(
         [
-            ("Opening Equity", "EUR", assumptions.balance_sheet.opening_equity_eur, "Opening equity value."),
-            ("Depreciation Rate", "%", assumptions.balance_sheet.depreciation_rate_pct, "Fixed asset depreciation rate."),
-            ("Minimum Cash Balance", "EUR", 250_000.0, "Minimum cash balance."),
+            ("Seller Multiple", "x", valuation.seller_multiple, ""),
+            ("Reference Year", "Year", valuation.reference_year, ""),
+            ("Discount Rate", "%", valuation.discount_rate_pct, ""),
+            ("Valuation Start Year", "Year", valuation.valuation_start_year, ""),
+            ("Transaction Costs (%)", "%", valuation.transaction_costs_pct, ""),
         ]
     )
-    balance_sheet_table = _edit_table(balance_sheet_table, key="other.balance_sheet")
+    table = _edit_table(table, key=f"{key_prefix}.valuation")
+    _require_value(table, "Seller Multiple")
+    _require_value(table, "Reference Year")
+    _require_value(table, "Discount Rate")
+    _require_value(table, "Valuation Start Year")
+    _require_value(table, "Transaction Costs (%)")
+    updated_valuation = ValuationAssumptions(
+        seller_multiple=_to_float(_row_value(table, "Seller Multiple")),
+        reference_year=int(_to_float(_row_value(table, "Reference Year"))),
+        discount_rate_pct=_to_float(_row_value(table, "Discount Rate")),
+        valuation_start_year=int(_to_float(_row_value(table, "Valuation Start Year"))),
+        transaction_costs_pct=_to_float(_row_value(table, "Transaction Costs (%)")),
+    )
+    return replace(assumptions, valuation=updated_valuation)
 
-    st.markdown("### Valuation Assumptions")
-    valuation_table = _value_table(
+
+def render_equity_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
+    equity = assumptions.equity
+    transaction = assumptions.transaction_and_financing
+    table = _value_table(
         [
-            ("Seller Operating Profit Multiple", "x", exit_multiple_value, "Operating profit multiple for seller view."),
-            ("Reference Year", "Year", 1, "Reference year for multiple."),
-            ("Discount Rate (Cost of Capital)", "%", 0.10, "DCF discount rate."),
-            ("Valuation Start Year", "Year", 0, "DCF start year."),
-            ("Transaction Costs (%)", "%", 0.01, "Fees as % of EV."),
+            ("Purchase Price", "EUR", transaction.purchase_price_eur, ""),
+            ("Management Equity Contribution", "EUR", transaction.equity_contribution_eur, ""),
+            ("Exit Year", "Year", equity.exit_year, ""),
+            ("Exit Mechanism", "", equity.exit_mechanism, ""),
+            ("Investor Participation", "", equity.investor_participation, ""),
+            ("Management Participation", "", equity.management_participation, ""),
         ]
     )
-    valuation_table = _edit_table(valuation_table, key="other.valuation")
-
-    return Assumptions(
-        scenario=assumptions.scenario,
-        revenue=assumptions.revenue,
-        cost=assumptions.cost,
-        transaction_and_financing=TransactionFinancingAssumptions(
-            equity_contribution_eur=_to_float(_row_value(equity_table, "Sponsor Equity Contribution")),
-            purchase_price_eur=assumptions.transaction_and_financing.purchase_price_eur,
-            senior_term_loan_start_eur=assumptions.transaction_and_financing.senior_term_loan_start_eur,
+    table = _edit_table(table, key=f"{key_prefix}.equity")
+    _require_value(table, "Purchase Price")
+    _require_value(table, "Management Equity Contribution")
+    _require_value(table, "Exit Year")
+    _require_value(table, "Exit Mechanism")
+    _require_value(table, "Investor Participation")
+    _require_value(table, "Management Participation")
+    updated_transaction = TransactionFinancingAssumptions(
+        purchase_price_eur=_to_float(_row_value(table, "Purchase Price")),
+        equity_contribution_eur=_to_float(
+            _row_value(table, "Management Equity Contribution")
         ),
-        financing=FinancingAssumptions(
-            senior_debt_amount_eur=_to_float(_row_value(financing_table, "Senior Debt Amount")),
-            initial_debt_eur=assumptions.financing.initial_debt_eur,
-            interest_rate_pct=_to_float(_row_value(financing_table, "Interest Rate")),
-            amortization_type=assumptions.financing.amortization_type,
-            amortization_period_years=int(_to_float(_row_value(financing_table, "Amortisation Years") or 0)),
-            grace_period_years=assumptions.financing.grace_period_years,
-            special_repayment_year=assumptions.financing.special_repayment_year,
-            special_repayment_amount_eur=assumptions.financing.special_repayment_amount_eur,
-            minimum_dscr=assumptions.financing.minimum_dscr,
-        ),
-        cashflow=assumptions.cashflow.__class__(
-            tax_cash_rate_pct=_to_float(_row_value(cashflow_table, "Tax Cash Rate")),
-            tax_payment_lag_years=int(_to_float(_row_value(cashflow_table, "Tax Payment Lag") or 0)),
-            capex_pct_revenue=_to_float(_row_value(cashflow_table, "Capex (% of Revenue)")),
-            working_capital_pct_revenue=_to_float(_row_value(cashflow_table, "Working Capital (% of Revenue)")),
-            opening_cash_balance_eur=_to_float(_row_value(cashflow_table, "Opening Cash Balance")),
-        ),
-        balance_sheet=assumptions.balance_sheet.__class__(
-            opening_equity_eur=_to_float(_row_value(balance_sheet_table, "Opening Equity")),
-            depreciation_rate_pct=_to_float(_row_value(balance_sheet_table, "Depreciation Rate")),
-        ),
-        tax_and_distributions=assumptions.tax_and_distributions,
-        valuation=ValuationAssumptions(
-            seller_multiple=_to_float(_row_value(valuation_table, "Seller Operating Profit Multiple"))
-        ),
+        senior_term_loan_start_eur=transaction.senior_term_loan_start_eur,
+    )
+    updated_equity = EquityAssumptions(
+        exit_year=int(_to_float(_row_value(table, "Exit Year"))),
+        exit_mechanism=str(_row_value(table, "Exit Mechanism")).strip(),
+        investor_participation=str(_row_value(table, "Investor Participation")).strip(),
+        management_participation=str(_row_value(table, "Management Participation")).strip(),
+    )
+    if not updated_equity.exit_mechanism:
+        st.error("Exit Mechanism is required.")
+        st.stop()
+    return replace(
+        assumptions,
+        transaction_and_financing=updated_transaction,
+        equity=updated_equity,
     )
 
 
@@ -682,6 +752,18 @@ def _row_value(table: List[dict], name: str):
                 return _to_float(value) / 100
             return _to_float(value)
     return 0.0
+
+
+def _require_value(table: List[dict], name: str) -> None:
+    for row in table:
+        if row.get("Parameter") == name:
+            value = row.get("Value", row.get(YEARS[0], None))
+            if value is None or str(value).strip() == "":
+                st.error(f"Missing required assumption: {name}.")
+                st.stop()
+            return
+    st.error(f"Missing required assumption: {name}.")
+    st.stop()
 
 
 def _to_float(value) -> float:
