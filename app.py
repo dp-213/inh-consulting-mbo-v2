@@ -7,7 +7,6 @@ import streamlit as st
 from model.run_model import run_model
 from state.cases import case_path, list_cases, load_case, save_case
 from state.persistence import load_assumptions
-from ui import outputs
 from ui.pages import (
     balance_sheet,
     cashflow,
@@ -44,21 +43,20 @@ def _render_sidebar(current_page: str) -> str:
     selected_page = current_page
     for title, options in SECTIONS.items():
         st.sidebar.markdown(f"### {title}")
-        index = options.index(current_page) if current_page in options else None
-        choice = st.sidebar.radio(
-            "",
-            options,
-            index=index,
-            key=f"nav_{title}",
-            label_visibility="collapsed",
-        )
-        if choice:
-            selected_page = choice
+        for option in options:
+            is_active = option == current_page
+            if st.sidebar.button(
+                option,
+                key=f"nav_{option}",
+                use_container_width=True,
+                type="primary" if is_active else "secondary",
+            ):
+                selected_page = option
     return selected_page
 
 
 def _render_case_badge(current_path: str, scenario: str) -> None:
-    st.markdown(f"Case: **{_case_name(current_path)}** | Scenario: **{scenario}**")
+    st.caption(f"Case: {_case_name(current_path)} | Scenario: {scenario}")
     st.markdown("---")
 
 
@@ -87,23 +85,6 @@ def main() -> None:
 
     _render_case_badge(data_path, assumptions.scenario)
 
-    if page == "Overview":
-        st.markdown("Use the selector below to switch between saved cases.")
-        overview_choice = st.selectbox(
-            "Case",
-            ["Select case..."] + ["Base Case"] + case_options,
-            index=0,
-        )
-        if overview_choice == "Base Case":
-            data_path = "data/base_case.json"
-            st.session_state["data_path"] = data_path
-            assumptions = load_assumptions(data_path)
-        elif overview_choice != "Select case...":
-            data_path = str(case_path(overview_choice))
-            st.session_state["data_path"] = data_path
-            assumptions = load_case(data_path)
-        st.markdown("---")
-
     if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
         st.markdown("Percent inputs use whole numbers (70 = 70%).")
 
@@ -126,7 +107,25 @@ def main() -> None:
     if asdict(updated_assumptions) != asdict(original_assumptions):
         save_case(updated_assumptions, data_path)
 
-    if page == "Case Management":
+    result = run_model(updated_assumptions)
+
+    if page == "Overview":
+        overview.render(result, updated_assumptions, base_case)
+    elif page == "Operating Model (Profit & Loss)":
+        pnl.render(result)
+    elif page == "Cashflow & Liquidity":
+        cashflow.render(result)
+    elif page == "Balance Sheet":
+        balance_sheet.render(result)
+    elif page == "Financing & Debt":
+        financing_debt.render(result)
+    elif page == "Equity Case":
+        equity_case.render(result)
+    elif page == "Valuation & Purchase Price":
+        valuation.render(result)
+    elif page == "Model Settings":
+        model_settings.render(data_path)
+    elif page == "Case Management":
         case_actions = case_management.render(updated_assumptions, data_path, case_options)
         scenario = case_actions["scenario"]
         if scenario != updated_assumptions.scenario:
@@ -151,30 +150,8 @@ def main() -> None:
             st.markdown("Enter a case name before saving a copy.")
         if case_actions["load"] and case_actions["load_choice"] == "Select case...":
             st.markdown("Select a case to load, then click Load Selected Case.")
-
-    result = run_model(updated_assumptions)
-
-    if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
-        outputs.render_input_summary(result)
-
-    if page == "Overview":
-        overview.render(result, updated_assumptions, base_case)
-    elif page == "Operating Model (Profit & Loss)":
-        pnl.render(result)
-    elif page == "Cashflow & Liquidity":
-        cashflow.render(result)
-    elif page == "Balance Sheet":
-        balance_sheet.render(result)
-    elif page == "Financing & Debt":
-        financing_debt.render(result)
-    elif page == "Equity Case":
-        equity_case.render(result)
-    elif page == "Valuation & Purchase Price":
-        valuation.render(result)
-    elif page == "Model Settings":
-        model_settings.render(data_path)
     elif page == "Model Export / Snapshot":
-        model_export.render(updated_assumptions)
+        model_export.render(updated_assumptions, result)
 
 
 if __name__ == "__main__":

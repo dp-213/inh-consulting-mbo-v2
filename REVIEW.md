@@ -25,3 +25,7 @@ Use this file to append findings and decisions after each iteration.
 ## Iteration 6
 - Findings: Sidebar structure diverged from required IA, case controls were too visible outside settings, statements lacked grouping emphasis, and number formatting did not meet k€/m€ and % rules.
 - Decisions: Rebuilt sidebar into sectioned radio nav, moved case management/export into settings pages, added statement section headers and total emphasis, standardized k€/m€ and percent display, and added Base Case auto-clone protection.
+
+## Iteration 7
+- Findings: Sidebar still used radio navigation, case selector appeared outside Settings, planning pages displayed outputs, and export page defaulted to raw JSON.
+- Decisions: Switched to button-based sidebar navigation, removed overview case selector and planning summaries, restructured export into key input/output summaries with collapsed raw JSON, and aligned navigation labels to full wording.
