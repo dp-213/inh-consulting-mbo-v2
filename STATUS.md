@@ -46,6 +46,18 @@ Violations:
 - None.
 
 Changes:
+- Increased sidebar section header size and reduced nav item font size/height for a stronger hierarchy and denser list.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` and stopped after startup output.
+- Mental smoke test: app should still start without errors, all pages render, inputs drive outputs, and navigation remains unchanged with clearer active state.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None.
+
+Changes:
 - Forced sidebar button inner layout and text to left-align for all nav items.
 
 Manual verification:

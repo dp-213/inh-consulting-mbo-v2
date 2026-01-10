@@ -93,8 +93,8 @@ def _inject_base_styles() -> None:
             text-align: left;
           }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.72rem;
-            letter-spacing: 0.14em;
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
             text-transform: uppercase;
             color: #334155;
             font-weight: 700;
@@ -104,14 +104,14 @@ def _inject_base_styles() -> None:
           [data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             border: none;
-            padding: 0.22rem 0.45rem;
+            padding: 0.18rem 0.4rem;
             border-radius: 8px;
             margin: 0.06rem 0;
             color: #0f172a;
             background: transparent;
-            font-size: 0.8rem;
-            line-height: 1.15;
-            min-height: 28px;
+            font-size: 0.74rem;
+            line-height: 1.1;
+            min-height: 26px;
             font-weight: 500;
             display: flex;
             align-items: center;
