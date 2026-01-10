@@ -100,3 +100,18 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation/content regressions are introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for the Operating Model (P&L) page structure, navigation, or formatting.
+
+Changes:
+- Restructured the P&L summary into four operating sections with explicit revenue, people, scale, and resilience signals.
+- Added a static interpretation box above the table for operational guidance.
+- Renamed the quick-adjust panel to Operational Steering Levers and grouped inputs by capacity, pricing, people costs, and overhead.
+- Highlighted personnel-driven rows and made EBITDA/Net Income more scannable in the summary table.
+- Labeled Year 0 as Current Operating Reality and future years as Scaled Operations across P&L tables.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

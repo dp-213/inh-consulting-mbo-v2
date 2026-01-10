@@ -46,5 +46,13 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
 
     updated_assumptions = render_quick_adjust_pnl(assumptions, "pnl.quick")
     updated_result = run_model(updated_assumptions)
+    st.markdown(
+        "<div class=\"info-box\"><strong>Interpretation</strong><ul>"
+        "<li>Economics are driven by utilization and seniority mix, not pricing power.</li>"
+        "<li>Personnel costs dominate the P&amp;L and define downside risk.</li>"
+        "<li>Operating leverage only materializes if capacity is filled.</li>"
+        "</ul></div>",
+        unsafe_allow_html=True,
+    )
     st.markdown("### P&L (Summary)")
     outputs.render_operating_model(updated_result, updated_assumptions)

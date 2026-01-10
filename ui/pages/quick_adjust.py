@@ -35,7 +35,7 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
     consultant_fte_default = assumptions.cost.personnel_by_year[year_index].consultant_fte
     overhead_default = 100.0
 
-    with st.expander("Key P&L Drivers (Quick Adjust)", expanded=False):
+    with st.expander("Operational Steering Levers", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         reset_key = f"{key_prefix}.reset.{scenario}"
         if top_cols[1].button("Reset to planning values", key=reset_key):
@@ -49,8 +49,8 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
             )
             st.rerun()
 
-        cols = st.columns(4)
-        utilization_rate = cols[0].number_input(
+        st.markdown("**Capacity & Utilization**")
+        utilization_rate = st.number_input(
             "Utilization rate",
             min_value=0.0,
             max_value=1.0,
@@ -58,21 +58,24 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
             value=float(utilization_default),
             key=f"{key_prefix}.utilization.{scenario}",
         )
-        avg_day_rate = cols[1].number_input(
+        st.markdown("**Pricing**")
+        avg_day_rate = st.number_input(
             "Average day rate",
             min_value=0.0,
             step=50.0,
             value=float(avg_day_rate_default),
             key=f"{key_prefix}.day_rate.{scenario}",
         )
-        consultant_fte = cols[2].number_input(
+        st.markdown("**People Costs**")
+        consultant_fte = st.number_input(
             "Consultant FTE",
             min_value=0.0,
             step=0.5,
             value=float(consultant_fte_default),
             key=f"{key_prefix}.consultant_fte.{scenario}",
         )
-        overhead_pct = cols[3].number_input(
+        st.markdown("**Overhead**")
+        overhead_pct = st.number_input(
             "Overhead %",
             min_value=0.0,
             step=5.0,

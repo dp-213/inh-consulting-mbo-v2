@@ -193,6 +193,14 @@ def _inject_base_styles() -> None:
               font-weight: 700;
               border-top: 2px solid #b0b0b0;
           }
+          .fin-table .people-row {
+              background-color: #fef3c7;
+              font-weight: 600;
+          }
+          .fin-table .emphasis-row {
+              background-color: #e0f2fe;
+              font-weight: 700;
+          }
           .fin-table .num {
               text-align: right;
           }
