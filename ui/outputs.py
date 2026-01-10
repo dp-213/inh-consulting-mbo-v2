@@ -193,7 +193,7 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         },
         row_classes={
             "Total Personnel Costs": "people-row",
-            "Personnel Cost Ratio": "people-row",
+            "Personnel Cost Ratio": "people-row percent-kpi",
             "Net Contribution after Personnel Costs": "key-metric",
         },
         year_labels=year_labels,

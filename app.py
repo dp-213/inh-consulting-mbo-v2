@@ -204,6 +204,10 @@ def _inject_base_styles() -> None:
               padding-top: 5px;
               padding-bottom: 5px;
           }
+          .fin-table .percent-kpi td {
+              font-weight: 400;
+              font-style: italic;
+          }
           .fin-table .num {
               text-align: right;
           }
