@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from model.run_model import ModelResult
 from state.assumptions import Assumptions
-from ui import inputs, outputs
+from ui import inputs
 
 
 def render_inputs(assumptions: Assumptions) -> Assumptions:
@@ -36,10 +35,3 @@ def render_inputs(assumptions: Assumptions) -> Assumptions:
         return inputs.render_financing_quick_inputs(assumptions)
     st.markdown("Focus: purchase price and exit multiple.")
     return inputs.render_valuation_quick_inputs(assumptions)
-
-
-def render_outputs(result: ModelResult) -> None:
-    st.markdown("### Impact Preview")
-    st.markdown("Instant read-through of the most sensitive KPIs.")
-    outputs.render_impact_preview(result)
-    outputs.render_input_summary(result)

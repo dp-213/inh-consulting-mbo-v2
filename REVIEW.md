@@ -29,3 +29,19 @@ Use this file to append findings and decisions after each iteration.
 ## Iteration 7
 - Findings: Sidebar still used radio navigation, case selector appeared outside Settings, planning pages displayed outputs, and export page defaulted to raw JSON.
 - Decisions: Switched to button-based sidebar navigation, removed overview case selector and planning summaries, restructured export into key input/output summaries with collapsed raw JSON, and aligned navigation labels to full wording.
+
+## Iteration 8
+- Findings: Navigation did not match link-based sidebar; output headings diverged from screenshots; planning wizard appeared in Revenue Model; export lacked structured model facts/structure split.
+- Decisions: Rebuilt sidebar as markdown links, aligned headings and statement labels, removed wizard from Revenue Model, added read-only assumption blocks to output pages, and restructured Model Export into Facts + Structure + Raw JSON.
+
+## Iteration 9
+- Findings: Input pages still diverged from screenshot sectioning; output pages lacked assumption blocks; valuation lacked KPI strip; balance sheet missed KPI summary.
+- Decisions: Reorganized input sections, added derived capacity table, added assumption blocks to outputs, restored financial statement labels, and added valuation KPIs + balance sheet KPI summary.
+
+## Iteration 10
+- Findings: Financing page lacked Bank View layout; valuation page lacked seller/buyer subviews.
+- Decisions: Rebuilt financing output into Bank View rows and added valuation expanders for seller and buyer views.
+
+## Iteration 11
+- Findings: Sidebar highlight needed left rail indicator; planning inputs still diverged from screenshot structure; financing Bank View formatting needed correction.
+- Decisions: Added left-rail highlight, restructured planning inputs into screenshot sections, and aligned Bank View row formatting.

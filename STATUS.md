@@ -1,4 +1,4 @@
-STOP
+IN PROGRESS
 
 Iteration 1
 - Polished top case bar layout and added clear case action grouping.
@@ -32,3 +32,20 @@ Iteration 6
 Iteration 7
 - Violations found: sidebar still used radio navigation; case selector appeared outside Settings; planning pages included output summaries; export page defaulted to raw JSON; navigation labels still contained P&L shorthand.
 - Changes made: replaced sidebar radios with button navigation; removed overview case selector and planning summaries; reworked export page into key input/output summaries with raw JSON collapsed; removed P&L shorthand in navigation; kept case badge read-only across pages.
+
+Iteration 8
+- Violations found: sidebar navigation did not match link-based structure; outputs showed non-screenshot headings; planning pages included non-screenshot wizard; outputs included guidance text; model export lacked Model Facts/Structure split.
+- Changes made: rebuilt sidebar as markdown links with active highlighting; removed planning wizard from Revenue Model; aligned output headings and statement labels; added assumptions blocks on output pages to match screenshots; rebuilt Model Export into Facts + Structure + Raw JSON; restored scenario view line and top “Financial Model” title.
+- Still wrong: Other Assumptions layout differs from screenshot sections; Financing & Debt table does not match Bank View layout; Equity Case lacks split investor/management detail; statement tables need closer row order/labels to screenshots.
+
+Iteration 9
+- Changes made: aligned Revenue/Cost/Other input sections to screenshot structure, added derived consultant capacity table, added assumption blocks to Cashflow/Balance Sheet/Financing/Valuation, restored P&L labels (EBITDA/EBIT/Net Income) and statement headings, added Valuation KPIs and Balance Sheet KPI summary, and removed scenario text from settings pages.
+- Still wrong: Financing & Debt output rows do not match Bank View content; Equity Case lacks separate management vs investor breakdown; Valuation page missing seller/buyer valuation sub-tables; sidebar highlight lacks vertical indicator like screenshot.
+
+Iteration 10
+- Changes made: rebuilt Financing & Debt output to show Bank View-style rows (EBITDA, Cash Taxes, CFADS, Debt Service, DSCR), added valuation subviews (seller multiple / buyer cash-based), and added assumption cards with notes across output pages.
+- Still wrong: sidebar highlight lacks left rail indicator; equity case still shows total equity only; Other Assumptions does not include investor exit year or distribution rule from screenshot; exact row ordering still differs from screenshots in P&L/Cashflow/BS.
+
+Iteration 11
+- Changes made: added left-rail highlight indicator in sidebar, aligned Revenue/Cost/Other inputs to screenshot sectioning, added scenario controls for planning pages, and corrected financing bank view formatting.
+- Still wrong: Equity Case lacks split management vs external investor detail; Other Assumptions missing investor exit year/distribution rule; valuation missing full seller/buyer bridge tables from screenshots.

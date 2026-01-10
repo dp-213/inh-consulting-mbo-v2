@@ -8,5 +8,5 @@ from ui import inputs
 
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("## Other Assumptions")
-    st.markdown("Editable model settings for cash flow, balance sheet, and tax and value assumptions.")
+    st.markdown("Master input sheet – all remaining assumptions.")
     return inputs.render_other_assumptions(assumptions)

@@ -9,5 +9,4 @@ from ui import outputs
 
 def render(result: ModelResult, assumptions: Assumptions, base_case: Assumptions) -> None:
     st.markdown("## Overview")
-    outputs.render_overview(result)
-    outputs.render_driver_summary(assumptions, base_case)
+    outputs.render_overview(result, assumptions)

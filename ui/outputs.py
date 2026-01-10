@@ -8,52 +8,35 @@ from model.run_model import ModelResult
 from state.assumptions import Assumptions
 
 
-def render_overview(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
-    st.markdown("### Key KPIs")
-    irr = result.equity.get("irr", 0.0)
-    initial_equity = result.equity.get("initial_equity", 0.0)
-    exit_value = result.equity.get("exit_value", 0.0)
-    moic = exit_value / initial_equity if initial_equity else 0.0
-    peak_debt = max((row.get("closing_debt", 0.0) for row in result.debt), default=0.0)
-    min_dscr = _min_dscr(result.debt)
-
-    kpi_cols = st.columns(5)
-    kpi_cols[0].metric("Investor Return (%)", f"{irr * 100:.1f}%")
-    kpi_cols[1].metric("Owner Multiple", f"{moic:.2f}x")
-    kpi_cols[2].metric("Owner Investment", _format_money(initial_equity))
-    kpi_cols[3].metric("Peak Loan Balance", _format_money(peak_debt))
-    kpi_cols[4].metric("Minimum Loan Coverage", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
-
+def render_overview(result: ModelResult, assumptions: Assumptions) -> None:
+    st.markdown("## Deal Summary (IC View)")
+    st.markdown(
+        "Conservative decision view based on current inputs and selected output scenario."
+    )
     st.markdown("---")
-    st.markdown("### Red Flags")
-    breaches = [row for row in result.debt if row.get("covenant_breach")]
-    if breaches:
-        st.dataframe(
-            _year_table(
-                {
-                    "Coverage Below Minimum": [
-                        "Yes" if row.get("covenant_breach") else "No"
-                        for row in result.debt
-                    ]
-                }
-            ),
-            use_container_width=True,
-        )
-    else:
-        st.table([{"Status": "No lender limit breaches in the projection period."}])
+    st.markdown("### A. Deal Snapshot (What are we buying and how is it funded?)")
 
-    st.markdown("---")
-    st.markdown("### Narrative")
-    st.table(
-        [
-            {
-                "Summary": (
-                    "This overview highlights owner returns, debt pressure, and lender limits "
-                    "based on the current planning case."
-                )
-            }
-        ]
+    purchase_price = assumptions.transaction_and_financing.purchase_price_eur
+    debt_at_close = assumptions.financing.senior_debt_amount_eur
+    equity_at_close = assumptions.transaction_and_financing.equity_contribution_eur
+    exit_multiple = assumptions.valuation.seller_multiple
+    last_year = len(result.pnl) - 1
+    ebitda = result.pnl[0]["ebitda"] if result.pnl else 0.0
+    debt_ebitda = debt_at_close / ebitda if ebitda else 0.0
+
+    cols = st.columns(6)
+    cols[0].metric("Purchase Price", _format_money(purchase_price))
+    cols[1].metric("Debt at Close", _format_money(debt_at_close))
+    cols[2].metric("Equity at Close", _format_money(equity_at_close))
+    cols[3].metric("Debt/EBITDA", f"{debt_ebitda:.2f}x")
+    cols[4].metric("Exit Year", f"Year {last_year}")
+    cols[5].metric("Exit Multiple", f"{exit_multiple:.2f}x")
+
+    st.markdown("**Interpretation**")
+    st.markdown(
+        "- Debt at Close shows the initial borrowing that must be serviced from operating cash.\n"
+        "- Equity at Close is the cash contributed by management and investors before debt service begins.\n"
+        "- Debt/EBITDA indicates leverage intensity at entry and is monitored against lender limits."
     )
 
 
@@ -96,7 +79,6 @@ def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
 
 
 def render_operating_model(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
     st.markdown("### Operating Statement (5-Year View)")
     st.markdown("Summary view of operating performance and profitability.")
     last_year = len(result.pnl) - 1
@@ -107,28 +89,27 @@ def render_operating_model(result: ModelResult) -> None:
     st.markdown("---")
     rows = [
         ("REVENUE", None),
-        ("Revenue", [row["revenue"] for row in result.pnl]),
+        ("Total Revenue", [row["revenue"] for row in result.pnl]),
         ("", None),
         ("PERSONNEL COSTS", None),
         ("Personnel Costs", [row["personnel_costs"] for row in result.pnl]),
         ("", None),
-        ("OPERATING COSTS", None),
-        ("Overhead + Variable Costs", [row["overhead_and_variable_costs"] for row in result.pnl]),
+        ("OPERATING EXPENSES", None),
+        ("Operating Expenses", [row["overhead_and_variable_costs"] for row in result.pnl]),
         ("", None),
         ("PROFITABILITY", None),
-        ("PROFIT BEFORE DEPRECIATION", [row["ebitda"] for row in result.pnl]),
+        ("EBITDA", [row["ebitda"] for row in result.pnl]),
         ("Depreciation", [row["depreciation"] for row in result.pnl]),
-        ("PROFIT AFTER DEPRECIATION", [row["ebit"] for row in result.pnl]),
+        ("EBIT", [row["ebit"] for row in result.pnl]),
         ("Interest Cost", [row["interest_expense"] for row in result.pnl]),
         ("PROFIT BEFORE TAX", [row["ebt"] for row in result.pnl]),
         ("Taxes", [row["taxes"] for row in result.pnl]),
-        ("NET PROFIT", [row["net_income"] for row in result.pnl]),
+        ("NET INCOME", [row["net_income"] for row in result.pnl]),
     ]
     st.dataframe(_statement_table(rows), use_container_width=True)
 
 
 def render_cashflow_liquidity(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
     st.markdown("### Cash Flow & Liquidity")
     st.markdown("Cash generation and liquidity profile across the plan.")
     last_year = len(result.cashflow) - 1
@@ -139,19 +120,19 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
     st.markdown("---")
     rows = [
         ("OPERATING CASH FLOW", None),
-        ("Profit Before Depreciation", [row["ebitda"] for row in result.cashflow]),
+        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
         ("Taxes Paid", [row["taxes_paid"] for row in result.cashflow]),
-        ("Cash Tied in Operations", [row["working_capital_change"] for row in result.cashflow]),
-        ("Cash from Operations", [row["operating_cf"] for row in result.cashflow]),
+        ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
+        ("Operating Cashflow", [row["operating_cf"] for row in result.cashflow]),
         ("", None),
-        ("INVESTMENT", None),
-        ("Capital Spend", [row["capex"] for row in result.cashflow]),
-        ("CASH AFTER INVESTMENT", [row["free_cashflow"] for row in result.cashflow]),
+        ("INVESTING CASH FLOW", None),
+        ("Capex", [row["capex"] for row in result.cashflow]),
+        ("Free Cashflow", [row["free_cashflow"] for row in result.cashflow]),
         ("", None),
-        ("FINANCING", None),
-        ("Cash from Financing", [row["financing_cf"] for row in result.cashflow]),
-        ("NET CASH MOVEMENT", [row["net_cashflow"] for row in result.cashflow]),
-        ("Cash Balance", [row["cash_balance"] for row in result.cashflow]),
+        ("FINANCING CASH FLOW", None),
+        ("Financing Cashflow", [row["financing_cf"] for row in result.cashflow]),
+        ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
+        ("Closing Cash", [row["cash_balance"] for row in result.cashflow]),
     ]
     st.dataframe(_statement_table(rows), use_container_width=True)
     st.markdown("---")
@@ -168,7 +149,6 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
 
 
 def render_balance_sheet(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
     st.markdown("### Balance Sheet")
     st.markdown("Year-end asset, liability, and owner capital position.")
     last_year = len(result.balance_sheet) - 1
@@ -180,48 +160,58 @@ def render_balance_sheet(result: ModelResult) -> None:
     rows = [
         ("ASSETS", None),
         ("Cash", [row["cash"] for row in result.balance_sheet]),
-        ("Fixed Assets", [row["fixed_assets"] for row in result.balance_sheet]),
-        ("Purchase Intangible", [row["acquisition_intangible"] for row in result.balance_sheet]),
-        ("Cash Tied in Operations", [row["working_capital"] for row in result.balance_sheet]),
+        ("Fixed Assets (Net)", [row["fixed_assets"] for row in result.balance_sheet]),
+        ("Acquisition Intangible", [row["acquisition_intangible"] for row in result.balance_sheet]),
+        ("Working Capital", [row["working_capital"] for row in result.balance_sheet]),
         ("TOTAL ASSETS", [row["total_assets"] for row in result.balance_sheet]),
         ("", None),
         ("LIABILITIES", None),
-        ("Loan Balance", [row["financial_debt"] for row in result.balance_sheet]),
+        ("Financial Debt", [row["financial_debt"] for row in result.balance_sheet]),
         ("Taxes Payable", [row["tax_payable"] for row in result.balance_sheet]),
         ("TOTAL LIABILITIES", [row["total_liabilities"] for row in result.balance_sheet]),
         ("", None),
-        ("OWNER CAPITAL", None),
-        ("Owner Capital End", [row["equity_end"] for row in result.balance_sheet]),
-        ("TOTAL LIABILITIES + OWNER CAPITAL", [row["total_liabilities_equity"] for row in result.balance_sheet]),
+        ("EQUITY", None),
+        ("Equity at Start of Year", [row["equity_end"] for row in result.balance_sheet]),
+        ("TOTAL LIABILITIES + EQUITY", [row["total_liabilities_equity"] for row in result.balance_sheet]),
     ]
     st.dataframe(_statement_table(rows), use_container_width=True)
+    st.markdown("---")
+    st.markdown("### KPI Summary")
+    st.table(
+        [
+            {"Metric": "Total Assets (Year 4)", "Value": _format_money(result.balance_sheet[last_year]["total_assets"])},
+            {"Metric": "Total Liabilities (Year 4)", "Value": _format_money(result.balance_sheet[last_year]["total_liabilities"])},
+            {"Metric": "Equity (Year 4)", "Value": _format_money(result.balance_sheet[last_year]["equity_end"])},
+        ]
+    )
 
 
-def render_financing_debt(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
+def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None:
     st.markdown("### Loan Schedule (5-Year View)")
     st.markdown("Loan evolution, payments, and coverage health by year.")
-    last_year = len(result.debt) - 1
-    kpi_cols = st.columns(3)
-    kpi_cols[0].metric("Opening Loan Balance", _format_money(result.debt[0]["opening_debt"]))
-    kpi_cols[1].metric("Closing Loan Balance", _format_money(result.debt[last_year]["closing_debt"]))
-    min_coverage = _min_dscr(result.debt)
-    kpi_cols[2].metric("Minimum Loan Coverage", f"{min_coverage:.2f}" if min_coverage is not None else "n/a")
-    st.markdown("---")
-    coverage = [f"{row.get('dscr', 0.0):.2f}x" for row in result.debt]
+    st.markdown("Bank View")
+    coverage = [row.get("dscr", 0.0) for row in result.debt]
+    debt_service = [
+        row["interest_expense"] + row["total_repayment"] for row in result.debt
+    ]
+    cfads = [
+        result.cashflow[i]["free_cashflow"]
+        if i < len(result.cashflow)
+        else 0.0
+        for i in range(len(result.debt))
+    ]
     rows = [
-        ("LOAN BALANCE", None),
-        ("Opening Loan Balance", [row["opening_debt"] for row in result.debt]),
-        ("New Loan", [row["debt_drawdown"] for row in result.debt]),
-        ("CLOSING LOAN BALANCE", [row["closing_debt"] for row in result.debt]),
-        ("", None),
-        ("COSTS & PAYMENTS", None),
-        ("Interest Cost", [row["interest_expense"] for row in result.debt]),
-        ("TOTAL REPAYMENT", [row["total_repayment"] for row in result.debt]),
-        ("", None),
-        ("COVERAGE", None),
-        ("Loan Coverage", coverage),
-        ("Coverage Below Minimum", ["Yes" if row.get("covenant_breach") else "No" for row in result.debt]),
+        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
+        ("Cash Taxes", [row["taxes_paid"] for row in result.cashflow]),
+        ("Capex (Maintenance)", [row["capex"] for row in result.cashflow]),
+        ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
+        ("CFADS", cfads),
+        ("Interest Expense", [row["interest_expense"] for row in result.debt]),
+        ("Scheduled Repayment", [row["total_repayment"] for row in result.debt]),
+        ("Debt Service", debt_service),
+        ("DSCR", [f"{value:.2f}" for value in coverage]),
+        ("Minimum Required DSCR", [f"{assumptions.financing.minimum_dscr:.2f}" for _ in result.debt]),
+        ("Covenant Breach", ["YES" if row.get("covenant_breach") else "NO" for row in result.debt]),
     ]
     st.dataframe(_statement_table(rows), use_container_width=True)
     st.markdown("---")
@@ -238,21 +228,27 @@ def render_financing_debt(result: ModelResult) -> None:
 
 
 def render_equity_case(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
-    st.markdown("### Owner Returns")
+    st.markdown("### Capital at Risk (Entry View)")
     initial_equity = result.equity.get("initial_equity", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
     moic = exit_value / initial_equity if initial_equity else 0.0
 
+    st.table(
+        [
+            {"Line Item": "Total Equity", "Equity (EUR)": _format_money(initial_equity), "Ownership (%)": "100.0%"}
+        ]
+    )
+
+    st.markdown("### Headline Outcomes")
     kpi_cols = st.columns(4)
-    kpi_cols[0].metric("Owner Investment", _format_money(initial_equity))
-    kpi_cols[1].metric("Owner Proceeds", _format_money(exit_value))
-    kpi_cols[2].metric("Investor Return (%)", f"{result.equity.get('irr', 0.0) * 100:.1f}%")
-    kpi_cols[3].metric("Owner Multiple", f"{moic:.2f}x")
+    kpi_cols[0].metric("Investor Investment", _format_money(initial_equity))
+    kpi_cols[1].metric("Investor Proceeds", _format_money(exit_value))
+    kpi_cols[2].metric("Investor Multiple", f"{moic:.2f}x")
+    kpi_cols[3].metric("Investor IRR", f"{result.equity.get('irr', 0.0) * 100:.1f}%")
 
     st.dataframe(
         _year_table(
-            {"Owner Cash Flows": result.equity.get("equity_cashflows", [])},
+            {"Equity Cashflows": result.equity.get("equity_cashflows", [])},
             years=len(result.equity.get("equity_cashflows", [])),
             start_year=-1,
         ),
@@ -261,13 +257,18 @@ def render_equity_case(result: ModelResult) -> None:
 
 
 def render_valuation(result: ModelResult) -> None:
-    st.markdown("Use the Planning Wizard to update assumptions.")
     st.markdown("### Purchase Price & Exit")
     st.markdown("Owner value bridge from business value to exit proceeds.")
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
+
+    kpi_cols = st.columns(3)
+    kpi_cols[0].metric("Seller Equity Value", _format_money(enterprise_value))
+    kpi_cols[1].metric("Buyer Affordability", _format_money(exit_value))
+    gap = exit_value - enterprise_value
+    kpi_cols[2].metric("Gap (EUR)", _format_money(gap))
 
     st.dataframe(
         [
@@ -287,7 +288,7 @@ def _year_table(
 ) -> List[dict]:
     table = []
     for row_name, values in rows.items():
-        row = {"Metric": row_name}
+        row = {"Line Item": row_name}
         for year_index in range(years):
             year = start_year + year_index
             if year == 0:
@@ -307,7 +308,7 @@ def _statement_table(
 ) -> List[dict]:
     table = []
     for label, values in rows:
-        row = {"Metric": label}
+        row = {"Line Item": label}
         for year_index in range(years):
             year = start_year + year_index
             col = "Year 0 (Entry)" if year == 0 else f"Year {year}"

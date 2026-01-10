@@ -17,19 +17,29 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
         "scenario discussion, and AI-assisted sparring."
     )
 
-    st.markdown("### A) Key Inputs Summary")
-    input_rows = _key_inputs(assumptions)
-    st.table(input_rows)
+    st.markdown("### A) Model Facts (Human-Readable)")
+    st.markdown("Key inputs, outputs, and assumptions for the current case.")
+    st.table(_key_inputs(assumptions))
+    st.table(_key_outputs(result))
+    st.table(
+        [
+            {
+                "Assumptions Summary": (
+                    "Scenario-driven planning case with explicit revenue, cost, financing, "
+                    "cash flow, balance sheet, and valuation assumptions."
+                )
+            }
+        ]
+    )
 
     st.markdown("---")
-    st.markdown("### B) Key Outputs Summary")
-    output_rows = _key_outputs(result)
-    st.table(output_rows)
+    st.markdown("### B) Model Structure (For AI / Review)")
+    snapshot = asdict(assumptions)
+    st.dataframe(_flatten_snapshot(snapshot), use_container_width=True)
 
     st.markdown("---")
     st.markdown("### C) Raw JSON (Advanced)")
     with st.expander("Show Raw JSON", expanded=False):
-        snapshot = asdict(assumptions)
         st.table([{"Snapshot (JSON)": json.dumps(snapshot, indent=2)}])
 
 
@@ -41,9 +51,21 @@ def _flatten_snapshot(snapshot: dict) -> list[dict]:
             for key, inner in value.items():
                 walk(f"{prefix}.{key}" if prefix else key, inner)
         elif isinstance(value, list):
-            rows.append({"Field": prefix, "Value": ", ".join(str(item) for item in value)})
+            rows.append(
+                {
+                    "Section": prefix.split(".")[0] if "." in prefix else prefix,
+                    "Field": prefix,
+                    "Value": ", ".join(str(item) for item in value),
+                }
+            )
         else:
-            rows.append({"Field": prefix, "Value": value})
+            rows.append(
+                {
+                    "Section": prefix.split(".")[0] if "." in prefix else prefix,
+                    "Field": prefix,
+                    "Value": value,
+                }
+            )
 
     walk("", snapshot)
     return rows

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, replace
+import re
 
 import streamlit as st
 
@@ -26,7 +27,7 @@ from ui.pages import (
 SECTIONS = {
     "OVERVIEW": ["Overview"],
     "OPERATING MODEL (OUTPUT / ANALYSIS)": [
-        "Operating Model (Profit & Loss)",
+        "Operating Model (P&L)",
         "Cashflow & Liquidity",
         "Balance Sheet",
     ],
@@ -36,28 +37,42 @@ SECTIONS = {
     "SETTINGS": ["Model Settings", "Case Management", "Model Export / Snapshot"],
 }
 
-DEFAULT_PAGE = "Revenue Model"
+DEFAULT_PAGE = "Overview"
 
 
 def _render_sidebar(current_page: str) -> str:
     selected_page = current_page
+    st.sidebar.markdown("**MBO Financial Model**")
     for title, options in SECTIONS.items():
         st.sidebar.markdown(f"### {title}")
         for option in options:
-            is_active = option == current_page
-            if st.sidebar.button(
-                option,
-                key=f"nav_{option}",
-                use_container_width=True,
-                type="primary" if is_active else "secondary",
-            ):
-                selected_page = option
+            if option == current_page:
+                label = f"**▌ {option}**"
+            else:
+                label = option
+            st.sidebar.markdown(f"[{label}](?page={_slug(option)})")
     return selected_page
 
 
-def _render_case_badge(current_path: str, scenario: str) -> None:
-    st.caption(f"Case: {_case_name(current_path)} | Scenario: {scenario}")
-    st.markdown("---")
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def _unslug(text: str) -> str:
+    return text.replace("-", " ").title()
+
+
+def _page_from_query() -> str | None:
+    params = st.query_params
+    raw = params.get("page")
+    if not raw:
+        return None
+    slug = raw if isinstance(raw, str) else raw[0]
+    for options in SECTIONS.values():
+        for option in options:
+            if _slug(option) == slug:
+                return option
+    return None
 
 
 def _case_name(path: str) -> str:
@@ -74,6 +89,9 @@ def main() -> None:
 
     if "page" not in st.session_state:
         st.session_state["page"] = DEFAULT_PAGE
+    query_page = _page_from_query()
+    if query_page:
+        st.session_state["page"] = query_page
     page = _render_sidebar(st.session_state["page"])
     st.session_state["page"] = page
 
@@ -83,10 +101,32 @@ def main() -> None:
     base_case = load_assumptions("data/base_case.json")
     case_options = list_cases()
 
-    _render_case_badge(data_path, assumptions.scenario)
+    st.markdown("# Financial Model")
+
+    output_pages = {
+        "Overview",
+        "Operating Model (P&L)",
+        "Cashflow & Liquidity",
+        "Balance Sheet",
+        "Financing & Debt",
+        "Equity Case",
+        "Valuation & Purchase Price",
+    }
 
     if page in {"Revenue Model", "Cost Model", "Other Assumptions"}:
         st.markdown("Percent inputs use whole numbers (70 = 70%).")
+        scenario = st.radio(
+            "Scenario",
+            ["Worst", "Base", "Best"],
+            index=["Worst", "Base", "Best"].index(assumptions.scenario),
+            horizontal=True,
+        )
+        if scenario != assumptions.scenario:
+            assumptions = replace(assumptions, scenario=scenario)
+        st.markdown("---")
+    elif page in output_pages:
+        st.markdown(f"Scenario being viewed: {assumptions.scenario}")
+        st.markdown("---")
 
     if page == "Revenue Model":
         updated_assumptions = revenue_model.render(assumptions)
@@ -98,31 +138,26 @@ def main() -> None:
         updated_assumptions = assumptions
 
     if data_path.endswith("base_case.json") and asdict(updated_assumptions) != asdict(original_assumptions):
-        working_path = str(case_path("Working Copy"))
-        save_case(updated_assumptions, working_path)
-        st.session_state["data_path"] = working_path
-        data_path = working_path
-        st.markdown("Base Case cloned to Working Copy for edits.")
-
-    if asdict(updated_assumptions) != asdict(original_assumptions):
+        st.markdown("Base Case is read-only. Use Case Management to create a copy.")
+    elif asdict(updated_assumptions) != asdict(original_assumptions):
         save_case(updated_assumptions, data_path)
 
     result = run_model(updated_assumptions)
 
     if page == "Overview":
         overview.render(result, updated_assumptions, base_case)
-    elif page == "Operating Model (Profit & Loss)":
+    elif page == "Operating Model (P&L)":
         pnl.render(result)
     elif page == "Cashflow & Liquidity":
-        cashflow.render(result)
+        cashflow.render(result, updated_assumptions)
     elif page == "Balance Sheet":
-        balance_sheet.render(result)
+        balance_sheet.render(result, updated_assumptions)
     elif page == "Financing & Debt":
-        financing_debt.render(result)
+        financing_debt.render(result, updated_assumptions)
     elif page == "Equity Case":
-        equity_case.render(result)
+        equity_case.render(result, updated_assumptions)
     elif page == "Valuation & Purchase Price":
-        valuation.render(result)
+        valuation.render(result, updated_assumptions)
     elif page == "Model Settings":
         model_settings.render(data_path)
     elif page == "Case Management":
