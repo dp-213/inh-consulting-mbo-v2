@@ -671,7 +671,202 @@ def _build_cashflow_sheet(
     row = _write_header_row(ws, row, styles)
     row_map: Dict[str, int] = {}
 
-    row = _write_section_label(ws, row, "Operating Cashflow", styles)
+    tax_rate = f"({assumptions_map['cashflow.tax_cash_rate']}/100)"
+
+    row = _write_section_label(ws, row, "Supporting Calculations", styles)
+    ws.row_dimensions[row - 1].hidden = True
+
+    ebitda_support_row = row
+    capex_support_row = ebitda_support_row + 1
+    wc_balance_row = ebitda_support_row + 2
+    fixed_assets_row = ebitda_support_row + 3
+    depreciation_row = ebitda_support_row + 4
+    opening_debt_row = ebitda_support_row + 5
+    scheduled_repayment_row = ebitda_support_row + 6
+    special_repayment_row = ebitda_support_row + 7
+    total_repayment_row = ebitda_support_row + 8
+    closing_debt_row = ebitda_support_row + 9
+    interest_paid_row = ebitda_support_row + 10
+    ebt_support_row = ebitda_support_row + 11
+    taxes_due_row = ebitda_support_row + 12
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "EBITDA (Support)",
+        "EUR",
+        row_map,
+        "ebitda_support",
+        styles,
+        lambda c, idx=None: (
+            f"={revenue_map['final_total_revenue'][idx]}-{cost_map['total_personnel'][idx]}-{cost_map['operating_expenses'][idx]}"
+        ),
+    )
+    ws.row_dimensions[ebitda_support_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Capex (Support)",
+        "EUR",
+        row_map,
+        "capex_support",
+        styles,
+        lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}*({assumptions_map['cashflow.capex_pct']}/100)",
+    )
+    ws.row_dimensions[capex_support_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Working Capital Balance",
+        "EUR",
+        row_map,
+        "working_capital_balance",
+        styles,
+        lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}*({assumptions_map['cashflow.wc_pct']}/100)",
+    )
+    ws.row_dimensions[wc_balance_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Fixed Assets",
+        "EUR",
+        row_map,
+        "fixed_assets",
+        styles,
+        lambda c: (
+            f"=MAX(IF(COLUMN()=3,0,OFFSET($C${fixed_assets_row},0,COLUMN()-4))"
+            f"+$C${capex_support_row}-C{depreciation_row},0)"
+        ),
+    )
+    ws.row_dimensions[fixed_assets_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Depreciation",
+        "EUR",
+        row_map,
+        "depreciation",
+        styles,
+        lambda c: (
+            f"=(({assumptions_map['balance.depr_rate']}/100)"
+            f"*(IF(COLUMN()=3,0,OFFSET($C${fixed_assets_row},0,COLUMN()-4))"
+            f"+C{capex_support_row}))"
+        ),
+    )
+    ws.row_dimensions[depreciation_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Opening Debt",
+        "EUR",
+        row_map,
+        "opening_debt",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=0,{assumptions_map['financing.senior_debt']},OFFSET($C${closing_debt_row},0,COLUMN()-4))"
+        ),
+    )
+    ws.row_dimensions[opening_debt_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Scheduled Repayment",
+        "EUR",
+        row_map,
+        "scheduled_repayment",
+        styles,
+        lambda c, idx=None: (
+            f"=IF(UPPER({assumptions_map['financing.amort_type']})=\"BULLET\","
+            f"IF({idx}={assumptions_map['financing.amort_period']}-1,C{opening_debt_row},0),"
+            f"IF({idx}<{assumptions_map['financing.grace_period']},0,"
+            f"IF({idx}<{assumptions_map['financing.amort_period']},C{opening_debt_row}/{assumptions_map['financing.amort_period']},0)))"
+        ),
+    )
+    ws.row_dimensions[scheduled_repayment_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Special Repayment",
+        "EUR",
+        row_map,
+        "special_repayment",
+        styles,
+        lambda c, idx=None: (
+            f"=IF(ISNUMBER({assumptions_map['financing.special_year']}),"
+            f"IF({idx}={assumptions_map['financing.special_year']},{assumptions_map['financing.special_amount']},0),0)"
+        ),
+    )
+    ws.row_dimensions[special_repayment_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Total Repayment",
+        "EUR",
+        row_map,
+        "total_repayment",
+        styles,
+        lambda c: f"=MIN(C{opening_debt_row},C{scheduled_repayment_row}+C{special_repayment_row})",
+    )
+    ws.row_dimensions[total_repayment_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Closing Debt",
+        "EUR",
+        row_map,
+        "closing_debt",
+        styles,
+        lambda c: f"=MAX(C{opening_debt_row}-C{total_repayment_row},0)",
+    )
+    ws.row_dimensions[closing_debt_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Interest Paid",
+        "EUR",
+        row_map,
+        "interest_paid",
+        styles,
+        lambda c: f"=C{opening_debt_row}*({assumptions_map['financing.interest_rate']}/100)",
+    )
+    ws.row_dimensions[interest_paid_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "EBT (Support)",
+        "EUR",
+        row_map,
+        "ebt_support",
+        styles,
+        lambda c: f"=C{ebitda_support_row}-C{depreciation_row}-C{interest_paid_row}",
+    )
+    ws.row_dimensions[ebt_support_row].hidden = True
+
+    row = _write_formula_row(
+        ws,
+        row,
+        "Taxes Due",
+        "EUR",
+        row_map,
+        "taxes_due",
+        styles,
+        lambda c: f"=IF(C{ebt_support_row}>0,C{ebt_support_row}*{tax_rate},0)",
+    )
+    ws.row_dimensions[taxes_due_row].hidden = True
+
+    row = _write_section_label(ws, row + 1, "Operating Cashflow", styles)
+
     row = _write_formula_row(
         ws,
         row,
@@ -680,10 +875,8 @@ def _build_cashflow_sheet(
         row_map,
         "ebitda",
         styles,
-        lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}-{cost_map['total_personnel'][idx]}-{cost_map['operating_expenses'][idx]}",
+        lambda c, idx=None: f"=C{row_map['ebitda_support']}",
     )
-    ebt_range = f"{pnl_map['ebt'][0]}:{pnl_map['ebt'][-1]}"
-    rate = f"({assumptions_map['cashflow.tax_cash_rate']}/100)"
     row = _write_formula_row(
         ws,
         row,
@@ -692,11 +885,9 @@ def _build_cashflow_sheet(
         row_map,
         "taxes_paid",
         styles,
-        lambda c, idx=None: (
-            f"=IF({assumptions_map['cashflow.tax_lag']}=0,"
-            f"IF({pnl_map['ebt'][idx]}<=0,0,{pnl_map['ebt'][idx]}*{rate}),"
-            f"IF({assumptions_map['cashflow.tax_lag']}=1,IF(COLUMN()=3,0,"
-            f"IF(INDEX({ebt_range},COLUMN()-2)<=0,0,INDEX({ebt_range},COLUMN()-2)*{rate})),0))"
+        lambda c: (
+            f"=IF({assumptions_map['cashflow.tax_lag']}=0,C{row_map['taxes_due']},"
+            f"IF({assumptions_map['cashflow.tax_lag']}=1,IF(COLUMN()=3,0,OFFSET(C{row_map['taxes_due']},0,-1)),0))"
         ),
     )
     row = _write_formula_row(
@@ -707,9 +898,9 @@ def _build_cashflow_sheet(
         row_map,
         "working_capital_change",
         styles,
-        lambda c, idx=None: (
-            f"=IF({idx}=0,C{row_map['working_capital_balance']},"
-            f"C{row_map['working_capital_balance']}-INDEX(C{row_map['working_capital_balance']}:G{row_map['working_capital_balance']},{idx}))"
+        lambda c: (
+            f"=IF(COLUMN()=3,C{row_map['working_capital_balance']},"
+            f"C{row_map['working_capital_balance']}-OFFSET(C{row_map['working_capital_balance']},0,-1))"
         ),
     )
     row = _write_formula_row(
@@ -732,7 +923,7 @@ def _build_cashflow_sheet(
         row_map,
         "capex",
         styles,
-        lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}*({assumptions_map['cashflow.capex_pct']}/100)",
+        lambda c, idx=None: f"=C{row_map['capex_support']}",
     )
     row = _write_formula_row(
         ws,
@@ -782,9 +973,9 @@ def _build_cashflow_sheet(
         "Interest Paid",
         "EUR",
         row_map,
-        "interest_paid",
+        "interest_paid_visible",
         styles,
-        lambda c, idx=None: f"=C{row_map['opening_debt']}*({assumptions_map['financing.interest_rate']}/100)",
+        lambda c, idx=None: f"=C{row_map['interest_paid']}",
     )
     row = _write_formula_row(
         ws,
@@ -794,7 +985,7 @@ def _build_cashflow_sheet(
         row_map,
         "debt_repayment",
         styles,
-        lambda c: f"=C{row_map['total_repayment']}",
+        lambda c, idx=None: f"=C{row_map['total_repayment']}",
     )
     row = _write_formula_row(
         ws,
@@ -805,12 +996,14 @@ def _build_cashflow_sheet(
         "net_cashflow",
         styles,
         lambda c, idx=None: (
-            f"=C{row_map['free_cashflow']}+IF({idx}=0,C{row_map['debt_drawdown']}+C{row_map['equity_injection']}-C{row_map['interest_paid']}-C{row_map['debt_repayment']},"
-            f"-(C{row_map['interest_paid']}+C{row_map['debt_repayment']}))"
+            f"=C{row_map['free_cashflow']}+IF({idx}=0,C{row_map['debt_drawdown']}+C{row_map['equity_injection']}-C{row_map['interest_paid_visible']}-C{row_map['debt_repayment']},"
+            f"-(C{row_map['interest_paid_visible']}+C{row_map['debt_repayment']}))"
         ),
     )
 
     row = _write_section_label(ws, row + 1, "Liquidity", styles)
+    opening_cash_row = row
+    closing_cash_row = row + 1
     row = _write_formula_row(
         ws,
         row,
@@ -819,7 +1012,7 @@ def _build_cashflow_sheet(
         row_map,
         "opening_cash",
         styles,
-        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['cashflow.opening_cash']},INDEX(C{row_map['closing_cash']}:G{row_map['closing_cash']},{idx}))",
+        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['cashflow.opening_cash']},OFFSET($C${closing_cash_row},0,COLUMN()-4))",
     )
     row = _write_formula_row(
         ws,
@@ -831,124 +1024,6 @@ def _build_cashflow_sheet(
         styles,
         lambda c: f"=C{row_map['opening_cash']}+C{row_map['net_cashflow']}",
     )
-
-    row = _write_section_label(ws, row + 2, "Debt Schedule (Support)", styles)
-    ws.row_dimensions[row].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Opening Debt",
-        "EUR",
-        row_map,
-        "opening_debt",
-        styles,
-        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['financing.senior_debt']},INDEX(C{row_map['closing_debt']}:G{row_map['closing_debt']},{idx}))",
-    )
-    ws.row_dimensions[row_map["opening_debt"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Scheduled Repayment",
-        "EUR",
-        row_map,
-        "scheduled_repayment",
-        styles,
-        lambda c, idx=None: (
-            f"=IF(UPPER({assumptions_map['financing.amort_type']})=\"BULLET\","
-            f"IF({idx}={assumptions_map['financing.amort_period']}-1,C{row_map['opening_debt']},0),"
-            f"IF({idx}<{assumptions_map['financing.grace_period']},0,"
-            f"IF({idx}<{assumptions_map['financing.amort_period']},C{row_map['opening_debt']}/{assumptions_map['financing.amort_period']},0)))"
-        ),
-    )
-    ws.row_dimensions[row_map["scheduled_repayment"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Special Repayment",
-        "EUR",
-        row_map,
-        "special_repayment",
-        styles,
-        lambda c, idx=None: f"=IF({idx}={assumptions_map['financing.special_year']},{assumptions_map['financing.special_amount']},0)",
-    )
-    ws.row_dimensions[row_map["special_repayment"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Total Repayment",
-        "EUR",
-        row_map,
-        "total_repayment",
-        styles,
-        lambda c: f"=MIN(C{row_map['opening_debt']},C{row_map['scheduled_repayment']}+C{row_map['special_repayment']})",
-    )
-    ws.row_dimensions[row_map["total_repayment"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Closing Debt",
-        "EUR",
-        row_map,
-        "closing_debt",
-        styles,
-        lambda c: f"=MAX(C{row_map['opening_debt']}-C{row_map['total_repayment']},0)",
-    )
-    ws.row_dimensions[row_map["closing_debt"]].hidden = True
-
-    row = _write_section_label(ws, row + 2, "Supporting Calculations", styles)
-    ws.row_dimensions[row].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Working Capital Balance",
-        "EUR",
-        row_map,
-        "working_capital_balance",
-        styles,
-        lambda c, idx=None: f"={revenue_map['final_total_revenue'][idx]}*({assumptions_map['cashflow.wc_pct']}/100)",
-    )
-    ws.row_dimensions[row_map["working_capital_balance"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Depreciation",
-        "EUR",
-        row_map,
-        "depreciation",
-        styles,
-        lambda c, idx=None: (
-            f"=(({assumptions_map['balance.depr_rate']}/100)*(IF({idx}=0,0,INDEX(C{row_map['fixed_assets']}:G{row_map['fixed_assets']},{idx}))"
-            f"+C{row_map['capex']}))"
-        ),
-    )
-    ws.row_dimensions[row_map["depreciation"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Fixed Assets",
-        "EUR",
-        row_map,
-        "fixed_assets",
-        styles,
-        lambda c, idx=None: (
-            f"=MAX(IF({idx}=0,0,INDEX(C{row_map['fixed_assets']}:G{row_map['fixed_assets']},{idx}))"
-            f"+C{row_map['capex']}-C{row_map['depreciation']},0)"
-        ),
-    )
-    ws.row_dimensions[row_map["fixed_assets"]].hidden = True
-    row = _write_formula_row(
-        ws,
-        row,
-        "Taxes Due",
-        "EUR",
-        row_map,
-        "taxes_due",
-        styles,
-        lambda c, idx=None: (
-            f"=IF({pnl_map['ebt'][idx]}<=0,0,{pnl_map['ebt'][idx]}*{rate})"
-        ),
-    )
-    ws.row_dimensions[row_map["taxes_due"]].hidden = True
 
     _apply_total_style(ws, row_map["operating_cf"], styles, 7)
     _apply_total_style(ws, row_map["free_cashflow"], styles, 7)
@@ -962,6 +1037,7 @@ def _build_cashflow_sheet(
         "closing_cash": _row_cells("Cashflow & Liquidity", row_map["closing_cash"]),
         "opening_cash": _row_cells("Cashflow & Liquidity", row_map["opening_cash"]),
         "working_capital_balance": _row_cells("Cashflow & Liquidity", row_map["working_capital_balance"]),
+        "working_capital_change": _row_cells("Cashflow & Liquidity", row_map["working_capital_change"]),
         "taxes_due": _row_cells("Cashflow & Liquidity", row_map["taxes_due"]),
         "taxes_paid": _row_cells("Cashflow & Liquidity", row_map["taxes_paid"]),
         "fixed_assets": _row_cells("Cashflow & Liquidity", row_map["fixed_assets"]),
@@ -1394,7 +1470,7 @@ def _build_balance_sheet(
         "tax_payable",
         styles,
         lambda c, idx=None: (
-            f"=IF({idx}=0,0,INDEX(C{row_map['tax_payable']}:G{row_map['tax_payable']},{idx}))"
+            f"=IF(COLUMN()=3,0,OFFSET($C${row},0,COLUMN()-4))"
             f"+{cashflow_map['taxes_due'][idx]}-{cashflow_map['taxes_paid'][idx]}"
         ),
     )
@@ -1410,6 +1486,8 @@ def _build_balance_sheet(
     )
 
     row = _write_section_label(ws, row + 1, "Equity", styles)
+    equity_start_row = row
+    equity_end_row = row + 5
     row = _write_formula_row(
         ws,
         row,
@@ -1418,7 +1496,7 @@ def _build_balance_sheet(
         row_map,
         "equity_start",
         styles,
-        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['balance.opening_equity']},INDEX(C{row_map['equity_end']}:G{row_map['equity_end']},{idx}))",
+        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['balance.opening_equity']},OFFSET($C${equity_end_row},0,COLUMN()-4))",
     )
     row = _write_formula_row(
         ws,
@@ -1734,7 +1812,7 @@ def _build_valuation_sheet(
         row_map,
         "seller_value",
         styles,
-        lambda c: f"=C{row_map['enterprise_value']}",
+        lambda c, idx=None: f"={equity_map['enterprise_value'][idx]}",
     )
     row = _write_formula_row(
         ws,
@@ -1744,7 +1822,7 @@ def _build_valuation_sheet(
         row_map,
         "buyer_value",
         styles,
-        lambda c: f"=C{row_map['exit_value']}",
+        lambda c, idx=None: f"={equity_map['exit_value'][idx]}",
     )
     row = _write_formula_row(
         ws,
@@ -1788,6 +1866,7 @@ def _build_valuation_sheet(
         styles,
         lambda c: f"=C{row_map['free_cashflow']}*C{row_map['discount_factor']}",
     )
+    cumulative_pv_row = row
     row = _write_formula_row(
         ws,
         row,
@@ -1796,7 +1875,10 @@ def _build_valuation_sheet(
         row_map,
         "cumulative_pv",
         styles,
-        lambda c, idx=None: f"=IF({idx}=0,C{row_map['pv_fcf']},INDEX(C{row_map['cumulative_pv']}:G{row_map['cumulative_pv']},{idx})+C{row_map['pv_fcf']})",
+        lambda c: (
+            f"=IF(COLUMN()=3,C{row_map['pv_fcf']},"
+            f"OFFSET($C${cumulative_pv_row},0,COLUMN()-4)+C{row_map['pv_fcf']})"
+        ),
     )
     row = _write_formula_row(
         ws,
