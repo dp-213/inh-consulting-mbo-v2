@@ -511,7 +511,6 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
 
 
 def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
-    st.markdown("### Capital at Risk (Entry View)")
     exit_value = result.equity.get("exit_value", 0.0)
 
     purchase_price = assumptions.transaction_and_financing.purchase_price_eur
@@ -522,119 +521,107 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     total_equity = max(total_equity_needed, management_equity, 0.0)
     management_share = management_equity / total_equity if total_equity else 0.0
     external_share = external_equity / total_equity if total_equity else 0.0
+    ownership_split = f"Management {management_share * 100:.1f}% / External {external_share * 100:.1f}%"
 
+    st.markdown("### Capital at Risk – Entry View")
     equity_rows = [
-        {
-            "Line Item": "Management (Sponsor) Equity",
-            "Equity (EUR)": _format_money(management_equity),
-            "Ownership (%)": f"{management_share * 100:.1f}%",
-        },
-        {
-            "Line Item": "External Investor Equity",
-            "Equity (EUR)": _format_money(external_equity),
-            "Ownership (%)": f"{external_share * 100:.1f}%",
-        },
-        {
-            "Line Item": "Total Equity",
-            "Equity (EUR)": _format_money(total_equity),
-            "Ownership (%)": "100.0%",
-        },
+        ("Management (Sponsor) Equity", [_format_money(management_equity), f"{management_share * 100:.1f}%"]),
+        ("External Investor Equity", [_format_money(external_equity), f"{external_share * 100:.1f}%"]),
+        ("Total Equity", [_format_money(total_equity), "100.0%"]),
     ]
-    _render_kpi_table_html(
+    _render_statement_table_html(
         equity_rows,
-        columns=["Line Item", "Equity (EUR)", "Ownership (%)"],
-        table_class="kpi-table",
-        bold_rows={"Total Equity"},
+        bold_labels={"Total Equity"},
+        years=2,
+        year_labels=["Equity (EUR)", "Ownership (%)"],
     )
 
-    st.markdown("### Headline Outcomes")
+    st.markdown("### Ownership & Control")
+    control_rows = [
+        ("Ownership Split", [ownership_split]),
+        ("Control Logic", ["Management control with minority investor protection"]),
+        ("Exit Mechanism", ["Management buys out investor at exit"]),
+    ]
+    _render_statement_table_html(control_rows, years=1, year_labels=["Statement"])
+
     external_exit = exit_value * external_share if total_equity else 0.0
     management_exit = exit_value * management_share if total_equity else 0.0
 
-    metrics = [
-        ("External Investor - Invested Equity", _format_money(external_equity)),
-        ("External Investor - Exit Proceeds", _format_money(external_exit)),
-        (
-            "External Investor - Multiple on Invested Capital",
-            f"{external_exit / external_equity:.2f}x" if external_equity else "n/a",
-        ),
-        (
-            "External Investor - Internal Rate of Return",
-            f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a",
-        ),
-        ("Management - Invested Equity", _format_money(management_equity)),
-        ("Management - Cash Proceeds at Exit", _format_money(management_exit)),
-        (
-            "Management - Internal Rate of Return",
-            f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a",
-        ),
-        ("Management - Ownership After Exit", "100%"),
+    st.markdown("### Cash Flow to Equity")
+    year_labels = [f"Year {i}" for i in range(5)]
+    operating_cf = [row["operating_cf"] for row in result.cashflow]
+    debt_service = [row.get("debt_service", 0.0) for row in result.debt]
+    equity_cashflows = result.equity.get("equity_cashflows", [])
+    cashflow_years = equity_cashflows[1:6] if len(equity_cashflows) >= 6 else equity_cashflows
+    residual_equity = [
+        cashflow_years[idx] if idx < len(cashflow_years) else 0.0 for idx in range(5)
     ]
-    metric_html = ['<div class="metric-grid-4">']
-    for label, value in metrics:
-        metric_html.append(
-            f'<div><div class="metric-item-label">{label}</div>'
-            f'<div class="metric-item-value">{value}</div></div>'
-        )
-    metric_html.append("</div>")
-    st.markdown("".join(metric_html), unsafe_allow_html=True)
+    investor_cashflows = [
+        (value * external_share) if idx < len(cashflow_years) else 0.0
+        for idx, value in enumerate(residual_equity)
+    ]
+    management_cashflows = [
+        (value * management_share) if idx < len(cashflow_years) else 0.0
+        for idx, value in enumerate(residual_equity)
+    ]
+    cashflow_rows = [
+        ("Operating Cashflows", operating_cf),
+        ("Debt Service", debt_service),
+        ("Residual Cash to Equity", residual_equity),
+        ("Allocation – External Investor", investor_cashflows),
+        ("Allocation – Management", management_cashflows),
+    ]
+    _render_statement_table_html(cashflow_rows, years=5, year_labels=year_labels)
 
-    st.markdown("### Exit Equity Bridge (Exit Year)")
+    st.markdown("### Exit Equity Bridge (Single Source of Truth)")
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash = result.equity.get("excess_cash_exit", 0.0)
     equity_bridge_rows = [
-        {"Line Item": "Enterprise Value at Exit (Operating Profit x Multiple)", "Year 4": _format_money(enterprise_value)},
-        {"Line Item": "Net Debt at Exit", "Year 4": _format_money(-net_debt_exit)},
-        {"Line Item": "Excess Cash at Exit", "Year 4": _format_money(excess_cash)},
-        {"Line Item": "Total Equity Value at Exit", "Year 4": _format_money(exit_value)},
-        {"Line Item": "Investor Exit Proceeds", "Year 4": _format_money(external_exit)},
-        {
-            "Line Item": "Management Residual Equity Value",
-            "Year 4": _format_money(management_exit),
-        },
+        ("Enterprise Value at Exit", [enterprise_value]),
+        ("Net Debt at Exit", [-net_debt_exit]),
+        ("Excess Cash at Exit", [excess_cash]),
+        ("Equity Value at Exit", [exit_value]),
+        ("External Investor Allocation", [external_exit]),
+        ("Management Allocation", [management_exit]),
     ]
-    _render_kpi_table_html(
+    _render_statement_table_html(
         equity_bridge_rows,
-        columns=["Line Item", "Year 4"],
-        table_class="kpi-table",
-        bold_rows={"Total Equity Value at Exit", "Management Residual Equity Value"},
+        bold_labels={"Equity Value at Exit"},
+        years=1,
+        year_labels=["Exit Year"],
     )
 
-    st.markdown("### Equity Cashflows")
-    year_labels = [f"Year {i}" for i in range(5)]
-    equity_cashflows = result.equity.get("equity_cashflows", [])
-    cashflow_years = equity_cashflows[1:6] if len(equity_cashflows) >= 6 else equity_cashflows
-    investor_cashflows = [
-        (value * external_share) if idx < len(cashflow_years) else 0.0
-        for idx, value in enumerate(cashflow_years)
-    ]
-    management_cashflows = [
-        (value * management_share) if idx < len(cashflow_years) else 0.0
-        for idx, value in enumerate(cashflow_years)
-    ]
+    st.markdown("### Returns Summary")
     investor_rows = [
-        {
-            "Line Item": "Investor Cashflow",
-            **{year_labels[i]: _format_money(investor_cashflows[i]) for i in range(len(year_labels))},
-        }
+        ("Invested Equity", [_format_money(external_equity)]),
+        ("Exit Proceeds", [_format_money(external_exit)]),
+        (
+            "MOIC",
+            [f"{external_exit / external_equity:.2f}x" if external_equity else "n/a"],
+        ),
+        (
+            "IRR",
+            [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a"],
+        ),
     ]
+    st.markdown("#### External Investor")
+    _render_statement_table_html(investor_rows, years=1, year_labels=["Value"])
+
     management_rows = [
-        {
-            "Line Item": "Management Cashflow",
-            **{year_labels[i]: _format_money(management_cashflows[i]) for i in range(len(year_labels))},
-        }
+        ("Invested Equity", [_format_money(management_equity)]),
+        ("Exit Proceeds", [_format_money(management_exit)]),
+        (
+            "MOIC",
+            [f"{management_exit / management_equity:.2f}x" if management_equity else "n/a"],
+        ),
+        (
+            "IRR",
+            [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a"],
+        ),
     ]
-    _render_kpi_table_html(
-        investor_rows,
-        columns=["Line Item"] + year_labels,
-        table_class="kpi-table",
-    )
-    _render_kpi_table_html(
-        management_rows,
-        columns=["Line Item"] + year_labels,
-        table_class="kpi-table",
-    )
+    st.markdown("#### Management")
+    _render_statement_table_html(management_rows, years=1, year_labels=["Value"])
 
 
 def render_valuation_summary(result: ModelResult) -> None:

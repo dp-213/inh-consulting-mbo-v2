@@ -205,3 +205,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Rebuilt Equity Case into five required blocks: capital at risk, ownership & control, cash flow to equity, exit bridge, and returns summary.
+- Replaced KPI cards with financial-statement tables for all sections to keep the page printable and traceable.
+- Removed narrative text from the page header to keep the view factual.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
