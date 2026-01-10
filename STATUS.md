@@ -283,3 +283,18 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Moved Key Assumptions expanders to the top of Balance Sheet, Financing & Debt, and Valuation pages (collapsed by default).
+- Reframed Valuation to a Value Today / Price Today flow with summary and negotiation logic above the fold; moved method bridges into Detailed analysis and exit-only items into an optional expander.
+- Fixed DSCR Headroom formatting to display in x terms and aligned coverage rows to ratio formatting.
+- Added a balance sheet note clarifying negative cash as a funding gap without altering logic.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

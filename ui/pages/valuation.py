@@ -38,20 +38,22 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
     st.markdown("# Valuation & Purchase Price")
+    with st.expander("Key Assumptions", expanded=False):
+        updated_assumptions = inputs.render_valuation_key_assumptions(
+            assumptions, "valuation.assumptions"
+        )
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
     output_container = st.container()
-    with st.expander("Key Assumptions", expanded=False):
-        updated_assumptions = inputs.render_valuation_key_assumptions(
-            assumptions, "valuation.assumptions"
-        )
     updated_result = run_model(updated_assumptions)
     with output_container:
         outputs.render_valuation_summary(updated_result, updated_assumptions)
 
     with st.expander("Detailed analysis", expanded=False):
-        outputs.render_valuation_detail(updated_result)
+        outputs.render_valuation_detail(updated_result, updated_assumptions)
+    with st.expander("Upside / Exit Sensitivity (Optional)", expanded=False):
+        outputs.render_valuation_exit(updated_result)
     return updated_assumptions

@@ -38,16 +38,16 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
     st.markdown("# Balance Sheet")
+    with st.expander("Key Assumptions", expanded=False):
+        updated_assumptions = inputs.render_balance_sheet_key_assumptions(
+            assumptions, "balance.assumptions"
+        )
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
     output_container = st.container()
-    with st.expander("Key Assumptions", expanded=False):
-        updated_assumptions = inputs.render_balance_sheet_key_assumptions(
-            assumptions, "balance.assumptions"
-        )
     updated_result = run_model(updated_assumptions)
     net_debt = [
         row["financial_debt"] - row["cash"] for row in updated_result.balance_sheet
@@ -77,6 +77,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         },
     ]
     with output_container:
+        st.markdown(
+            f'<div class="subtle">Minimum cash balance assumption: {outputs._format_money(updated_assumptions.balance_sheet.minimum_cash_balance_eur)}. Negative cash indicates a funding gap.</div>',
+            unsafe_allow_html=True,
+        )
         outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
         outputs.render_balance_sheet(updated_result)
     return updated_assumptions

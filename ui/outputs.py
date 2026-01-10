@@ -469,13 +469,16 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
     coverage_rows = [
         (
             "DSCR",
-            [f"{value:.2f}" if value is not None else "n/a" for value in coverage],
+            [f"{value:.2f}x" if value is not None else "n/a" for value in coverage],
         ),
         (
             "Minimum Required DSCR",
-            [f"{min_required:.2f}" for _ in result.debt],
+            [f"{min_required:.2f}x" for _ in result.debt],
         ),
-        ("DSCR Headroom", dscr_headroom),
+        (
+            "DSCR Headroom",
+            [f"{value:.2f}x" if value is not None else "n/a" for value in dscr_headroom],
+        ),
         ("Covenant Breach", ["YES" if row.get("covenant_breach") else "NO" for row in result.debt]),
     ]
     _render_statement_table_html(
@@ -634,119 +637,54 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
 
 def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> None:
     enterprise_value = result.equity.get("enterprise_value", 0.0)
-    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
-    excess_cash_exit = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
-    last_year_ebit = result.pnl[-1]["ebit"] if result.pnl else 0.0
-    implied_multiple = (enterprise_value / last_year_ebit) if last_year_ebit else 0.0
 
-    debt_year0 = result.debt[0] if result.debt else {}
-    closing_debt = debt_year0.get("closing_debt", 0.0)
-    cash_at_close = (
-        result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
-    )
-    net_debt_close = closing_debt - cash_at_close
     free_cf = [row["free_cashflow"] for row in result.cashflow]
     discount_rate = assumptions.valuation.discount_rate_pct
-    discount_factors = [(1 / ((1 + discount_rate) ** (idx + 1))) for idx in range(5)]
-    pv_fcf = [free_cf[idx] * discount_factors[idx] for idx in range(5)]
-    cumulative_pv = []
+    start_year = assumptions.valuation.valuation_start_year
+    if start_year < 0 or start_year >= len(free_cf):
+        st.error("Valuation Start Year is out of range for the current plan horizon.")
+        st.stop()
     running = 0.0
-    for value in pv_fcf:
-        running += value
-        cumulative_pv.append(running)
-    dcf_value = cumulative_pv[-1] if cumulative_pv else 0.0
+    for idx, value in enumerate(free_cf):
+        if idx < start_year:
+            continue
+        factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
+        discounted = value * factor
+        running += discounted
+    dcf_value = running
 
-    st.markdown("### Valuation Methods – Detailed Breakdown")
-    st.markdown("#### Multiple-Based Valuation")
-    multiple_rows = [
-        ("Exit Year EBIT", [last_year_ebit]),
-        (
-            "Implied Multiple (model input)",
-            [f"{implied_multiple:.2f}x" if last_year_ebit else "n/a"],
-        ),
-        ("Equity Value (Multiple-Based)", [enterprise_value]),
-    ]
-    _render_statement_table_html(
-        multiple_rows,
-        bold_labels={"Equity Value (Multiple-Based)"},
-        years=1,
-        year_labels=["Value"],
-    )
-
-    st.markdown("#### DCF-Based Valuation (no terminal)")
-    dcf_rows = [
-        ("Free Cashflow", free_cf),
-        ("Discount Factor", [f"{value:.2f}" for value in discount_factors]),
-        ("Present Value of FCF", pv_fcf),
-        ("Cumulative PV of FCF", cumulative_pv),
-        ("Equity Value (DCF, no terminal)", ["", "", "", "", dcf_value]),
-    ]
-    _render_statement_table_html(
-        dcf_rows,
-        bold_labels={"Equity Value (DCF, no terminal)"},
-    )
-
-    st.markdown("#### Intrinsic / Cash-Based Value")
-    intrinsic_rows = [
-        ("Enterprise Value (Exit Multiple)", [enterprise_value]),
-        ("Net Debt at Exit", [net_debt_exit]),
-        ("Excess Cash at Exit", [excess_cash_exit]),
-        ("Equity Value (Cash-Based)", [exit_value]),
-    ]
-    _render_statement_table_html(
-        intrinsic_rows,
-        bold_labels={"Equity Value (Cash-Based)"},
-        years=1,
-        year_labels=["Value"],
-    )
-
-    st.markdown("### Valuation Summary (Method Comparison)")
+    st.markdown("### Valuation Today – Overview")
     method_rows = [
-        ("Multiple-Based Valuation", [enterprise_value, "Optimistic"]),
-        ("DCF-Based Valuation (no terminal)", [dcf_value, "Conservative"]),
-        ("Intrinsic / Cash-Based Value", [exit_value, "Financing-constrained"]),
+        ("Multiple-based Equity Value (Today)", [_format_money(enterprise_value)]),
+        ("DCF-based Equity Value (Today, no terminal)", [_format_money(dcf_value)]),
+        (
+            "Buyer Affordability (Ceiling, not valuation)",
+            [_format_money(exit_value)],
+        ),
     ]
     _render_statement_table_html(
         method_rows,
-        years=2,
-        year_labels=["Equity Value", "Characterization"],
+        years=1,
+        year_labels=["Equity Value"],
     )
 
-    valuation_min = min(enterprise_value, dcf_value, exit_value)
-    valuation_max = max(enterprise_value, dcf_value, exit_value)
-    st.markdown("### Valuation Range & Interpretation")
+    valuation_min = min(enterprise_value, dcf_value)
+    valuation_max = max(enterprise_value, dcf_value)
+    midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
+    st.markdown("### Valuation Range")
     range_rows = [
-        ("Conservative Floor (Min)", [valuation_min]),
-        ("Optimistic Ceiling (Max)", [valuation_max]),
+        ("Min", [valuation_min]),
+        ("Midpoint", [midpoint]),
+        ("Max", [valuation_max]),
     ]
     _render_statement_table_html(range_rows, years=1, year_labels=["Value"])
-    st.markdown(
-        "- The range is wide because methods weight risk and growth differently.\n"
-        "- Downside is driven by cashflow timing and financing constraints.\n"
-        "- Upside remains uncertain without terminal value visibility."
-    )
 
-    st.markdown("### Buyer Affordability & Price Ceiling")
-    affordability_rows = [
-        ("Buyer Affordability (Equity Value after financing)", [exit_value]),
-        ("Net Debt at Close (reference)", [net_debt_close]),
-    ]
-    _render_statement_table_html(
-        affordability_rows,
-        years=1,
-        year_labels=["Value"],
-    )
-    st.markdown(
-        "Affordability is a financing- and liquidity-constrained ceiling, not a valuation."
-    )
-
-    midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
-    price_gap = exit_value - midpoint
     st.markdown("### Value vs. Price – Negotiation Logic")
+    price_gap = exit_value - midpoint
     gap_rows = [
-        ("Valuation Midpoint (reference)", [midpoint]),
-        ("Buyer Affordability", [exit_value]),
+        ("Valuation Midpoint (Today)", [midpoint]),
+        ("Buyer Affordability (Ceiling)", [exit_value]),
         ("Price Gap (EUR)", [price_gap]),
     ]
     _render_statement_table_html(
@@ -765,10 +703,8 @@ def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> N
     )
 
 
-def render_valuation_detail(result: ModelResult) -> None:
+def render_valuation_detail(result: ModelResult, assumptions: Assumptions) -> None:
     enterprise_value = result.equity.get("enterprise_value", 0.0)
-    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
-    excess_cash = result.equity.get("excess_cash_exit", 0.0)
     exit_value = result.equity.get("exit_value", 0.0)
 
     debt_year0 = result.debt[0] if result.debt else {}
@@ -785,6 +721,77 @@ def render_valuation_detail(result: ModelResult) -> None:
         {"Metric": "Closing Debt (Year 0)", "Value": _format_money(closing_debt)},
         {"Metric": "Net Debt at Close", "Value": _format_money(net_debt_close)},
     ]
+    st.markdown("#### Multiple-Based Valuation (Today)")
+    reference_year = assumptions.valuation.reference_year
+    if reference_year < 0 or reference_year >= len(result.pnl):
+        st.error("Reference Year is out of range for the current plan horizon.")
+        st.stop()
+    reference_ebit = result.pnl[reference_year]["ebit"]
+    multiple_rows = [
+        (f"Reference EBIT (Year {reference_year})", [reference_ebit]),
+        ("Applied Multiple (Assumption)", [f"{assumptions.valuation.seller_multiple:.2f}x"]),
+        ("Enterprise Value (Model)", [enterprise_value]),
+        ("Net Debt at Close (Reference)", [net_debt_close]),
+        ("Equity Value (Multiple-Based)", [enterprise_value]),
+    ]
+    _render_statement_table_html(
+        multiple_rows,
+        bold_labels={"Equity Value (Multiple-Based)"},
+        years=1,
+        year_labels=["Value"],
+    )
+
+    st.markdown("#### DCF-Based Valuation (no terminal)")
+    start_year = assumptions.valuation.valuation_start_year
+    if start_year < 0 or start_year >= len(result.cashflow):
+        st.error("Valuation Start Year is out of range for the current plan horizon.")
+        st.stop()
+    free_cf = [row["free_cashflow"] for row in result.cashflow]
+    discount_rate = assumptions.valuation.discount_rate_pct
+    discount_factors = []
+    pv_fcf = []
+    cumulative_pv = []
+    running = 0.0
+    for idx in range(len(free_cf)):
+        if idx < start_year:
+            discount_factors.append("")
+            pv_fcf.append("")
+            cumulative_pv.append("")
+            continue
+        factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
+        value = free_cf[idx] * factor
+        running += value
+        discount_factors.append(f"{factor:.2f}")
+        pv_fcf.append(value)
+        cumulative_pv.append(running)
+    dcf_value = running
+    dcf_rows = [
+        ("Free Cashflow", free_cf),
+        ("Discount Factor", discount_factors),
+        ("Present Value of FCF", pv_fcf),
+        ("PV Sum (no terminal)", cumulative_pv),
+        ("Net Debt at Close (Reference)", [net_debt_close] + [""] * 4),
+        ("Equity Value (DCF, no terminal)", ["", "", "", "", dcf_value]),
+    ]
+    _render_statement_table_html(
+        dcf_rows,
+        bold_labels={"Equity Value (DCF, no terminal)"},
+    )
+
+    st.markdown("#### Buyer Affordability (Ceiling, not valuation)")
+    affordability_rows = [
+        ("Minimum Cash Balance (Assumption)", [assumptions.balance_sheet.minimum_cash_balance_eur]),
+        ("Covenant Threshold (DSCR)", [f"{assumptions.financing.minimum_dscr:.2f}x"]),
+        ("Net Debt at Close (Reference)", [net_debt_close]),
+        ("Equity Value (Buyer Affordability)", [exit_value]),
+    ]
+    _render_statement_table_html(
+        affordability_rows,
+        bold_labels={"Equity Value (Buyer Affordability)"},
+        years=1,
+        year_labels=["Value"],
+    )
+
     st.markdown("#### Net Debt at Close (Reference)")
     _render_statement_table_html(
         [(row["Metric"], [row["Value"]]) for row in net_debt_rows],
@@ -793,18 +800,23 @@ def render_valuation_detail(result: ModelResult) -> None:
         year_labels=["Value"],
     )
 
-    st.markdown("#### Seller Valuation (Multiple-Based)")
-    seller_rows = [
-        ("Enterprise Value", [_format_money(enterprise_value)]),
-        ("Net Debt at Exit", [_format_money(net_debt_exit)]),
-        ("Excess Cash at Exit", [_format_money(excess_cash)]),
-        ("Equity Value (Seller View)", [_format_money(exit_value)]),
+
+def render_valuation_exit(result: ModelResult) -> None:
+    enterprise_value = result.equity.get("enterprise_value", 0.0)
+    net_debt_exit = result.equity.get("net_debt_exit", 0.0)
+    excess_cash = result.equity.get("excess_cash_exit", 0.0)
+    exit_value = result.equity.get("exit_value", 0.0)
+    exit_rows = [
+        ("Enterprise Value at Exit", [enterprise_value]),
+        ("Net Debt at Exit", [-net_debt_exit]),
+        ("Excess Cash at Exit", [excess_cash]),
+        ("Equity Value at Exit", [exit_value]),
     ]
     _render_statement_table_html(
-        seller_rows,
-        bold_labels={"Equity Value (Seller View)"},
+        exit_rows,
+        bold_labels={"Equity Value at Exit"},
         years=1,
-        year_labels=["Value"],
+        year_labels=["Exit Year"],
     )
 
 
