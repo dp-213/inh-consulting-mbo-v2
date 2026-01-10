@@ -156,22 +156,22 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
     opex_ratio = [_format_percent(overhead_costs[idx], revenue[idx]) for idx in range(5)]
 
     rows = [
-        ("A) REVENUE ENGINE (TOP CONSTRAINT)", None),
+        ("REVENUE ENGINE", None),
         ("Total Revenue", revenue),
         ("Revenue per Consultant", revenue_per_consultant),
         ("", None),
-        ("B) PEOPLE COST ENGINE", None),
+        ("PEOPLE COST ENGINE", None),
         ("Total Personnel Costs", personnel_costs),
         ("Personnel Cost Ratio", personnel_cost_ratio),
         ("Net Contribution after Personnel Costs", net_contribution),
         ("", None),
-        ("C) OPERATING LEVERAGE & SCALE COSTS", None),
+        ("OPERATING LEVERAGE & SCALE COSTS", None),
         ("Total Operating Expenses", overhead_costs),
         ("Opex Ratio", opex_ratio),
         ("EBITDA (Operating Leverage)", ebitda),
         ("EBITDA Margin", ebitda_margin),
         ("", None),
-        ("D) RESULT & RESILIENCE", None),
+        ("RESULT", None),
         ("EBITDA", ebitda),
         ("EBIT", ebit),
         ("Net Income", net_income),
@@ -194,11 +194,13 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         row_classes={
             "Total Personnel Costs": "people-row",
             "Personnel Cost Ratio": "people-row",
-            "Net Contribution after Personnel Costs": "people-row",
-            "EBITDA": "emphasis-row",
-            "Net Income": "emphasis-row",
+            "Net Contribution after Personnel Costs": "key-metric",
         },
         year_labels=year_labels,
+    )
+    st.markdown(
+        '<div class="hint-text">Primary steering metric for hiring, utilization, and scalable growth.</div>',
+        unsafe_allow_html=True,
     )
 
     with st.expander("Detailed analysis", expanded=False):

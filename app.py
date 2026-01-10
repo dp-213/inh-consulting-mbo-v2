@@ -194,12 +194,15 @@ def _inject_base_styles() -> None:
               border-top: 2px solid #b0b0b0;
           }
           .fin-table .people-row {
-              background-color: #fef3c7;
+              background-color: #f5f6f8;
               font-weight: 600;
           }
-          .fin-table .emphasis-row {
-              background-color: #e0f2fe;
+          .fin-table .key-metric td {
               font-weight: 700;
+              border-top: 1px solid #d1d5db;
+              border-bottom: 1px solid #d1d5db;
+              padding-top: 5px;
+              padding-bottom: 5px;
           }
           .fin-table .num {
               text-align: right;

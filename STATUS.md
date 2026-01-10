@@ -115,3 +115,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Softened People Cost Engine emphasis with a neutral gray tint and removed alert-like coloring.
+- Simplified section headers to bank-style labels without A/B/C/D notation.
+- Added subtle key-metric emphasis and a quiet footnote for Net Contribution.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
