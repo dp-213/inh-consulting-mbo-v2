@@ -77,7 +77,7 @@ def _inject_base_styles() -> None:
             max-width: 260px;
           }
           [data-testid="stSidebar"] .nav-section {
-            font-size: 0.58rem;
+            font-size: 0.7rem;
             letter-spacing: 0.14em;
             text-transform: uppercase;
             color: #4b5563;
@@ -99,8 +99,8 @@ def _inject_base_styles() -> None:
             background: #eef2f5;
           }
           [data-testid="stSidebar"] [data-testid="baseButton-primary"] > button {
-            background: #dfe4ea;
-            border-left: 3px solid #6b7280;
+            background: #d2d9e3;
+            border-left: 4px solid #4b5563;
             font-weight: 600;
           }
           [data-testid="stRadio"] {
@@ -323,8 +323,7 @@ def main() -> None:
     assumptions = original_assumptions
     case_options = list_cases()
 
-    if page != "Operating Model (P&L)":
-        st.markdown("# Financial Model")
+    # Page titles are rendered by each view.
 
     view_only_scenario_pages = {
         "Overview",

@@ -7,7 +7,7 @@ from ui import inputs
 
 
 def render_inputs(assumptions: Assumptions) -> Assumptions:
-    st.markdown("## Planning Wizard")
+    st.markdown("# Planning Wizard")
     st.markdown(
         "Guided planning flow with only the most impactful drivers. "
         "Use this to set the core case before diving into detailed sheets."

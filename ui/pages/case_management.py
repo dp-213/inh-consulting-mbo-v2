@@ -6,7 +6,7 @@ from state.assumptions import Assumptions
 
 
 def render(assumptions: Assumptions, data_path: str, case_options: list[str]) -> dict:
-    st.markdown("## Case Management")
+    st.markdown("# Case Management")
     st.markdown("Save, duplicate, and load cases from the case library below.")
     st.table([{"Current Case": _case_name(data_path), "Current JSON Path": data_path}])
 

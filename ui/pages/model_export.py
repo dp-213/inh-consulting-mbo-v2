@@ -10,7 +10,7 @@ from state.assumptions import Assumptions
 
 
 def render(assumptions: Assumptions, result: ModelResult) -> None:
-    st.markdown("## Model Export / Snapshot")
+    st.markdown("# Model Export / Snapshot")
     st.markdown("For internal / AI-assisted analysis only.")
     st.markdown(
         "Structured summaries below are intended for expert review, "
@@ -35,7 +35,7 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
     st.markdown("---")
     st.markdown("### B) Model Structure (For AI / Review)")
     snapshot = asdict(assumptions)
-    st.dataframe(_flatten_snapshot(snapshot), use_container_width=True)
+    st.table(_flatten_snapshot(snapshot))
 
     st.markdown("---")
     st.markdown("### C) Raw JSON (Advanced)")
@@ -123,10 +123,19 @@ def _format_money(value: float) -> str:
         return ""
     abs_value = abs(value)
     if abs_value >= 1_000_000:
-        return f"{value / 1_000_000:,.2f} m EUR"
+        return _format_compact(value, 1_000_000, "m€", 2)
     if abs_value >= 1_000:
-        return f"{value / 1_000:,.2f} k EUR"
-    return f"{value:,.0f} EUR"
+        return _format_compact(value, 1_000, "k€", 1)
+    return f"{value:,.0f} €"
+
+
+def _format_compact(value: float, scale: float, suffix: str, decimals: int) -> str:
+    formatted = f"{value / scale:,.{decimals}f}"
+    if formatted.endswith(".00"):
+        formatted = formatted[:-3]
+    if formatted.endswith(".0"):
+        formatted = formatted[:-2]
+    return f"{formatted} {suffix}"
 
 
 def _min_dscr(debt_schedule: list[dict]) -> float | None:

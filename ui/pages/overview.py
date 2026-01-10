@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from model.run_model import ModelResult
+from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
+from ui.pages.quick_adjust import render_quick_adjust
 
 
 def _case_name(path: str) -> str:
@@ -36,7 +37,7 @@ def _render_scenario_selector(current: str) -> None:
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
-    st.markdown("## Deal Summary (Committee View)")
+    st.markdown("# Deal Summary (Committee View)")
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
@@ -47,4 +48,6 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         unsafe_allow_html=True,
     )
     st.markdown("---")
-    outputs.render_overview(result, assumptions)
+    updated_assumptions = render_quick_adjust(assumptions, "overview.quick")
+    updated_result = run_model(updated_assumptions)
+    outputs.render_overview(updated_result, updated_assumptions)

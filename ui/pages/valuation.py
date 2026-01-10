@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from model.run_model import ModelResult
+from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
+from ui.pages.quick_adjust import render_quick_adjust
 
 
 def _case_name(path: str) -> str:
@@ -36,13 +37,15 @@ def _render_scenario_selector(current: str) -> None:
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
-    st.markdown("## Valuation & Purchase Price")
+    st.markdown("# Valuation & Purchase Price")
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
-    outputs.render_valuation_summary(result)
+    updated_assumptions = render_quick_adjust(assumptions, "valuation.quick")
+    updated_result = run_model(updated_assumptions)
+    outputs.render_valuation_summary(updated_result)
 
     with st.expander("Detailed analysis", expanded=False):
-        outputs.render_valuation_detail(result)
+        outputs.render_valuation_detail(updated_result)

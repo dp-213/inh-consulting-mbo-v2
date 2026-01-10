@@ -7,5 +7,9 @@ from ui import inputs
 
 
 def render(assumptions: Assumptions) -> Assumptions:
-    st.markdown("## Other Assumptions")
+    st.markdown("# Other Assumptions")
+    st.markdown(
+        '<div class="subtle">Master input sheet - all remaining assumptions.</div>',
+        unsafe_allow_html=True,
+    )
     return inputs.render_other_assumptions(assumptions)

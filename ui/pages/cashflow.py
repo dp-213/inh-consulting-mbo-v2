@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from model.run_model import ModelResult
+from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from ui import outputs
+from ui.pages.quick_adjust import render_quick_adjust
 
 YEAR_LABELS = [f"Year {i}" for i in range(5)]
 
@@ -38,7 +39,7 @@ def _render_scenario_selector(current: str) -> None:
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
-    st.markdown("## Cashflow & Liquidity")
+    st.markdown("# Cashflow & Liquidity")
     st.markdown(
         f'<div class="page-indicator">Case: {case_name} &nbsp;•&nbsp; Scenario: {scenario}</div>',
         unsafe_allow_html=True,
@@ -48,13 +49,15 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         '<div class="subtle">Consolidated cashflow statement (5-year plan)</div>',
         unsafe_allow_html=True,
     )
-    outputs.render_cashflow_liquidity(result)
+    updated_assumptions = render_quick_adjust(assumptions, "cashflow.quick")
+    updated_result = run_model(updated_assumptions)
+    outputs.render_cashflow_liquidity(updated_result)
 
     with st.expander("Detailed analysis", expanded=False):
         st.markdown("#### KPI Summary")
-        operating_cf = [row["operating_cf"] for row in result.cashflow]
-        free_cf = [row["free_cashflow"] for row in result.cashflow]
-        ebitda = [row["ebitda"] for row in result.cashflow]
+        operating_cf = [row["operating_cf"] for row in updated_result.cashflow]
+        free_cf = [row["free_cashflow"] for row in updated_result.cashflow]
+        ebitda = [row["ebitda"] for row in updated_result.cashflow]
         cash_conversion = [
             outputs._format_percent(free_cf[idx], ebitda[idx])
             for idx in range(len(free_cf))
@@ -76,7 +79,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         ]
         outputs._render_kpi_table_html(kpi_rows, ["KPI"] + YEAR_LABELS)
         st.markdown("#### Cash Volatility")
-        cash_balances = [row["cash_balance"] for row in result.cashflow]
+        cash_balances = [row["cash_balance"] for row in updated_result.cashflow]
         min_cash = min(cash_balances) if cash_balances else 0.0
         max_cash = max(cash_balances) if cash_balances else 0.0
         negative_years = len([value for value in cash_balances if value < 0])
