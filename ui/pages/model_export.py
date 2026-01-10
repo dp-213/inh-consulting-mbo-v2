@@ -1,145 +1,66 @@
 from __future__ import annotations
 
-import json
-from dataclasses import asdict
+from datetime import date
+import re
 
 import streamlit as st
 
+from model.excel_export import export_ic_excel
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
 
 
 def render(assumptions: Assumptions, result: ModelResult) -> None:
-    st.markdown("# Model Export / Snapshot")
-    st.markdown("For internal / AI-assisted analysis only.")
+    st.markdown("# Model Export")
     st.markdown(
-        "Structured summaries below are intended for expert review, "
-        "scenario discussion, and AI-assisted sparring."
+        "Generate an IC-ready Excel model from the current case and scenario. "
+        "The export mirrors the tool structure and keeps formulas live."
     )
 
-    st.markdown("### A) Model Facts (Human-Readable)")
-    st.markdown("Key inputs, outputs, and assumptions for the current case.")
-    st.table(_key_inputs(assumptions))
-    st.table(_key_outputs(result))
-    st.table(
-        [
-            {
-                "Assumptions Summary": (
-                    "Scenario-driven planning case with explicit revenue, cost, financing, "
-                    "cash flow, balance sheet, and valuation assumptions."
-                )
-            }
-        ]
-    )
-
-    st.markdown("---")
-    st.markdown("### B) Model Structure (For AI / Review)")
-    snapshot = asdict(assumptions)
-    st.table(_flatten_snapshot(snapshot))
-
-    st.markdown("---")
-    st.markdown("### C) Raw JSON (Advanced)")
-    with st.expander("Show Raw JSON", expanded=False):
-        st.table([{"Snapshot (JSON)": json.dumps(snapshot, indent=2)}])
-
-
-def _flatten_snapshot(snapshot: dict) -> list[dict]:
-    rows: list[dict] = []
-
-    def walk(prefix: str, value):
-        if isinstance(value, dict):
-            for key, inner in value.items():
-                walk(f"{prefix}.{key}" if prefix else key, inner)
-        elif isinstance(value, list):
-            rows.append(
-                {
-                    "Section": prefix.split(".")[0] if "." in prefix else prefix,
-                    "Field": prefix,
-                    "Value": ", ".join(str(item) for item in value),
-                }
-            )
-        else:
-            rows.append(
-                {
-                    "Section": prefix.split(".")[0] if "." in prefix else prefix,
-                    "Field": prefix,
-                    "Value": value,
-                }
-            )
-
-    walk("", snapshot)
-    return rows
-
-
-def _key_inputs(assumptions: Assumptions) -> list[dict]:
+    case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = assumptions.scenario
-    revenue = assumptions.revenue.scenarios[scenario]
-    rows = [
-        {"Area": "Revenue", "Driver": "Workdays (Year 0)", "Value": revenue.workdays_per_year[0], "Unit": "Days"},
-        {"Area": "Revenue", "Driver": "Utilization (Year 0)", "Value": f"{revenue.utilization_rate_pct[0]*100:.1f}%", "Unit": "%"},
-        {"Area": "Revenue", "Driver": "Group Day Rate (Year 0)", "Value": _format_money(revenue.group_day_rate_eur[0]), "Unit": "EUR"},
-        {"Area": "Revenue", "Driver": "External Day Rate (Year 0)", "Value": _format_money(revenue.external_day_rate_eur[0]), "Unit": "EUR"},
-        {"Area": "Revenue", "Driver": "Guarantee (Year 0)", "Value": f"{revenue.guarantee_pct_by_year[0]*100:.1f}%", "Unit": "%"},
-        {"Area": "Cost", "Driver": "Consultant Headcount (Year 0)", "Value": assumptions.cost.personnel_by_year[0].consultant_fte, "Unit": "People"},
-        {"Area": "Cost", "Driver": "Consultant Cost (All-in)", "Value": _format_money(assumptions.cost.personnel_by_year[0].consultant_loaded_cost_eur), "Unit": "EUR"},
-        {"Area": "Cost", "Driver": "Backoffice Headcount (Year 0)", "Value": assumptions.cost.personnel_by_year[0].backoffice_fte, "Unit": "People"},
-        {"Area": "Financing", "Driver": "Purchase Price", "Value": _format_money(assumptions.transaction_and_financing.purchase_price_eur), "Unit": "EUR"},
-        {"Area": "Financing", "Driver": "Owner Contribution", "Value": _format_money(assumptions.transaction_and_financing.equity_contribution_eur), "Unit": "EUR"},
-        {"Area": "Financing", "Driver": "Senior Loan Amount", "Value": _format_money(assumptions.financing.senior_debt_amount_eur), "Unit": "EUR"},
-        {"Area": "Financing", "Driver": "Interest Rate", "Value": f"{assumptions.financing.interest_rate_pct*100:.1f}%", "Unit": "%"},
-        {"Area": "Financing", "Driver": "Repayment Type", "Value": assumptions.financing.amortization_type, "Unit": ""},
-        {"Area": "Financing", "Driver": "Repayment Period", "Value": assumptions.financing.amortization_period_years, "Unit": "Years"},
-        {"Area": "Other", "Driver": "Capital Spend (% of Revenue)", "Value": f"{assumptions.cashflow.capex_pct_revenue*100:.1f}%", "Unit": "%"},
-        {"Area": "Other", "Driver": "Cash Tied in Operations", "Value": f"{assumptions.cashflow.working_capital_pct_revenue*100:.1f}%", "Unit": "%"},
-        {"Area": "Other", "Driver": "Profit Tax Rate", "Value": f"{assumptions.tax_and_distributions.tax_rate_pct*100:.1f}%", "Unit": "%"},
-        {"Area": "Other", "Driver": "Seller Multiple", "Value": f"{assumptions.valuation.seller_multiple:.2f}x", "Unit": "x"},
-    ]
-    return rows
+    st.markdown(f"Case: {case_name} | Scenario: {scenario}")
+
+    export_key = (case_name, scenario)
+    if st.session_state.get("export_key") != export_key:
+        st.session_state.pop("export_bytes", None)
+        st.session_state.pop("export_filename", None)
+        st.session_state["export_key"] = export_key
+
+    if st.button("Export IC-Ready Excel Model", type="primary"):
+        try:
+            export_bytes = export_ic_excel(assumptions, result, case_name)
+        except ImportError:
+            st.error("Excel export requires the openpyxl package to be installed.")
+            return
+        except Exception as exc:  # pragma: no cover - streamlit presentation
+            st.error(f"Excel export failed: {exc}")
+            return
+
+        st.session_state["export_bytes"] = export_bytes
+        st.session_state["export_filename"] = _export_filename(case_name, scenario)
+        st.success("Excel model generated. Use the download button below.")
+
+    if "export_bytes" in st.session_state:
+        st.download_button(
+            "Download Excel Model",
+            data=st.session_state["export_bytes"],
+            file_name=st.session_state.get("export_filename", "ic_model.xlsx"),
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
-def _key_outputs(result: ModelResult) -> list[dict]:
-    irr = result.equity.get("irr", 0.0)
-    initial_equity = result.equity.get("initial_equity", 0.0)
-    exit_value = result.equity.get("exit_value", 0.0)
-    moic = exit_value / initial_equity if initial_equity else 0.0
-    peak_loan = max((row.get("closing_debt", 0.0) for row in result.debt), default=0.0)
-    min_coverage = _min_dscr(result.debt)
-    last_year = len(result.pnl) - 1
-    return [
-        {"Metric": "Investor Return (%)", "Value": f"{irr*100:.1f}%"},
-        {"Metric": "Owner Multiple", "Value": f"{moic:.2f}x"},
-        {"Metric": "Owner Proceeds", "Value": _format_money(exit_value)},
-        {"Metric": "Peak Loan Balance", "Value": _format_money(peak_loan)},
-        {"Metric": "Minimum Loan Coverage", "Value": f"{min_coverage:.2f}" if min_coverage is not None else "n/a"},
-        {"Metric": "Revenue (Year 4)", "Value": _format_money(result.pnl[last_year]["revenue"])},
-        {"Metric": "Profit Before Depreciation (Year 4)", "Value": _format_money(result.pnl[last_year]["ebitda"])},
-        {"Metric": "Net Profit (Year 4)", "Value": _format_money(result.pnl[last_year]["net_income"])},
-        {"Metric": "Cash After Investment (Year 4)", "Value": _format_money(result.cashflow[last_year]["free_cashflow"])},
-    ]
+def _case_name(path: str) -> str:
+    if not path:
+        return "Unnamed Case"
+    if path.endswith("base_case.json"):
+        return "Base Case"
+    name = path.split("/")[-1].replace(".json", "")
+    return name or "Unnamed Case"
 
 
-def _format_money(value: float) -> str:
-    if value is None:
-        return ""
-    abs_value = abs(value)
-    if abs_value >= 1_000_000:
-        return _format_compact(value, 1_000_000, "m€", 2)
-    if abs_value >= 1_000:
-        return _format_compact(value, 1_000, "k€", 1)
-    return f"{value:,.0f} €"
-
-
-def _format_compact(value: float, scale: float, suffix: str, decimals: int) -> str:
-    formatted = f"{value / scale:,.{decimals}f}"
-    if formatted.endswith(".00"):
-        formatted = formatted[:-3]
-    if formatted.endswith(".0"):
-        formatted = formatted[:-2]
-    return f"{formatted} {suffix}"
-
-
-def _min_dscr(debt_schedule: list[dict]) -> float | None:
-    values = [row.get("dscr") for row in debt_schedule if row.get("dscr") is not None]
-    if not values:
-        return None
-    return min(values)
+def _export_filename(case_name: str, scenario: str) -> str:
+    safe_case = re.sub(r"[^A-Za-z0-9_-]+", "_", case_name.strip()) or "Case"
+    safe_scenario = re.sub(r"[^A-Za-z0-9_-]+", "_", str(scenario).strip()) or "Scenario"
+    stamp = date.today().isoformat()
+    return f"{safe_case}_{safe_scenario}_ic_model_{stamp}.xlsx"

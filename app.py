@@ -33,7 +33,7 @@ SECTIONS = {
     ],
     "PLANNING": ["Revenue Model", "Cost Model", "Other Assumptions"],
     "FINANCING": ["Financing & Debt", "Equity Case"],
-    "SETTINGS": ["Case Management", "Model Settings", "Model Export / Snapshot"],
+    "SETTINGS": ["Case Management", "Model Settings", "Model Export"],
 }
 
 DEFAULT_PAGE = "Overview"
@@ -415,7 +415,7 @@ def main() -> None:
             st.markdown("Enter a case name before saving a copy.")
         if case_actions["load"] and case_actions["load_choice"] == "Select case...":
             st.markdown("Select a case to load, then click Load Selected Case.")
-    elif page == "Model Export / Snapshot":
+    elif page == "Model Export":
         model_export.render(updated_assumptions, result)
 
 
