@@ -42,41 +42,57 @@ PAGES = [
 
 def _render_case_bar(assumptions, current_path, case_options):
     st.markdown("## Case")
-    st.table([{"Current Case": _case_name(current_path)}])
+    case_col, scenario_col = st.columns([2, 2])
+    with case_col:
+        st.table([{"Current Case": _case_name(current_path)}])
+    with scenario_col:
+        scenario = st.selectbox(
+            "Scenario View",
+            ["Base", "Best", "Worst"],
+            index=["Base", "Best", "Worst"].index(assumptions.scenario),
+        )
+        st.markdown("Applies to input view only.")
+        if scenario != assumptions.scenario:
+            assumptions = replace(assumptions, scenario=scenario)
 
-    scenario = st.selectbox(
-        "Scenario View",
-        ["Base", "Best", "Worst"],
-        index=["Base", "Best", "Worst"].index(assumptions.scenario),
-    )
-    if scenario != assumptions.scenario:
-        assumptions = replace(assumptions, scenario=scenario)
+    st.markdown("### Case Actions")
+    name_col, load_col = st.columns([2, 2])
+    with name_col:
+        new_case_table = st.data_editor(
+            [{"Parameter": "New Case Name", "Value": ""}],
+            use_container_width=True,
+        )
+        if hasattr(new_case_table, "to_dict"):
+            records = new_case_table.to_dict(orient="records")
+        else:
+            records = new_case_table
+        new_case_name = str(records[0].get("Value", "") or "").strip()
+    with load_col:
+        load_choice = st.selectbox(
+            "Load Case",
+            ["Select case..."] + case_options,
+            index=0,
+        )
 
-    new_case_table = st.data_editor(
-        [{"Parameter": "New Case Name", "Value": ""}],
-        use_container_width=True,
-        key="case.new_name",
-    )
-    if hasattr(new_case_table, "to_dict"):
-        records = new_case_table.to_dict(orient="records")
-    else:
-        records = new_case_table
-    new_case_name = str(records[0].get("Value", "") or "").strip()
-
-    load_choice = st.selectbox(
-        "Load Case",
-        ["Select case..."] + case_options,
-        index=0,
-    )
+    button_cols = st.columns([1, 1, 1, 1])
+    with button_cols[0]:
+        save_pressed = st.button("Save")
+    with button_cols[1]:
+        save_as_pressed = st.button("Save As")
+    with button_cols[2]:
+        load_pressed = st.button("Load Selected Case")
+    with button_cols[3]:
+        reset_pressed = st.button("Reset to Base")
 
     actions = {
-        "save": st.button("Save"),
-        "save_as": st.button("Save As"),
-        "load": st.button("Load Selected Case"),
-        "reset": st.button("Reset to Base"),
+        "save": save_pressed,
+        "save_as": save_as_pressed,
+        "load": load_pressed,
+        "reset": reset_pressed,
         "load_choice": load_choice,
         "new_case_name": new_case_name,
     }
+    st.markdown("---")
     return assumptions, actions
 
 
@@ -88,6 +104,7 @@ def _case_name(path: str) -> str:
 
 
 def main() -> None:
+    st.set_page_config(page_title="INH Consulting MBO Model", layout="wide")
     if "data_path" not in st.session_state:
         st.session_state["data_path"] = "data/base_case.json"
 

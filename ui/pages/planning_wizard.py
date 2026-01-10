@@ -9,7 +9,10 @@ from ui import inputs, outputs
 
 def render_inputs(assumptions: Assumptions) -> Assumptions:
     st.markdown("## Planning Wizard")
-    st.markdown("Guided planning flow with only the most impactful drivers.")
+    st.markdown(
+        "Guided planning flow with only the most impactful drivers. "
+        "Use this to set the core case before diving into detailed sheets."
+    )
 
     step = st.selectbox(
         "Step",
@@ -23,14 +26,19 @@ def render_inputs(assumptions: Assumptions) -> Assumptions:
     )
 
     if step == "Step 1: Revenue Drivers":
+        st.markdown("Focus: capacity, pricing, and guarantee floor.")
         return inputs.render_revenue_quick_inputs(assumptions)
     if step == "Step 2: Cost Drivers":
+        st.markdown("Focus: consultant costs, backoffice, and management.")
         return inputs.render_cost_quick_inputs(assumptions)
     if step == "Step 3: Financing":
+        st.markdown("Focus: debt size, pricing, and amortization.")
         return inputs.render_financing_quick_inputs(assumptions)
+    st.markdown("Focus: purchase price and exit multiple.")
     return inputs.render_valuation_quick_inputs(assumptions)
 
 
 def render_outputs(result: ModelResult) -> None:
     st.markdown("### Impact Preview")
+    st.markdown("Instant read-through of the most sensitive KPIs.")
     outputs.render_impact_preview(result)

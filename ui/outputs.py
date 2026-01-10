@@ -17,12 +17,14 @@ def render_overview(result: ModelResult) -> None:
     peak_debt = max((row.get("closing_debt", 0.0) for row in result.debt), default=0.0)
     min_dscr = _min_dscr(result.debt)
 
-    st.metric("IRR", f"{irr * 100:.1f}%")
-    st.metric("MOIC", f"{moic:.2f}x")
-    st.metric("Equity (EUR)", _fmt(initial_equity))
-    st.metric("Peak Debt (EUR)", _fmt(peak_debt))
-    st.metric("Min DSCR", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
+    kpi_cols = st.columns(5)
+    kpi_cols[0].metric("IRR", f"{irr * 100:.1f}%")
+    kpi_cols[1].metric("MOIC", f"{moic:.2f}x")
+    kpi_cols[2].metric("Equity (EUR)", _fmt(initial_equity))
+    kpi_cols[3].metric("Peak Debt (EUR)", _fmt(peak_debt))
+    kpi_cols[4].metric("Min DSCR", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
 
+    st.markdown("---")
     st.markdown("### Red Flags")
     breaches = [row for row in result.debt if row.get("covenant_breach")]
     if breaches:
@@ -40,6 +42,7 @@ def render_overview(result: ModelResult) -> None:
     else:
         st.table([{"Status": "No covenant breaches in the projection period."}])
 
+    st.markdown("---")
     st.markdown("### Narrative")
     st.table(
         [
@@ -61,15 +64,17 @@ def render_impact_preview(result: ModelResult) -> None:
     equity_value = result.equity.get("exit_value", 0.0)
     min_dscr = _min_dscr(result.debt)
 
-    st.metric("Revenue (Year 4)", _fmt(revenue))
-    st.metric("EBITDA (Year 4)", _fmt(ebitda))
-    st.metric("FCF (Year 4)", _fmt(fcf))
-    st.metric("Equity Value", _fmt(equity_value))
-    st.metric("Min DSCR", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
+    cols = st.columns(5)
+    cols[0].metric("Revenue (Year 4)", _fmt(revenue))
+    cols[1].metric("EBITDA (Year 4)", _fmt(ebitda))
+    cols[2].metric("FCF (Year 4)", _fmt(fcf))
+    cols[3].metric("Equity Value", _fmt(equity_value))
+    cols[4].metric("Min DSCR", f"{min_dscr:.2f}" if min_dscr is not None else "n/a")
 
 
 def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
     st.markdown("### Key Drivers (This Case vs Base)")
+    st.markdown("Comparison uses the Base Case file for the same scenario.")
     scenario = current.scenario
     current_rev = current.revenue.scenarios[scenario]
     base_rev = base.revenue.scenarios[scenario]
@@ -91,6 +96,7 @@ def render_driver_summary(current: Assumptions, base: Assumptions) -> None:
 
 def render_operating_model(result: ModelResult) -> None:
     st.markdown("### P&L (5-Year View)")
+    st.markdown("Summary view of operating performance and profitability.")
     rows = {
         "Revenue": [row["revenue"] for row in result.pnl],
         "Personnel Costs": [row["personnel_costs"] for row in result.pnl],
@@ -108,6 +114,7 @@ def render_operating_model(result: ModelResult) -> None:
 
 def render_cashflow_liquidity(result: ModelResult) -> None:
     st.markdown("### Cashflow & Liquidity")
+    st.markdown("Cash generation and liquidity profile across the plan.")
     rows = {
         "EBITDA": [row["ebitda"] for row in result.cashflow],
         "Taxes Paid": [row["taxes_paid"] for row in result.cashflow],
@@ -120,6 +127,7 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
         "Cash Balance": [row["cash_balance"] for row in result.cashflow],
     }
     st.dataframe(_year_table(rows), use_container_width=True)
+    st.markdown("---")
     st.table(
         [
             {
@@ -134,6 +142,7 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
 
 def render_balance_sheet(result: ModelResult) -> None:
     st.markdown("### Balance Sheet")
+    st.markdown("Year-end asset, liability, and equity position.")
     rows = {
         "Cash": [row["cash"] for row in result.balance_sheet],
         "Fixed Assets": [row["fixed_assets"] for row in result.balance_sheet],
@@ -153,6 +162,7 @@ def render_balance_sheet(result: ModelResult) -> None:
 
 def render_financing_debt(result: ModelResult) -> None:
     st.markdown("### Bank View (Debt Schedule)")
+    st.markdown("Debt evolution, service, and covenant health by year.")
     rows = {
         "Opening Debt": [row["opening_debt"] for row in result.debt],
         "Debt Drawdown": [row["debt_drawdown"] for row in result.debt],
@@ -165,6 +175,7 @@ def render_financing_debt(result: ModelResult) -> None:
         ],
     }
     st.dataframe(_year_table(rows), use_container_width=True)
+    st.markdown("---")
     st.table(
         [
             {
@@ -183,10 +194,11 @@ def render_equity_case(result: ModelResult) -> None:
     exit_value = result.equity.get("exit_value", 0.0)
     moic = exit_value / initial_equity if initial_equity else 0.0
 
-    st.metric("Initial Equity (EUR)", _fmt(initial_equity))
-    st.metric("Exit Value (EUR)", _fmt(exit_value))
-    st.metric("IRR", f"{result.equity.get('irr', 0.0) * 100:.1f}%")
-    st.metric("MOIC", f"{moic:.2f}x")
+    kpi_cols = st.columns(4)
+    kpi_cols[0].metric("Initial Equity (EUR)", _fmt(initial_equity))
+    kpi_cols[1].metric("Exit Value (EUR)", _fmt(exit_value))
+    kpi_cols[2].metric("IRR", f"{result.equity.get('irr', 0.0) * 100:.1f}%")
+    kpi_cols[3].metric("MOIC", f"{moic:.2f}x")
 
     st.dataframe(
         _year_table(
@@ -200,6 +212,7 @@ def render_equity_case(result: ModelResult) -> None:
 
 def render_valuation(result: ModelResult) -> None:
     st.markdown("### Valuation & Purchase Price")
+    st.markdown("Equity bridge from enterprise value to exit proceeds.")
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash = result.equity.get("excess_cash_exit", 0.0)
@@ -247,8 +260,25 @@ def _driver_row(name: str, current: float, base: float, unit: str) -> dict:
     delta = current - base
     return {
         "Driver": name,
-        "Current": current,
-        "Base": base,
-        "Delta": delta,
+        "Current": _format_driver_value(current, unit),
+        "Base": _format_driver_value(base, unit),
+        "Delta": _format_delta(delta, unit),
         "Unit": unit,
     }
+
+
+def _format_driver_value(value: float, unit: str) -> str:
+    if unit in {"%", "% p.a."}:
+        return f"{value:.2%}"
+    if unit == "x":
+        return f"{value:.2f}x"
+    return f"{value:,.2f}"
+
+
+def _format_delta(value: float, unit: str) -> str:
+    sign = "+" if value > 0 else ""
+    if unit in {"%", "% p.a."}:
+        return f"{sign}{value:.2%}"
+    if unit == "x":
+        return f"{sign}{value:.2f}x"
+    return f"{sign}{value:,.2f}"
