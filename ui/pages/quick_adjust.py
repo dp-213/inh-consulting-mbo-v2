@@ -153,7 +153,7 @@ def render_quick_adjust_balance_sheet(assumptions: Assumptions, key_prefix: str)
         f"{key_prefix}.opening_equity": balance.opening_equity_eur,
         f"{key_prefix}.depr_rate": balance.depreciation_rate_pct,
     }
-    with st.expander("Key Balance Sheet Drivers (Quick Adjust)", expanded=False):
+    with st.expander("Balance Sheet Assumptions", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         if top_cols[1].button("Reset to planning values", key=f"{key_prefix}.reset"):
             _set_state_defaults(defaults)

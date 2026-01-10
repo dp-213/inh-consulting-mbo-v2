@@ -7,8 +7,6 @@ from state.assumptions import Assumptions
 from ui import outputs
 from ui.pages.quick_adjust import render_quick_adjust_balance_sheet
 
-YEAR_LABELS = [f"Year {i}" for i in range(5)]
-
 
 def _case_name(path: str) -> str:
     if not path:
@@ -45,46 +43,34 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         unsafe_allow_html=True,
     )
     _render_scenario_selector(assumptions.scenario)
-    st.markdown(
-        '<div class="subtle">Simplified balance sheet (5-year plan)</div>',
-        unsafe_allow_html=True,
-    )
     updated_assumptions = render_quick_adjust_balance_sheet(assumptions, "balance.quick")
     updated_result = run_model(updated_assumptions)
+    net_debt = [
+        row["financial_debt"] - row["cash"] for row in updated_result.balance_sheet
+    ]
+    equity_ratio = [
+        (row["equity_end"] / row["total_assets"]) if row["total_assets"] else 0.0
+        for row in updated_result.balance_sheet
+    ]
+    ebitda = [row["ebitda"] for row in updated_result.pnl]
+    net_debt_ebitda = [
+        (net_debt[idx] / ebitda[idx]) if ebitda[idx] else 0.0
+        for idx in range(len(net_debt))
+    ]
+    year_labels = [f"Year {i}" for i in range(5)]
+    kpi_rows = [
+        {
+            "Metric": "Net Debt",
+            **{year_labels[i]: outputs._format_money(net_debt[i]) for i in range(5)},
+        },
+        {
+            "Metric": "Equity Ratio",
+            **{year_labels[i]: f"{equity_ratio[i] * 100:.1f}%" for i in range(5)},
+        },
+        {
+            "Metric": "Net Debt / EBITDA",
+            **{year_labels[i]: f"{net_debt_ebitda[i]:.2f}x" for i in range(5)},
+        },
+    ]
+    outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
     outputs.render_balance_sheet(updated_result)
-
-    with st.expander("Detailed analysis", expanded=False):
-        st.markdown("#### KPI Summary")
-        net_debt = [
-            row["financial_debt"] - row["cash"] for row in updated_result.balance_sheet
-        ]
-        equity_ratio = [
-            (row["equity_end"] / row["total_assets"]) if row["total_assets"] else 0.0
-            for row in updated_result.balance_sheet
-        ]
-        ebitda = [row["ebitda"] for row in updated_result.pnl]
-        net_debt_ebitda = [
-            (net_debt[idx] / ebitda[idx]) if ebitda[idx] else 0.0
-            for idx in range(len(net_debt))
-        ]
-        cash_headroom = [row["cash_balance"] for row in updated_result.cashflow]
-
-        kpi_rows = [
-            {
-                "KPI": "Net Debt",
-                **{YEAR_LABELS[i]: outputs._format_money(net_debt[i]) for i in range(5)},
-            },
-            {
-                "KPI": "Equity Ratio",
-                **{YEAR_LABELS[i]: f"{equity_ratio[i] * 100:.1f}%" for i in range(5)},
-            },
-            {
-                "KPI": "Net Debt / Operating Profit",
-                **{YEAR_LABELS[i]: f"{net_debt_ebitda[i]:.2f}x" for i in range(5)},
-            },
-            {
-                "KPI": "Minimum Cash Headroom",
-                **{YEAR_LABELS[i]: outputs._format_money(cash_headroom[i]) for i in range(5)},
-            },
-        ]
-        outputs._render_kpi_table_html(kpi_rows, ["KPI"] + YEAR_LABELS)

@@ -152,3 +152,17 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Restructured the balance sheet into asset structure, debt structure, equity evolution, and consistency check blocks.
+- Reduced KPI summary to Net Debt, Equity Ratio, and Net Debt / EBITDA only.
+- Simplified balance sheet assumptions label and removed explanatory text from the default view.
+- Emphasized Cash as the dominant asset line and kept equity evolution as a clear bridge.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

@@ -399,16 +399,16 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
 
 def render_balance_sheet(result: ModelResult) -> None:
     rows = [
-        ("ASSETS", None),
+        ("ASSET STRUCTURE", None),
         ("Cash", [row["cash"] for row in result.balance_sheet]),
         ("Fixed Assets (Net)", [row["fixed_assets"] for row in result.balance_sheet]),
         ("Total Assets", [row["total_assets"] for row in result.balance_sheet]),
         ("", None),
-        ("LIABILITIES", None),
+        ("DEBT & FINANCING STRUCTURE", None),
         ("Financial Debt", [row["financial_debt"] for row in result.balance_sheet]),
         ("Total Liabilities", [row["total_liabilities"] for row in result.balance_sheet]),
         ("", None),
-        ("EQUITY", None),
+        ("EQUITY EVOLUTION", None),
         ("Equity at Start of Year", [row["equity_start"] for row in result.balance_sheet]),
         ("Net Income", [row["net_income"] for row in result.balance_sheet]),
         ("Dividends", [row["dividends"] for row in result.balance_sheet]),
@@ -416,7 +416,7 @@ def render_balance_sheet(result: ModelResult) -> None:
         ("Equity Buybacks / Exit Payouts", [row["equity_buyback"] for row in result.balance_sheet]),
         ("Equity at End of Year", [row["equity_end"] for row in result.balance_sheet]),
         ("", None),
-        ("CHECK", None),
+        ("CONSISTENCY CHECK", None),
         ("Total Assets", [row["total_assets"] for row in result.balance_sheet]),
         ("Total Liabilities + Equity", [row["total_liabilities_equity"] for row in result.balance_sheet]),
     ]
@@ -428,6 +428,7 @@ def render_balance_sheet(result: ModelResult) -> None:
             "Equity at End of Year",
             "Total Liabilities + Equity",
         },
+        row_classes={"Cash": "key-metric"},
     )
 
 
