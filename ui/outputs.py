@@ -436,22 +436,77 @@ def render_financing_debt(result: ModelResult, assumptions: Assumptions) -> None
     coverage = [row.get("dscr") for row in result.debt]
     debt_service = [row.get("debt_service", 0.0) for row in result.debt]
     cfads = [row.get("cfads", 0.0) or 0.0 for row in result.debt]
-    rows = [
-        ("Operating Profit (EBITDA)", [row["ebitda"] for row in result.cashflow]),
+    min_required = assumptions.financing.minimum_dscr
+    dscr_headroom = [
+        (value - min_required) if value is not None else None for value in coverage
+    ]
+
+    st.markdown("### Cash Available for Debt Service")
+    cfads_rows = [
+        ("EBITDA", [row["ebitda"] for row in result.cashflow]),
         ("Cash Taxes", [row["taxes_paid"] for row in result.cashflow]),
-        ("Capex (Maintenance)", [row["capex"] for row in result.cashflow]),
+        ("Maintenance Capex", [row["capex"] for row in result.cashflow]),
         ("Working Capital Change", [row["working_capital_change"] for row in result.cashflow]),
-        ("Cash Available for Debt Service", cfads),
+        ("CFADS", cfads),
+    ]
+    _render_statement_table_html(
+        cfads_rows,
+        bold_labels={"CFADS"},
+    )
+
+    st.markdown("### Debt Service Obligation")
+    service_rows = [
         ("Interest Expense", [row["interest_expense"] for row in result.debt]),
         ("Scheduled Repayment", [row["total_repayment"] for row in result.debt]),
-        ("Debt Service", debt_service),
-        ("Debt Service Coverage", [f"{value:.2f}" if value is not None else "n/a" for value in coverage]),
-        ("Minimum Required Coverage", [f"{assumptions.financing.minimum_dscr:.2f}" for _ in result.debt]),
+        ("Total Debt Service", debt_service),
+    ]
+    _render_statement_table_html(
+        service_rows,
+        bold_labels={"Total Debt Service"},
+    )
+
+    st.markdown("### Coverage & Covenant Test")
+    coverage_rows = [
+        (
+            "DSCR",
+            [f"{value:.2f}" if value is not None else "n/a" for value in coverage],
+        ),
+        (
+            "Minimum Required DSCR",
+            [f"{min_required:.2f}" for _ in result.debt],
+        ),
+        ("DSCR Headroom", dscr_headroom),
         ("Covenant Breach", ["YES" if row.get("covenant_breach") else "NO" for row in result.debt]),
     ]
     _render_statement_table_html(
-        rows,
-        bold_labels={"Cash Available for Debt Service", "Debt Service"},
+        coverage_rows,
+        bold_labels={"DSCR Headroom"},
+    )
+
+    st.markdown("### Debt Risk Summary")
+    dscr_values = [value for value in coverage if value is not None]
+    min_dscr = min(dscr_values) if dscr_values else 0.0
+    years_below = len(
+        [value for value in dscr_values if value < min_required]
+    )
+    peak_debt = max(
+        row.get("opening_debt", row.get("closing_debt", 0.0)) for row in result.debt
+    )
+    debt_at_close = result.debt[0].get(
+        "opening_debt", assumptions.financing.senior_debt_amount_eur
+    )
+    cfads_at_close = cfads[0] if cfads else 0.0
+    debt_cfads = debt_at_close / cfads_at_close if cfads_at_close else 0.0
+    summary_rows = [
+        ("Minimum DSCR", [f"{min_dscr:.2f}x"]),
+        ("Years below covenant", [str(years_below)]),
+        ("Peak Debt Outstanding", [_format_money(peak_debt)]),
+        ("Debt / CFADS at Close", [f"{debt_cfads:.2f}x" if debt_cfads else "n/a"]),
+    ]
+    _render_statement_table_html(
+        summary_rows,
+        years=1,
+        year_labels=["Value"],
     )
 
 

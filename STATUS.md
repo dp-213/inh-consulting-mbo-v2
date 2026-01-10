@@ -192,3 +192,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Rebuilt Financing & Debt into four bank-style blocks focused on CFADS, debt service, covenant coverage, and risk summary.
+- Removed KPI clutter and explanatory text from the main view to keep the bank view mechanical and traceable.
+- Added explicit DSCR headroom and a debt risk summary with required bank metrics only.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
