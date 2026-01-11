@@ -179,34 +179,54 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         intrinsic_value = sum(
             value for idx, value in enumerate(free_cf) if idx >= start_year
         )
-        multiple_equity = enterprise_value - net_debt_close - pension_obligation
+        reference_year = assumptions.valuation.reference_year
+        reference_ebit = (
+            result.pnl[reference_year]["ebit"]
+            if 0 <= reference_year < len(result.pnl)
+            else 0.0
+        )
+        enterprise_value_multiple = reference_ebit * assumptions.valuation.seller_multiple
+        multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
         dcf_equity = dcf_value - net_debt_close - pension_obligation
         intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
-        valuation_min = min(multiple_equity, dcf_equity, intrinsic_equity)
-        valuation_max = max(multiple_equity, dcf_equity, intrinsic_equity)
-        midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
         affordability = result.equity.get("exit_value", 0.0) - pension_obligation
-        negotiation_gap = equity_price - midpoint
+        negotiation_gap = equity_price - multiple_equity
 
+        st.markdown("#### Value Perspectives (Today)")
         value_rows = [
-            ("Valuation Min (Today)", [valuation_min]),
-            ("Valuation Midpoint (Today)", [midpoint]),
-            ("Valuation Max (Today)", [valuation_max]),
+            ("Intrinsic Cash Value (DCF, no terminal)", [dcf_equity]),
+            ("Market Reference Value (EBIT × Multiple)", [multiple_equity]),
             ("Buyer Affordability (Ceiling)", [affordability]),
+        ]
+        outputs._render_statement_table_html(
+            value_rows,
+            years=1,
+            year_labels=["Equity Value"],
+        )
+        st.markdown(
+            '<div class="subtle">These are distinct perspectives, not a valuation range. '
+            'Buyer affordability is a financing/liquidity ceiling, not a valuation.</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Purchase Price Positioning")
+        value_rows = [
+            ("Purchase Price (Equity)", [equity_price]),
+            ("Gap vs. Market Reference", [negotiation_gap]),
+            ("Gap vs. Buyer Affordability", [equity_price - affordability]),
             ("Purchase Price (Enterprise)", [purchase_price]),
-            ("Negotiation Gap (EUR)", [negotiation_gap]),
         ]
         outputs._render_statement_table_html(
             value_rows,
             years=1,
             year_labels=["Value"],
         )
-        if purchase_price > affordability and purchase_price > valuation_max:
-            interpretation = "Purchase price exceeds conservative valuation and affordability."
-        elif purchase_price > affordability:
-            interpretation = "Purchase price is below intrinsic value but above financing-based affordability."
+        if equity_price > affordability and equity_price > multiple_equity:
+            interpretation = "Purchase price exceeds market reference and financing-based affordability."
+        elif equity_price > affordability:
+            interpretation = "Purchase price is below market reference but above financing-based affordability."
         else:
-            interpretation = "Purchase price is below affordability and within the valuation range."
+            interpretation = "Purchase price is below affordability and market reference."
         st.markdown(f'<div class="subtle">{interpretation}</div>', unsafe_allow_html=True)
 
     with st.expander("Key Assumptions (View Only)", expanded=False):

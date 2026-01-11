@@ -612,3 +612,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Overview decision block now separates value perspectives (DCF intrinsic, market reference, affordability ceiling) from purchase price positioning.
+- Negotiation gap is explicitly defined vs. market reference, with purchase price positioned against affordability and market reference.
+- Added helper text clarifying these are perspectives, not a valuation range, and that affordability is a financing/liquidity ceiling.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
