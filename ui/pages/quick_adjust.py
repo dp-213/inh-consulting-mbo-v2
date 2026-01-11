@@ -37,7 +37,7 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
         utilization_delta_pp = st.slider(
             "Utilization stress (delta vs. plan, percentage points)",
             min_value=-30,
-            max_value=10,
+            max_value=30,
             value=int(scenario_state.get("utilization_delta_pp", 0)),
             step=1,
             key=utilization_key,
@@ -73,7 +73,7 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
         cost_inflation_pct = st.slider(
             "Cost inflation stress (people + opex, %)",
             min_value=0,
-            max_value=20,
+            max_value=150,
             value=int(scenario_state.get("cost_inflation_pct", 0)),
             step=1,
             key=cost_key,

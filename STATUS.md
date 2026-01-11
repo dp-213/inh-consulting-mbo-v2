@@ -909,3 +909,15 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and overlay reset returns to planning values.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Expanded utilization stress range to allow effective utilization up to 100%.
+- Increased cost inflation stress range to allow up to 2.5x costs.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and overlay reset returns to planning values.
