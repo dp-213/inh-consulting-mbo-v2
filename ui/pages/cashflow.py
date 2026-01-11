@@ -67,7 +67,11 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         year_labels[0] = (
             "Transition Year (As-Is / Closing) – Includes one-off transaction and financing effects"
         )
-        outputs.render_cashflow_liquidity(updated_result, year_labels=year_labels)
+        outputs.render_cashflow_liquidity(
+            updated_result,
+            updated_assumptions,
+            year_labels=year_labels,
+        )
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "**1) Business Question**\n"
@@ -77,8 +81,8 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             "- Does not show valuation or sources of additional funding beyond modeled debt.\n"
             "\n**3) Calculation Logic (Transparent, Step-by-Step)**\n"
             "- Operating Cashflow = EBITDA − Cash Taxes ± Working Capital Change.\n"
-            "- Free Cashflow = Operating Cashflow − Capex.\n"
-            "- Net Cashflow = Free Cashflow + Debt Drawdowns − Interest − Debt Repayment.\n"
+            "- Free Cashflow (pre-financing) = Operating Cashflow − Capex.\n"
+            "- Net Cashflow (after financing) = Free Cashflow + Equity Contribution + Debt Drawdowns − Interest − Debt Repayment − Purchase Price Paid − Transaction Costs.\n"
             "- Closing Cash = Opening Cash + Net Cashflow.\n"
             "\n**4) Interpretation for the Decision**\n"
             "- Negative closing cash requires new funding or structural changes.\n"

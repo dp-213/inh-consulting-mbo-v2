@@ -132,6 +132,19 @@ Manual verification:
 Re-read ACCEPTANCE.md.
 
 Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Added explicit Transaction Outflows (Closing) lines for purchase price and transaction costs in the Cashflow & Liquidity table, keeping sign conventions consistent.
+- Reconciled net cashflow display to the full financing + transaction bridge and wired equity contribution from the case assumptions.
+- Updated cashflow calculation logic copy to include equity contribution and transaction outflows.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and cashflow table reconciliation uses the new lines without breaking navigation or layout.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
 - None observed.
 
 Changes:

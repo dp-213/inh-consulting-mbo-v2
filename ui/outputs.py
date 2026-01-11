@@ -372,11 +372,48 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
 
 
 def render_cashflow_liquidity(
-    result: ModelResult, year_labels: List[str] | None = None
+    result: ModelResult,
+    assumptions: Assumptions,
+    year_labels: List[str] | None = None,
 ) -> None:
+    years = len(result.cashflow)
     free_cashflow_pre = [
         row["operating_cf"] - row["capex"] for row in result.cashflow
     ]
+    equity_contribution = assumptions.transaction_and_financing.equity_contribution_eur
+    equity_contribution_by_year = [
+        equity_contribution if idx == 0 else 0.0 for idx in range(years)
+    ]
+    purchase_price = assumptions.transaction_and_financing.purchase_price_eur
+    transaction_costs_pct = assumptions.valuation.transaction_costs_pct
+    transaction_costs_cash = purchase_price * transaction_costs_pct
+    purchase_price_paid_cash = purchase_price - transaction_costs_cash
+    purchase_price_by_year = [
+        -purchase_price_paid_cash if idx == 0 else 0.0 for idx in range(years)
+    ]
+    transaction_costs_by_year = [
+        -transaction_costs_cash if idx == 0 else 0.0 for idx in range(years)
+    ]
+    net_cashflow_reconciled = []
+    for idx, row in enumerate(result.cashflow):
+        if idx == 0:
+            net_cashflow_reconciled.append(
+                free_cashflow_pre[idx]
+                + equity_contribution_by_year[idx]
+                + row["debt_drawdown"]
+                - row["interest_paid"]
+                - row["debt_repayment"]
+                - purchase_price_paid_cash
+                - transaction_costs_cash
+            )
+        else:
+            net_cashflow_reconciled.append(
+                free_cashflow_pre[idx]
+                + equity_contribution_by_year[idx]
+                + row["debt_drawdown"]
+                - row["interest_paid"]
+                - row["debt_repayment"]
+            )
     rows = [
         ("Operating Cash Generation", None),
         ("EBITDA", [row["ebitda"] for row in result.cashflow]),
@@ -389,24 +426,27 @@ def render_cashflow_liquidity(
         ("Capex", [row["capex"] for row in result.cashflow]),
         (
             "Free Cashflow (pre-financing)",
-            [_format_money(value) for value in free_cashflow_pre],
+            free_cashflow_pre,
         ),
         ("", None),
         ("Transaction & Financing Cashflows", None),
-        ("Equity Contribution", [row["equity_injection"] for row in result.cashflow]),
+        ("Equity Contribution", equity_contribution_by_year),
         ("Debt Drawdowns", [row["debt_drawdown"] for row in result.cashflow]),
+        ("Transaction Outflows (Closing)", None),
+        ("Purchase Price Paid (Cash)", purchase_price_by_year),
+        ("Transaction Costs (Cash)", transaction_costs_by_year),
         ("Interest Paid", [row["interest_paid"] for row in result.cashflow]),
         ("Debt Repayment", [row["debt_repayment"] for row in result.cashflow]),
         (
             "Net Cashflow (after financing)",
-            [row["net_cashflow"] for row in result.cashflow],
+            net_cashflow_reconciled,
         ),
         ("", None),
         ("Liquidity Position", None),
         ("Opening Cash", [row["opening_cash"] for row in result.cashflow]),
         (
             "Net Cashflow (after financing)",
-            [row["net_cashflow"] for row in result.cashflow],
+            net_cashflow_reconciled,
         ),
         ("Closing Cash", [row["cash_balance"] for row in result.cashflow]),
     ]
