@@ -2,14 +2,37 @@ from __future__ import annotations
 
 import streamlit as st
 
+from dataclasses import replace
+
 from model.run_model import run_model
 from state.assumptions import Assumptions
 from ui import inputs
 from ui import outputs
 
 
+def _render_scenario_selector(current: str) -> str:
+    options = ["Worst", "Base", "Best"]
+    if "view_scenario" not in st.session_state:
+        st.session_state["view_scenario"] = current
+    current_value = st.session_state["view_scenario"]
+    if current_value not in options:
+        current_value = current
+    selection = st.radio(
+        "Scenario",
+        options,
+        index=options.index(current_value),
+        horizontal=True,
+        key="view_scenario",
+        label_visibility="collapsed",
+    )
+    return selection
+
+
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("# Revenue Model")
+    selected_scenario = _render_scenario_selector(assumptions.scenario)
+    if selected_scenario != assumptions.scenario:
+        assumptions = replace(assumptions, scenario=selected_scenario)
     st.markdown("### Consultant Capacity (Derived)")
     year_columns = inputs.YEARS
     rows = [
