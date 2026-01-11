@@ -17,7 +17,13 @@ else:
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
 
-YEAR_LABELS = [f"Year {i}" for i in range(5)]
+YEAR_LABELS = [
+    "Transition Year (As-Is / Closing)",
+    "Business Plan Year 1",
+    "Business Plan Year 2",
+    "Business Plan Year 3",
+    "Business Plan Year 4",
+]
 
 
 class ExcelExportError(RuntimeError):
@@ -284,6 +290,7 @@ def _build_assumptions_sheet(
             ("Opening Equity", "EUR", assumptions.balance_sheet.opening_equity_eur, "balance.opening_equity"),
             ("Depreciation Rate", "%", assumptions.balance_sheet.depreciation_rate_pct, "balance.depr_rate"),
             ("Minimum Cash Balance", "EUR", assumptions.balance_sheet.minimum_cash_balance_eur, "balance.min_cash"),
+            ("Pension Obligations at Close", "EUR", assumptions.balance_sheet.pension_obligations_eur, "balance.pension_obligations"),
         ],
         styles,
         assumption_cells,
@@ -1464,6 +1471,16 @@ def _build_balance_sheet(
     row = _write_formula_row(
         ws,
         row,
+        "Pension Liabilities",
+        "EUR",
+        row_map,
+        "pension_liabilities",
+        styles,
+        lambda c: f"={assumptions_map['balance.pension_obligations']}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
         "Tax Payable",
         "EUR",
         row_map,
@@ -1482,7 +1499,7 @@ def _build_balance_sheet(
         row_map,
         "total_liabilities",
         styles,
-        lambda c: f"=C{row_map['financial_debt']}+C{row_map['tax_payable']}",
+        lambda c: f"=C{row_map['financial_debt']}+C{row_map['tax_payable']}+C{row_map['pension_liabilities']}",
     )
 
     row = _write_section_label(ws, row + 1, "Equity", styles)
@@ -1496,7 +1513,11 @@ def _build_balance_sheet(
         row_map,
         "equity_start",
         styles,
-        lambda c, idx=None: f"=IF({idx}=0,{assumptions_map['balance.opening_equity']},OFFSET($C${equity_end_row},0,COLUMN()-4))",
+        lambda c, idx=None: (
+            f"=IF({idx}=0,"
+            f"{assumptions_map['balance.opening_equity']}-{assumptions_map['balance.pension_obligations']},"
+            f"OFFSET($C${equity_end_row},0,COLUMN()-4))"
+        ),
     )
     row = _write_formula_row(
         ws,
@@ -1812,7 +1833,11 @@ def _build_valuation_sheet(
         row_map,
         "seller_value",
         styles,
-        lambda c, idx=None: f"={equity_map['enterprise_value'][idx]}",
+        lambda c, idx=None: (
+            f"={equity_map['enterprise_value'][idx]}"
+            f"-({balance_map['financial_debt'][0]}-{balance_map['cash'][0]})"
+            f"-{assumptions_map['balance.pension_obligations']}"
+        ),
     )
     row = _write_formula_row(
         ws,
@@ -1822,7 +1847,7 @@ def _build_valuation_sheet(
         row_map,
         "buyer_value",
         styles,
-        lambda c, idx=None: f"={equity_map['exit_value'][idx]}",
+        lambda c, idx=None: f"={equity_map['exit_value'][idx]}-{assumptions_map['balance.pension_obligations']}",
     )
     row = _write_formula_row(
         ws,
@@ -1833,6 +1858,80 @@ def _build_valuation_sheet(
         "valuation_gap",
         styles,
         lambda c: f"=C{row_map['buyer_value']}-C{row_map['seller_value']}",
+    )
+
+    row = _write_section_label(ws, row + 1, "Seller Valuation Logic (Reference)", styles)
+    row = _write_formula_row(
+        ws,
+        row,
+        "EBIT",
+        "EUR",
+        row_map,
+        "seller_ebit",
+        styles,
+        lambda c, idx=None: f"={pnl_map['ebit'][idx]}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Discount Factor to Today",
+        "",
+        row_map,
+        "seller_discount",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}<=2,1/(1+({assumptions_map['valuation.discount_rate']}/100))^{idx},\"\")"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Present Value of EBIT",
+        "EUR",
+        row_map,
+        "seller_pv",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}<=2,"
+            f"OFFSET($C${row_map['seller_ebit']},0,COLUMN()-3)"
+            f"*OFFSET($C${row_map['seller_discount']},0,COLUMN()-3),\"\")"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "PV of 3-year EBIT",
+        "EUR",
+        row_map,
+        "seller_pv_sum",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=2,SUM(C{row_map['seller_pv']}:E{row_map['seller_pv']}),\"\")"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Pension Obligations Assumed",
+        "EUR",
+        row_map,
+        "seller_pension",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=2,{assumptions_map['balance.pension_obligations']},\"\")"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Seller Price Expectation",
+        "EUR",
+        row_map,
+        "seller_price_expectation",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=2,C{row_map['seller_pv_sum']}+C{row_map['seller_pension']},\"\")"
+        ),
     )
 
     row = _write_section_label(ws, row + 1, "Buyer View (Cash-Based)", styles)
@@ -1893,6 +1992,16 @@ def _build_valuation_sheet(
     row = _write_formula_row(
         ws,
         row,
+        "Pension Obligations Assumed",
+        "EUR",
+        row_map,
+        "pension_obligations",
+        styles,
+        lambda c: f"={assumptions_map['balance.pension_obligations']}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
         "Transaction Costs",
         "EUR",
         row_map,
@@ -1934,6 +2043,12 @@ def _build_overview_sheet(
     row += 1
     ws.cell(row=row, column=1, value="Debt at Close").font = styles["label"]
     ws.cell(row=row, column=2, value=f"={assumptions_map['financing.senior_debt']}").number_format = _currency_format()
+    row += 1
+    ws.cell(row=row, column=1, value="Pension Obligations").font = styles["label"]
+    ws.cell(row=row, column=2, value=f"={assumptions_map['balance.pension_obligations']}").number_format = _currency_format()
+    row += 1
+    ws.cell(row=row, column=1, value="Equity Price").font = styles["label"]
+    ws.cell(row=row, column=2, value=f"={assumptions_map['financing.purchase_price']}-{assumptions_map['financing.senior_debt']}-{assumptions_map['balance.pension_obligations']}").number_format = _currency_format()
     row += 1
     ws.cell(row=row, column=1, value="Equity at Close").font = styles["label"]
     ws.cell(row=row, column=2, value=f"={assumptions_map['financing.equity_contribution']}").number_format = _currency_format()

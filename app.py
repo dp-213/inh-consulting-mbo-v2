@@ -14,7 +14,6 @@ from ui.pages import (
     case_management,
     equity_case,
     financing_debt,
-    model_settings,
     model_export,
     overview,
     pnl,
@@ -32,7 +31,7 @@ SECTIONS = {
     ],
     "PLANNING": ["Revenue Model", "Cost Model"],
     "FINANCING": ["Financing & Debt", "Equity Case"],
-    "SETTINGS": ["Case Management", "Model Settings", "Model Export"],
+    "SETTINGS": ["Case Management", "Model Export"],
 }
 
 DEFAULT_PAGE = "Overview"
@@ -142,10 +141,6 @@ def _inject_base_styles() -> None:
           }
           [data-testid="stSidebar"] .stButton > button[aria-label="Case Management"]::before {
             content: "🗂️";
-            font-size: 0.9rem;
-          }
-          [data-testid="stSidebar"] .stButton > button[aria-label="Model Settings"]::before {
-            content: "⚙️";
             font-size: 0.9rem;
           }
           [data-testid="stSidebar"] .stButton > button[aria-label="Model Export"]::before {
@@ -507,8 +502,6 @@ def main() -> None:
         page_updated_assumptions = equity_case.render(result, view_assumptions)
     elif page == "Valuation & Purchase Price":
         page_updated_assumptions = valuation.render(result, view_assumptions)
-    elif page == "Model Settings":
-        model_settings.render(data_path)
     elif page == "Case Management":
         case_actions = case_management.render(updated_assumptions, data_path, case_options)
         scenario = case_actions["scenario"]

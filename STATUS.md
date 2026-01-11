@@ -442,3 +442,18 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Removed Model Settings from navigation and routing.
+- Aligned Excel export year labels and added pension obligations across assumptions, balance sheet, valuation, and overview sheets.
+- Added seller valuation logic block and pension-aware equity value formulas in Excel valuation export.
+- Expanded JSON export to include a full model_result snapshot for reloadability.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

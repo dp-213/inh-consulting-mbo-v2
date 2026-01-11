@@ -80,6 +80,7 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
                 export_bytes = export_case_snapshot_json(
                     assumptions,
                     case_name=case_name,
+                    result=result,
                 )
             except Exception as exc:  # pragma: no cover - streamlit presentation
                 st.error(f"JSON export failed: {exc}")
