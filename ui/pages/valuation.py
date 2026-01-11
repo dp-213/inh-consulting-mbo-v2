@@ -60,21 +60,24 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     net_debt_close = closing_debt - cash_at_close
     enterprise_value = updated_result.equity.get("enterprise_value", 0.0)
 
-    free_cf = [row["free_cashflow"] for row in updated_result.cashflow]
+    business_free_cf = [
+        row["free_cashflow"] - row.get("acquisition_outflow", 0.0)
+        for row in updated_result.cashflow
+    ]
     discount_rate = updated_assumptions.valuation.discount_rate_pct
     start_year = updated_assumptions.valuation.valuation_start_year
-    if start_year < 0 or start_year >= len(free_cf):
+    if start_year < 0 or start_year >= len(business_free_cf):
         st.error("Valuation Start Year is out of range for the current plan horizon.")
         st.stop()
     running = 0.0
-    for idx, value in enumerate(free_cf):
+    for idx, value in enumerate(business_free_cf):
         if idx < start_year:
             continue
         factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
         running += value * factor
     dcf_value = running
     intrinsic_value = sum(
-        value for idx, value in enumerate(free_cf) if idx >= start_year
+        value for idx, value in enumerate(business_free_cf) if idx >= start_year
     )
 
     multiple_equity = enterprise_value - net_debt_close - pension_obligation
@@ -94,6 +97,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             overview_rows,
             years=1,
             year_labels=["Equity Value"],
+        )
+        st.markdown(
+            '<div class="subtle">DCF and intrinsic values exclude acquisition outflows and reflect operating free cashflow only.</div>',
+            unsafe_allow_html=True,
         )
 
         st.markdown("### Seller Valuation Logic (Reference)")
@@ -151,20 +158,20 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         pv_fcf = []
         cumulative_pv = []
         running = 0.0
-        for idx in range(len(free_cf)):
+        for idx in range(len(business_free_cf)):
             if idx < start_year:
                 discount_factors.append("")
                 pv_fcf.append("")
                 cumulative_pv.append("")
                 continue
             factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
-            value = free_cf[idx] * factor
+            value = business_free_cf[idx] * factor
             running += value
             discount_factors.append(f"{factor:.2f}")
             pv_fcf.append(value)
             cumulative_pv.append(running)
         dcf_rows = [
-            ("Free Cashflow", free_cf),
+            ("Free Cashflow (Business)", business_free_cf),
             ("Discount Factor", discount_factors),
             ("Present Value of FCF", pv_fcf),
             ("PV Sum (no terminal)", cumulative_pv),
@@ -179,7 +186,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
 
         st.markdown("#### Intrinsic / Cash-Based Value (Undiscounted)")
         intrinsic_rows = [
-            ("Free Cashflow", free_cf),
+            ("Free Cashflow (Business)", business_free_cf),
             ("Sum of Plan Cashflows", ["", "", "", "", intrinsic_value]),
             ("Net Debt at Close (Reference)", [net_debt_close] + [""] * 4),
             ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
@@ -217,8 +224,8 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             "This page determines today’s equity value and compares it with the buyer’s affordability ceiling, providing the core price‑versus‑value decision frame for an IC.\n\n"
             "**B. Financial Mechanics (Step-by-Step)**\n"
             "Multiple-based Equity Value = Enterprise Value – Net Debt at Close – Pension Obligations Assumed.\n"
-            "DCF-based Equity Value = Present Value of Plan Free Cashflows – Net Debt at Close – Pension Obligations Assumed.\n"
-            "Intrinsic / Cash-Based Equity Value = Sum of Plan Free Cashflows – Net Debt at Close – Pension Obligations Assumed.\n"
+            "DCF-based Equity Value = Present Value of Plan Free Cashflows (operating only, excluding acquisition outflows) – Net Debt at Close – Pension Obligations Assumed.\n"
+            "Intrinsic / Cash-Based Equity Value = Sum of Plan Free Cashflows (operating only) – Net Debt at Close – Pension Obligations Assumed.\n"
             "Buyer Affordability is a financing- and liquidity‑constrained ceiling and is reduced by pension obligations.\n"
             "Seller Valuation Logic shows the seller’s internal pricing anchor based on discounted EBIT over the first three years plus assumed pensions.\n\n"
             "**C. Interpretation & Red Flags**\n"
