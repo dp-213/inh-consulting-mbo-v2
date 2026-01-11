@@ -18,63 +18,81 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
     scenario_state = steering_state.setdefault(scenario, {})
 
     with st.expander(
-        "Operational Stress Overlay (What-if · temporary)", expanded=False
+        "Operational Stress Overlay (What-if, non-persistent)", expanded=False
     ):
         top_cols = st.columns([0.8, 0.2])
         reset_key = f"{key_prefix}.reset.{scenario}"
         if top_cols[1].button("Reset to planning values", key=reset_key):
             scenario_state.update(
                 {
-                    "utilization_factor": 1.0,
-                    "pricing_factor": 1.0,
-                    "cost_inflation_factor": 1.0,
+                    "utilization_delta_pp": 0,
+                    "pricing_stress_pct": 0,
+                    "cost_inflation_pct": 0,
                 }
             )
             st.rerun()
 
-        st.markdown("**Utilization factor**")
-        utilization_key = f"{key_prefix}.utilization_factor.{scenario}"
-        utilization_factor = st.slider(
-            "Utilization factor",
-            min_value=0.85,
-            max_value=1.10,
-            value=float(scenario_state.get("utilization_factor", 1.0)),
-            step=0.01,
+        st.markdown("**Utilization stress (delta vs. plan, percentage points)**")
+        utilization_key = f"{key_prefix}.utilization_delta_pp.{scenario}"
+        utilization_delta_pp = st.slider(
+            "Utilization stress (delta vs. plan, percentage points)",
+            min_value=-30,
+            max_value=10,
+            value=int(scenario_state.get("utilization_delta_pp", 0)),
+            step=1,
             key=utilization_key,
             label_visibility="collapsed",
         )
-        st.markdown("**Pricing factor**")
-        pricing_key = f"{key_prefix}.pricing_factor.{scenario}"
-        pricing_factor = st.slider(
-            "Pricing factor",
-            min_value=0.90,
-            max_value=1.05,
-            value=float(scenario_state.get("pricing_factor", 1.0)),
-            step=0.01,
+        planned_utilization = scenario_assumptions.utilization_rate_pct[year_index]
+        effective_utilization = max(
+            0.0, min(1.0, planned_utilization + (utilization_delta_pp / 100))
+        )
+        st.markdown(
+            f'<div class="subtle">Effective utilization: {effective_utilization * 100:.0f}%</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("**Pricing stress (day-rate change vs. plan, %)**")
+        pricing_key = f"{key_prefix}.pricing_stress_pct.{scenario}"
+        pricing_stress_pct = st.slider(
+            "Pricing stress (day-rate change vs. plan, %)",
+            min_value=-20,
+            max_value=5,
+            value=int(scenario_state.get("pricing_stress_pct", 0)),
+            step=1,
             key=pricing_key,
             label_visibility="collapsed",
         )
-        st.markdown("**Cost inflation factor**")
-        cost_key = f"{key_prefix}.cost_inflation_factor.{scenario}"
-        cost_inflation_factor = st.slider(
-            "Cost inflation factor",
-            min_value=1.00,
-            max_value=1.20,
-            value=float(scenario_state.get("cost_inflation_factor", 1.0)),
-            step=0.01,
+        st.markdown(
+            '<div class="subtle">Represents blended day-rate pressure (discounting / repricing).</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("**Cost inflation stress (people + opex, %)**")
+        cost_key = f"{key_prefix}.cost_inflation_pct.{scenario}"
+        cost_inflation_pct = st.slider(
+            "Cost inflation stress (people + opex, %)",
+            min_value=0,
+            max_value=20,
+            value=int(scenario_state.get("cost_inflation_pct", 0)),
+            step=1,
             key=cost_key,
             label_visibility="collapsed",
         )
         st.markdown(
-            '<div class="hint-text">Temporary overlay for this page only. No planning inputs are changed.</div>',
+            '<div class="subtle">Represents wage inflation, overhead creep, and cost rigidity under stress.</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="hint-text">This overlay applies temporary stress deltas only. Planning assumptions remain unchanged.</div>',
             unsafe_allow_html=True,
         )
 
     scenario_state.update(
         {
-            "utilization_factor": utilization_factor,
-            "pricing_factor": pricing_factor,
-            "cost_inflation_factor": cost_inflation_factor,
+            "utilization_delta_pp": utilization_delta_pp,
+            "pricing_stress_pct": pricing_stress_pct,
+            "cost_inflation_pct": cost_inflation_pct,
         }
     )
     for key in (utilization_key, pricing_key, cost_key):
@@ -83,25 +101,29 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
 
     return _apply_quick_inputs(
         assumptions=assumptions,
-        utilization_factor=utilization_factor,
-        pricing_factor=pricing_factor,
-        cost_inflation_factor=cost_inflation_factor,
+        utilization_delta_pp=utilization_delta_pp,
+        pricing_stress_pct=pricing_stress_pct,
+        cost_inflation_pct=cost_inflation_pct,
     )
 
 
 def _apply_quick_inputs(
     assumptions: Assumptions,
-    utilization_factor: float,
-    pricing_factor: float,
-    cost_inflation_factor: float,
+    utilization_delta_pp: int,
+    pricing_stress_pct: int,
+    cost_inflation_pct: int,
 ) -> Assumptions:
     scenario = assumptions.scenario
     scenarios = dict(assumptions.revenue.scenarios)
     current = scenarios[scenario]
+    utilization_delta = utilization_delta_pp / 100
+    pricing_factor = 1 + (pricing_stress_pct / 100)
+    cost_inflation_factor = 1 + (cost_inflation_pct / 100)
     updated_revenue = replace(
         current,
         utilization_rate_pct=[
-            value * utilization_factor for value in current.utilization_rate_pct
+            max(0.0, min(1.0, value + utilization_delta))
+            for value in current.utilization_rate_pct
         ],
         group_day_rate_eur=[
             value * pricing_factor for value in current.group_day_rate_eur

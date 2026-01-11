@@ -897,3 +897,15 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and loading older cases should no longer crash due to missing fields.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Refactored the Operational Stress Overlay to use utilization delta (pp), pricing stress (%), and cost inflation stress (%) with explicit effective utilization and new helper text.
+- Updated overlay application logic to apply additive utilization deltas and multiplicative pricing/cost stress without persisting changes.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and overlay reset returns to planning values.
