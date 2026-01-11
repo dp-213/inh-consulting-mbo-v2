@@ -885,3 +885,15 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and case load/save/reset should update session state and downstream pages immediately.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Hardened case loading to merge legacy JSON with current defaults, preventing missing-key crashes and aligning list lengths.
+- Added scenario fallback validation to ensure an active scenario always exists.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and loading older cases should no longer crash due to missing fields.
