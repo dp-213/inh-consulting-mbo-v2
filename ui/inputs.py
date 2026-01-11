@@ -253,15 +253,6 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
     financing = assumptions.financing
 
     st.markdown("### Quick Inputs")
-    repayment_options = _options_with_current(["Linear", "Bullet"], financing.amortization_type)
-    repayment_type = st.selectbox(
-        "Repayment Type",
-        repayment_options,
-        index=repayment_options.index(financing.amortization_type)
-        if financing.amortization_type in repayment_options
-        else 0,
-        key="financing.quick.repayment_type",
-    )
     quick_table = _value_table(
         [
             ("Purchase Price", "m€", _to_meur(transaction.purchase_price_eur), "Transaction entry price."),
@@ -315,7 +306,7 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
         if "financing_table" in locals()
         else financing.initial_debt_eur,
         interest_rate_pct=_to_float(_row_value(quick_table, "Interest Rate")),
-        amortization_type=repayment_type,
+        amortization_type="Linear",
         amortization_period_years=int(
             _to_float(_row_value(quick_table, "Repayment Period (Years)") or 0)
         ),
@@ -471,15 +462,6 @@ def render_cost_quick_inputs(assumptions: Assumptions) -> Assumptions:
 
 def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
     finance = assumptions.financing
-    repayment_options = _options_with_current(["Linear", "Bullet"], finance.amortization_type)
-    repayment_type = st.selectbox(
-        "Repayment Type",
-        repayment_options,
-        index=repayment_options.index(finance.amortization_type)
-        if finance.amortization_type in repayment_options
-        else 0,
-        key="wizard.financing.repayment_type",
-    )
     table = _value_table(
         [
             ("Senior Loan Amount", "m€", _to_meur(finance.senior_debt_amount_eur), "Starting loan amount."),
@@ -496,7 +478,7 @@ def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
         senior_debt_amount_eur=_from_meur(_row_value(table, "Senior Loan Amount")),
         initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
         interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
-        amortization_type=repayment_type,
+        amortization_type="Linear",
         amortization_period_years=int(
             _to_float(_row_value(table, "Repayment Period (Years)") or 0)
         ),
@@ -624,15 +606,6 @@ def render_balance_sheet_key_assumptions(assumptions: Assumptions, key_prefix: s
 
 def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
     financing = assumptions.financing
-    amortization_options = _options_with_current(["Linear", "Bullet"], financing.amortization_type)
-    repayment_type = st.selectbox(
-        "Repayment Type",
-        amortization_options,
-        index=amortization_options.index(financing.amortization_type)
-        if financing.amortization_type in amortization_options
-        else 0,
-        key=f"{key_prefix}.repayment_type",
-    )
     year_options = ["None"] + YEARS
     special_year_value = (
         YEARS[financing.special_repayment_year]
@@ -669,7 +642,7 @@ def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) 
         senior_debt_amount_eur=_from_meur(_row_value(table, "Debt Amount")),
         initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
         interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
-        amortization_type=repayment_type,
+        amortization_type="Linear",
         amortization_period_years=int(_to_float(_row_value(table, "Repayment Period (Years)"))),
         grace_period_years=int(_to_float(_row_value(table, "Interest-Only Period (Years)"))),
         special_repayment_year=_parse_year_option(special_year),
