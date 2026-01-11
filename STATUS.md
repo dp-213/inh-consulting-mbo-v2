@@ -690,3 +690,17 @@ Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Programmatically generated Excel export via `export_ic_excel` for base case (bytes generated successfully).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Revenue Bridge now matches required structure and guarantee logic visibility (modeled group, floor, effective group, external, total).
+- Consultant FTE display is plain integer without currency formatting.
+- Guarantee note appears only when modeled group revenue falls below the guaranteed floor.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

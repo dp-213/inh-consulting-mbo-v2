@@ -40,10 +40,14 @@ def render(assumptions: Assumptions) -> Assumptions:
         assumptions = replace(assumptions, scenario=selected_scenario)
     st.markdown("### Consultant Capacity (Derived)")
     year_columns = inputs.YEARS
+    consultant_fte = [
+        int(round(assumptions.cost.personnel_by_year[idx].consultant_fte))
+        for idx in range(5)
+    ]
     rows = [
         (
             "Consultant FTE (Derived from Cost Model)",
-            [assumptions.cost.personnel_by_year[idx].consultant_fte for idx in range(5)],
+            [str(value) for value in consultant_fte],
         )
     ]
     outputs._render_statement_table_html(
@@ -57,24 +61,25 @@ def render(assumptions: Assumptions) -> Assumptions:
     if components:
         st.markdown("### Revenue Bridge")
         rows = [
-            ("Capacity-driven Revenue (Pre-Guarantee)", [row["modeled_total_revenue"] for row in components]),
-            ("Group Revenue (Calculated)", [row["modeled_group_revenue"] for row in components]),
-            ("External Revenue (Calculated)", [row["modeled_external_revenue"] for row in components]),
-            ("Guaranteed Group Revenue (Floor)", [row["guaranteed_group_revenue"] for row in components]),
-            (
-                "Guarantee Uplift (if any)",
-                [
-                    row["guaranteed_group_revenue"] - row["modeled_group_revenue"]
-                    for row in components
-                ],
-            ),
-            ("Total Revenue (Final)", [row["final_total"] for row in components]),
+            ("Modeled Group Revenue", [row["modeled_group_revenue"] for row in components]),
+            ("Guaranteed Floor (Reference × %)", [row["guaranteed_floor"] for row in components]),
+            ("Effective Group Revenue", [row["guaranteed_group_revenue"] for row in components]),
+            ("External Revenue", [row["modeled_external_revenue"] for row in components]),
+            ("Total Revenue", [row["final_total"] for row in components]),
         ]
         outputs._render_statement_table_html(
             rows,
-            bold_labels={"Total Revenue (Final)", "Guaranteed Group Revenue (Floor)"},
+            bold_labels={"Total Revenue", "Effective Group Revenue"},
             year_labels=outputs.YEAR_LABELS,
         )
+        if any(
+            row["modeled_group_revenue"] < row["guaranteed_floor"]
+            for row in components
+        ):
+            st.markdown(
+                '<div class="subtle">Group revenue below guaranteed floor – guarantee applied.</div>',
+                unsafe_allow_html=True,
+            )
     return updated_assumptions
 
 
