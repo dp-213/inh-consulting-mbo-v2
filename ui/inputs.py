@@ -307,6 +307,52 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
         )
         financing_table = _edit_table(financing_table, key="financing.terms")
 
+    updated_financing = FinancingAssumptions(
+        senior_debt_amount_eur=_from_meur(_row_value(quick_table, "Senior Loan Amount")),
+        initial_debt_eur=_from_meur(
+            _row_value(financing_table, "Opening Loan Balance")
+        )
+        if "financing_table" in locals()
+        else financing.initial_debt_eur,
+        interest_rate_pct=_to_float(_row_value(quick_table, "Interest Rate")),
+        amortization_type=repayment_type,
+        amortization_period_years=int(
+            _to_float(_row_value(quick_table, "Repayment Period (Years)") or 0)
+        ),
+        grace_period_years=int(
+            _to_float(_row_value(financing_table, "Interest-Only Period (Years)") or 0)
+        )
+        if "financing_table" in locals()
+        else financing.grace_period_years,
+        special_repayment_year=_parse_year_option(special_year)
+        if "financing_table" in locals()
+        else financing.special_repayment_year,
+        special_repayment_amount_eur=_from_meur(
+            _row_value(financing_table, "One-Time Repayment Amount")
+        )
+        if "financing_table" in locals()
+        else financing.special_repayment_amount_eur,
+        minimum_dscr=_to_float(_row_value(financing_table, "Minimum Loan Coverage"))
+        if "financing_table" in locals()
+        else financing.minimum_dscr,
+    )
+    if updated_financing.initial_debt_eur != updated_financing.senior_debt_amount_eur:
+        st.markdown(
+            '<div class="subtle">Opening Loan Balance aligned to Debt Amount for Year 0 drawdown consistency.</div>',
+            unsafe_allow_html=True,
+        )
+        updated_financing = FinancingAssumptions(
+            senior_debt_amount_eur=updated_financing.senior_debt_amount_eur,
+            initial_debt_eur=updated_financing.senior_debt_amount_eur,
+            interest_rate_pct=updated_financing.interest_rate_pct,
+            amortization_type=updated_financing.amortization_type,
+            amortization_period_years=updated_financing.amortization_period_years,
+            grace_period_years=updated_financing.grace_period_years,
+            special_repayment_year=updated_financing.special_repayment_year,
+            special_repayment_amount_eur=updated_financing.special_repayment_amount_eur,
+            minimum_dscr=updated_financing.minimum_dscr,
+        )
+
     return Assumptions(
         scenario=assumptions.scenario,
         revenue=assumptions.revenue,
@@ -322,35 +368,7 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
             if "transaction_table" in locals()
             else transaction.senior_term_loan_start_eur,
         ),
-        financing=FinancingAssumptions(
-            senior_debt_amount_eur=_from_meur(_row_value(quick_table, "Senior Loan Amount")),
-            initial_debt_eur=_from_meur(
-                _row_value(financing_table, "Opening Loan Balance")
-            )
-            if "financing_table" in locals()
-            else financing.initial_debt_eur,
-            interest_rate_pct=_to_float(_row_value(quick_table, "Interest Rate")),
-            amortization_type=repayment_type,
-            amortization_period_years=int(
-                _to_float(_row_value(quick_table, "Repayment Period (Years)") or 0)
-            ),
-            grace_period_years=int(
-                _to_float(_row_value(financing_table, "Interest-Only Period (Years)") or 0)
-            )
-            if "financing_table" in locals()
-            else financing.grace_period_years,
-            special_repayment_year=_parse_year_option(special_year)
-            if "financing_table" in locals()
-            else financing.special_repayment_year,
-            special_repayment_amount_eur=_from_meur(
-                _row_value(financing_table, "One-Time Repayment Amount")
-            )
-            if "financing_table" in locals()
-            else financing.special_repayment_amount_eur,
-            minimum_dscr=_to_float(_row_value(financing_table, "Minimum Loan Coverage"))
-            if "financing_table" in locals()
-            else financing.minimum_dscr,
-        ),
+        financing=updated_financing,
         cashflow=assumptions.cashflow,
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
@@ -474,26 +492,44 @@ def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
     )
     table = _edit_table(table, key="wizard.financing")
 
+    updated_financing = FinancingAssumptions(
+        senior_debt_amount_eur=_from_meur(_row_value(table, "Senior Loan Amount")),
+        initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
+        interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
+        amortization_type=repayment_type,
+        amortization_period_years=int(
+            _to_float(_row_value(table, "Repayment Period (Years)") or 0)
+        ),
+        grace_period_years=int(
+            _to_float(_row_value(table, "Interest-Only Period (Years)") or 0)
+        ),
+        special_repayment_year=finance.special_repayment_year,
+        special_repayment_amount_eur=finance.special_repayment_amount_eur,
+        minimum_dscr=_to_float(_row_value(table, "Minimum Loan Coverage")),
+    )
+    if updated_financing.initial_debt_eur != updated_financing.senior_debt_amount_eur:
+        st.markdown(
+            '<div class="subtle">Opening Loan Balance aligned to Debt Amount for Year 0 drawdown consistency.</div>',
+            unsafe_allow_html=True,
+        )
+        updated_financing = FinancingAssumptions(
+            senior_debt_amount_eur=updated_financing.senior_debt_amount_eur,
+            initial_debt_eur=updated_financing.senior_debt_amount_eur,
+            interest_rate_pct=updated_financing.interest_rate_pct,
+            amortization_type=updated_financing.amortization_type,
+            amortization_period_years=updated_financing.amortization_period_years,
+            grace_period_years=updated_financing.grace_period_years,
+            special_repayment_year=updated_financing.special_repayment_year,
+            special_repayment_amount_eur=updated_financing.special_repayment_amount_eur,
+            minimum_dscr=updated_financing.minimum_dscr,
+        )
+
     return Assumptions(
         scenario=assumptions.scenario,
         revenue=assumptions.revenue,
         cost=assumptions.cost,
         transaction_and_financing=assumptions.transaction_and_financing,
-        financing=FinancingAssumptions(
-            senior_debt_amount_eur=_from_meur(_row_value(table, "Senior Loan Amount")),
-            initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
-            interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
-            amortization_type=repayment_type,
-            amortization_period_years=int(
-                _to_float(_row_value(table, "Repayment Period (Years)") or 0)
-            ),
-            grace_period_years=int(
-                _to_float(_row_value(table, "Interest-Only Period (Years)") or 0)
-            ),
-            special_repayment_year=finance.special_repayment_year,
-            special_repayment_amount_eur=finance.special_repayment_amount_eur,
-            minimum_dscr=_to_float(_row_value(table, "Minimum Loan Coverage")),
-        ),
+        financing=updated_financing,
         cashflow=assumptions.cashflow,
         balance_sheet=assumptions.balance_sheet,
         tax_and_distributions=assumptions.tax_and_distributions,
@@ -640,6 +676,22 @@ def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) 
         special_repayment_amount_eur=_from_meur(_row_value(table, "One-Time Repayment Amount")),
         minimum_dscr=_to_float(_row_value(table, "Minimum DSCR")),
     )
+    if updated_financing.initial_debt_eur != updated_financing.senior_debt_amount_eur:
+        st.markdown(
+            '<div class="subtle">Opening Loan Balance aligned to Debt Amount for Year 0 drawdown consistency.</div>',
+            unsafe_allow_html=True,
+        )
+        updated_financing = FinancingAssumptions(
+            senior_debt_amount_eur=updated_financing.senior_debt_amount_eur,
+            initial_debt_eur=updated_financing.senior_debt_amount_eur,
+            interest_rate_pct=updated_financing.interest_rate_pct,
+            amortization_type=updated_financing.amortization_type,
+            amortization_period_years=updated_financing.amortization_period_years,
+            grace_period_years=updated_financing.grace_period_years,
+            special_repayment_year=updated_financing.special_repayment_year,
+            special_repayment_amount_eur=updated_financing.special_repayment_amount_eur,
+            minimum_dscr=updated_financing.minimum_dscr,
+        )
     return replace(assumptions, financing=updated_financing)
 
 

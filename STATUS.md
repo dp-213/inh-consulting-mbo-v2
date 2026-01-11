@@ -404,3 +404,16 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Added alignment safeguards for Opening Loan Balance to match Debt Amount to prevent Year 0 drawdown mismatches.
+- Continued m€ scaling and dropdown usage for financing assumptions to avoid free-text categorical inputs.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
