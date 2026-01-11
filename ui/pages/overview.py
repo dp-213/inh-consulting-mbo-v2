@@ -33,23 +33,9 @@ def _interpret_liquidity(values: list[float]) -> str:
     return "Liquidity remains positive across the plan horizon."
 
 
-def _build_range_bar(min_value: float, max_value: float, markers: dict[str, float]) -> str:
-    if max_value == min_value:
-        return "[--------------|--------------]"
-    width = 30
-    bar = ["-"] * (width + 1)
-    bar[0] = "|"
-    bar[-1] = "|"
-    for label, value in markers.items():
-        position = int(round((value - min_value) / (max_value - min_value) * width))
-        position = max(0, min(width, position))
-        bar[position] = label
-    return "[" + "".join(bar) + "]"
-
-
 def render(result: ModelResult, assumptions: Assumptions) -> None:
     case_name = _case_name(st.session_state.get("data_path", ""))
-    st.markdown("# Overview (Decision Screen)")
+    st.markdown("# Overview")
     st.markdown(
         f'<div class="page-indicator">Case: {case_name}</div>',
         unsafe_allow_html=True,
@@ -66,41 +52,43 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
     cash_at_close = result.balance_sheet[0].get("cash", 0.0) if result.balance_sheet else 0.0
     net_debt_close = closing_debt - cash_at_close
 
-    st.markdown("### Deal Snapshot")
-    snapshot_items = [
-        ("Purchase Price (Equity)", outputs._format_money(purchase_price)),
-        ("Net Debt at Close", outputs._format_money(net_debt_close)),
-        (
-            "Total Equity Invested (Mgmt / Investor)",
-            f"{outputs._format_money(management_equity)} / {outputs._format_money(external_equity)}",
-        ),
-        ("Debt Amount", outputs._format_money(debt_amount)),
-        ("Reference Years", "Transition Year (Year 0) → Business Plan Years 1–4"),
+    enterprise_value = result.equity.get("enterprise_value", 0.0)
+    st.markdown("### Deal Snapshot – Mechanics")
+    snapshot_rows = [
+        ("Enterprise Value (Headline)", [enterprise_value]),
+        ("Equity Total", [total_equity_needed]),
+        ("Management Equity", [management_equity]),
+        ("External Investor Equity", [external_equity]),
+        ("Debt Amount", [debt_amount]),
+        ("Net Debt at Close", [net_debt_close]),
+        ("Plan Horizon", ["Transition Year (Year 0) → Business Plan Years (1–4)"]),
     ]
-    snapshot_html = ['<div class="metric-grid">']
-    for label, value in snapshot_items:
-        snapshot_html.append(
-            f'<div><div class="metric-item-label">{label}</div>'
-            f'<div class="metric-item-value">{value}</div></div>'
-        )
-    snapshot_html.append("</div>")
-    st.markdown("".join(snapshot_html), unsafe_allow_html=True)
+    outputs._render_statement_table_html(
+        snapshot_rows,
+        bold_labels={"Enterprise Value (Headline)", "Equity Total"},
+        years=1,
+        year_labels=["Value"],
+    )
 
     top_left, top_right = st.columns(2)
     bottom_left, bottom_right = st.columns(2)
 
     with top_left:
-        st.markdown("### Operating Reality")
-        year_index = 1
+        st.markdown("### Business Economics (Steady-State)")
+        year_index = 2
         revenue = result.pnl[year_index]["revenue"]
         personnel_costs = result.pnl[year_index]["personnel_costs"]
         ebitda = result.pnl[year_index]["ebitda"]
         consultant_fte = assumptions.cost.personnel_by_year[year_index].consultant_fte
+        utilization = assumptions.revenue.scenarios[
+            assumptions.scenario
+        ].utilization_rate_pct[year_index]
         revenue_per_consultant = (
             revenue / consultant_fte if consultant_fte else 0.0
         )
         operating_rows = [
             ("Revenue per Consultant", [outputs._format_money(revenue_per_consultant)]),
+            ("Utilization", [f"{utilization:.1f}%"]),
             (
                 "Personnel Cost Ratio",
                 [outputs._format_percent(personnel_costs, revenue)],
@@ -114,7 +102,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         )
 
     with top_right:
-        st.markdown("### Cash & Survival")
+        st.markdown("### Cash & Liquidity Risk")
         cash_balances = [row["cash_balance"] for row in result.cashflow]
         min_cash = min(cash_balances) if cash_balances else 0.0
         peak_gap = abs(min_cash) if min_cash < 0 else 0.0
@@ -128,11 +116,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             years=1,
             year_labels=["Value"],
         )
-        st.line_chart(
-            {"Cash Balance": cash_balances},
-            use_container_width=True,
+        st.markdown(
+            f'<div class="subtle">{_interpret_liquidity(cash_balances)}</div>',
+            unsafe_allow_html=True,
         )
-        st.markdown(f'<div class="subtle">{_interpret_liquidity(cash_balances)}</div>', unsafe_allow_html=True)
 
     with bottom_left:
         st.markdown("### Debt / Bank View")
@@ -142,9 +129,13 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         min_dscr = min(dscr_values) if dscr_values else 0.0
         years_below = len([value for value in dscr_values if value < min_required])
         covenant_breach = "YES" if years_below > 0 else "NO"
+        peak_debt = max(
+            row.get("opening_debt", row.get("closing_debt", 0.0)) for row in result.debt
+        )
         debt_rows = [
             ("Minimum DSCR", [f"{min_dscr:.2f}x"]),
             ("Years below covenant", [str(years_below)]),
+            ("Peak Debt", [outputs._format_money(peak_debt)]),
             ("Covenant Breach", [covenant_breach]),
         ]
         outputs._render_statement_table_html(
@@ -154,8 +145,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         )
 
     with bottom_right:
-        st.markdown("### Value vs. Price")
-        enterprise_value = result.equity.get("enterprise_value", 0.0)
+        st.markdown("### Value vs. Price – Decision Core")
         free_cf = [row["free_cashflow"] for row in result.cashflow]
         discount_rate = assumptions.valuation.discount_rate_pct
         start_year = assumptions.valuation.valuation_start_year
@@ -173,6 +163,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         valuation_max = max(enterprise_value, dcf_value, intrinsic_value)
         midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
         affordability = result.equity.get("exit_value", 0.0)
+        negotiation_gap = purchase_price - midpoint
 
         value_rows = [
             ("Valuation Min (Today)", [valuation_min]),
@@ -180,21 +171,12 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             ("Valuation Max (Today)", [valuation_max]),
             ("Buyer Affordability (Ceiling)", [affordability]),
             ("Purchase Price", [purchase_price]),
+            ("Negotiation Gap (EUR)", [negotiation_gap]),
         ]
         outputs._render_statement_table_html(
             value_rows,
             years=1,
             year_labels=["Value"],
-        )
-        range_bar = _build_range_bar(
-            valuation_min,
-            valuation_max,
-            {"A": affordability, "P": purchase_price},
-        )
-        st.markdown(f"`{range_bar}`")
-        st.markdown(
-            '<div class="subtle">A = buyer affordability, P = purchase price.</div>',
-            unsafe_allow_html=True,
         )
         if purchase_price > affordability and purchase_price > valuation_max:
             interpretation = "Purchase price exceeds conservative valuation and affordability."
@@ -203,3 +185,17 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         else:
             interpretation = "Purchase price is below affordability and within the valuation range."
         st.markdown(f'<div class="subtle">{interpretation}</div>', unsafe_allow_html=True)
+
+    with st.expander("Key Assumptions (View Only)", expanded=False):
+        key_rows = [
+            ("Purchase Price", [purchase_price]),
+            ("Debt Amount", [debt_amount]),
+            ("Interest Rate", [f"{assumptions.financing.interest_rate_pct:.2f}%"]),
+            ("Seller Multiple", [f"{assumptions.valuation.seller_multiple:.2f}x"]),
+            ("Discount Rate", [f"{assumptions.valuation.discount_rate_pct:.2f}%"]),
+        ]
+        outputs._render_statement_table_html(
+            key_rows,
+            years=1,
+            year_labels=["Value"],
+        )
