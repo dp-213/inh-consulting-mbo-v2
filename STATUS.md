@@ -810,3 +810,27 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Rebuilt Valuation & Purchase Price to a seller price build-up with explicit year-by-year discounting from transition-year EBIT.
+- Added indented substeps for discount factors and present values, highlighting only the final seller price expectation.
+- Simplified buyer sanity checks to reference-only multiples and DCF cash coverage, with a compact interpretation block.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and the valuation page remains navigable with the new seller build-up and reference checks.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Removed intrinsic-valuation wording from the seller price build-up subheading for compliance with the valuation narrative constraints.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and the valuation page copy change does not affect layout or navigation.

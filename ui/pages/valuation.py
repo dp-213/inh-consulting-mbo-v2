@@ -50,21 +50,12 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     output_container = st.container()
     updated_result = run_model(updated_assumptions)
     pension_obligation = updated_assumptions.balance_sheet.pension_obligations_eur
-    debt_year0 = updated_result.debt[0] if updated_result.debt else {}
-    closing_debt = debt_year0.get("closing_debt", 0.0)
-    cash_at_close = (
-        updated_result.balance_sheet[0].get("cash", 0.0)
-        if updated_result.balance_sheet
-        else 0.0
-    )
-    net_debt_close = closing_debt - cash_at_close
-    reference_year = updated_assumptions.valuation.reference_year
-    if reference_year < 0 or reference_year >= len(updated_result.pnl):
-        st.error("Reference Year is out of range for the current plan horizon.")
+    if not updated_result.pnl:
+        st.error("P&L data is missing for the current plan horizon.")
         st.stop()
-    reference_ebit = updated_result.pnl[reference_year]["ebit"]
+    transition_ebit = updated_result.pnl[0]["ebit"]
     seller_multiple = updated_assumptions.valuation.seller_multiple
-    enterprise_value_multiple = reference_ebit * seller_multiple
+    enterprise_value_multiple = transition_ebit * seller_multiple
 
     business_free_cf = [
         row["free_cashflow"] - row.get("acquisition_outflow", 0.0)
@@ -82,56 +73,78 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
         running += value * factor
     dcf_value = running
-    multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
-    dcf_equity = dcf_value - net_debt_close - pension_obligation
 
     with output_container:
-        st.markdown("### Seller Price Expectation")
-        ebit_years = [updated_result.pnl[idx]["ebit"] for idx in range(3)]
-        discount_factors = [1 / ((1 + discount_rate) ** idx) for idx in range(3)]
-        pv_ebit = [ebit_years[idx] * discount_factors[idx] for idx in range(3)]
+        st.markdown("## Seller Price Expectation – Transparent Build-Up")
+        st.markdown(
+            '<div class="subtle">Reference pricing based on historic EBIT, not a standalone valuation.</div>',
+            unsafe_allow_html=True,
+        )
+        discount_factors = [
+            1 / ((1 + discount_rate) ** year_index) for year_index in (1, 2, 3)
+        ]
+        pv_ebit = [transition_ebit * factor for factor in discount_factors]
         pv_sum = sum(pv_ebit)
         seller_price_expectation = pv_sum + pension_obligation
         seller_rows = [
-            ("Reference EBIT (Transition Year)", [reference_ebit]),
-            ("PV of 3-year EBIT", [pv_sum]),
-            ("Pension Obligations Assumed", [pension_obligation]),
-            ("Seller Price Expectation", [seller_price_expectation]),
+            ("Reference EBIT (Transition Year)", [transition_ebit]),
+            ("Discount rate (Seller assumption)", [f"{discount_rate:.2f}%"]),
+            ("EBIT Year 1", [transition_ebit]),
+            ("Discount factor Year 1", [f"{discount_factors[0]:.4f}"]),
+            ("Present Value Year 1", [pv_ebit[0]]),
+            ("EBIT Year 2", [transition_ebit]),
+            ("Discount factor Year 2", [f"{discount_factors[1]:.4f}"]),
+            ("Present Value Year 2", [pv_ebit[1]]),
+            ("EBIT Year 3", [transition_ebit]),
+            ("Discount factor Year 3", [f"{discount_factors[2]:.4f}"]),
+            ("Present Value Year 3", [pv_ebit[2]]),
+            ("Sum of Present Values (3-year EBIT)", [pv_sum]),
+            ("Pension obligations assumed", [pension_obligation]),
+            ("Seller Price Expectation (Total)", [seller_price_expectation]),
         ]
         outputs._render_statement_table_html(
             seller_rows,
+            bold_labels={"Seller Price Expectation (Total)"},
             years=1,
             year_labels=["Value"],
-        )
-        st.markdown(
-            '<div class="subtle">Negotiation Anchor – not intrinsic value.</div>',
-            unsafe_allow_html=True,
+            row_classes={
+                "Discount factor Year 1": "substep",
+                "Present Value Year 1": "substep",
+                "Discount factor Year 2": "substep",
+                "Present Value Year 2": "substep",
+                "Discount factor Year 3": "substep",
+                "Present Value Year 3": "substep",
+            },
         )
 
-        st.markdown("### Buyer Sanity Checks")
+        st.markdown("### Interpretation")
+        st.markdown(
+            "- Uses only transition-year EBIT, so it is backward-looking and conservative.\n"
+            "- Applies a fixed seller discount rate rather than buyer affordability logic.\n"
+            "- Ignores growth and financing structure by design; it is a price anchor, not a value claim."
+        )
+
+        st.markdown("### Buyer Sanity Checks (Context Only)")
+        st.markdown(
+            '<div class="subtle">Reference / Plausibility Checks</div>',
+            unsafe_allow_html=True,
+        )
         buyer_rows = [
-            ("Multiple-Based Reference (Negotiation Anchor)", [multiple_equity]),
-            ("Cashflow Coverage Value (DCF, no terminal)", [dcf_equity]),
+            ("Multiple-Based Reference (EBIT × Multiple)", [enterprise_value_multiple]),
+            ("Cashflow Coverage Value (DCF, no terminal)", [dcf_value]),
         ]
         outputs._render_statement_table_html(
             buyer_rows,
             years=1,
             year_labels=["Value"],
         )
-        st.markdown(
-            '<div class="subtle">These are reference checks to assess price plausibility, not intrinsic valuations.</div>',
-            unsafe_allow_html=True,
-        )
 
-    with st.expander("Detailed analysis", expanded=False):
-        st.markdown("#### Multiple-Based Reference (Negotiation Anchor)")
+    with st.expander("Detailed Mechanics (Optional)", expanded=False):
+        st.markdown("#### Multiple-Based Reference (EBIT × Multiple)")
         multiple_rows = [
-            (f"Reference EBIT ({outputs.YEAR_LABELS[reference_year]})", [reference_ebit]),
+            (f"Reference EBIT ({outputs.YEAR_LABELS[0]})", [transition_ebit]),
             ("Applied Multiple (Assumption)", [f"{seller_multiple:.2f}x"]),
             ("Enterprise Value (EBIT × Multiple)", [enterprise_value_multiple]),
-            ("Net Debt (End of Transition Year)", [net_debt_close]),
-            ("Pension Obligations Assumed", [pension_obligation]),
-            ("Reference Value (after net debt & pensions)", [multiple_equity]),
         ]
         outputs._render_statement_table_html(
             multiple_rows,
@@ -161,39 +174,12 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             ("Discount Factor", discount_factors),
             ("Present Value of FCF", pv_fcf),
             ("PV Sum (no terminal)", cumulative_pv),
-            ("Net Debt (End of Transition Year)", [net_debt_close] + [""] * 4),
-            ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
-            ("Cashflow Coverage Value", ["", "", "", "", dcf_equity]),
+            (
+                "Cashflow Coverage Value",
+                [""] * (len(business_free_cf) - 1) + [dcf_value],
+            ),
         ]
         outputs._render_statement_table_html(
             dcf_rows,
-        )
-
-    with st.expander("Explain business & calculation logic", expanded=False):
-        st.markdown(
-            "**1) Business Question**\n"
-            "- Is the price defensible today versus seller expectations and buyer-side reference checks?\n"
-            "\n**2) What This Shows / What This Does NOT Show**\n"
-            "- Shows seller price expectation, a multiple-based reference, and DCF cash coverage, all adjusted for net debt and pensions.\n"
-            "- Does not include terminal value, exit upside, or a price recommendation.\n"
-            "\n**3) Calculation Logic (Transparent, Step-by-Step)**\n"
-            "- Enterprise Value (Multiple) = Reference EBIT × Seller Multiple.\n"
-            "- Multiple-Based Reference = Enterprise Value − Net Debt (End of Transition Year) − Pension Obligations.\n"
-            "- DCF PV = Σ (Operating Free Cashflowᵗ / (1 + discount rate)ᵗ) from valuation start year.\n"
-            "- Cashflow Coverage Value = DCF PV − Net Debt (End of Transition Year) − Pension Obligations.\n"
-            "- Seller Price Expectation = Σ PV(EBIT Year 0–2) + Pension Obligations.\n"
-            "\n**4) Interpretation for the Decision**\n"
-            "- If purchase price exceeds both reference checks, downside protection is weak.\n"
-            "- Large gaps between checks signal dependence on assumptions rather than cash reality.\n"
-            "- Use these references to guide negotiation, not to declare a final value.\n"
-            "\n**5) Insights & Red Flags**\n"
-            "- Large dispersion between DCF and multiple checks signals fragile cash generation.\n"
-            "- Negative or weak early cashflows materially reduce cash coverage.\n"
-            "- Pension obligations can compress buyer value after obligations to unattractive levels.\n"
-            "\n**6) Key Dependencies**\n"
-            "- Reference EBIT and seller multiple.\n"
-            "- Discount rate and valuation start year.\n"
-            "- Operating free cashflow drivers (EBITDA, capex, working capital, cash taxes).\n"
-            "- Net debt at end of transition year and pension obligations."
         )
     return updated_assumptions

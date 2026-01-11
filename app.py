@@ -208,6 +208,10 @@ def _inject_base_styles() -> None:
           .fin-table .label {
               text-align: left;
           }
+          .fin-table tr.substep td.label {
+              padding-left: 14px;
+              color: #4b5563;
+          }
           .fin-table .neg {
               color: #c0392b;
           }
