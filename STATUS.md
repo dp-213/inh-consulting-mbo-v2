@@ -119,6 +119,17 @@ Manual verification:
 Re-read ACCEPTANCE.md.
 
 Violations:
+- None observed (data-only non-revenue adjustments; no UI changes).
+
+Changes:
+- Reduced consultant FTE from Year 1 onward, trimmed backoffice FTE from Year 2 onward, and normalized fixed overheads post-stabilization (legal, advisory, IT, rent).
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
 - None observed for navigation, statement fidelity, or formatting rules.
 
 Changes:

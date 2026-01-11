@@ -214,30 +214,30 @@
         "management_cost_eur": 1400000.0
       },
       {
-        "consultant_fte": 63.0,
+        "consultant_fte": 56.0,
         "consultant_loaded_cost_eur": 150000.0,
         "backoffice_fte": 17.0,
         "backoffice_loaded_cost_eur": 120000.0,
         "management_cost_eur": 1400000.0
       },
       {
-        "consultant_fte": 63.0,
+        "consultant_fte": 56.0,
         "consultant_loaded_cost_eur": 153000.0,
-        "backoffice_fte": 17.0,
+        "backoffice_fte": 16.0,
         "backoffice_loaded_cost_eur": 122400.0,
         "management_cost_eur": 1428000.0
       },
       {
-        "consultant_fte": 63.0,
+        "consultant_fte": 56.0,
         "consultant_loaded_cost_eur": 156060.0,
-        "backoffice_fte": 17.0,
+        "backoffice_fte": 16.0,
         "backoffice_loaded_cost_eur": 124848.0,
         "management_cost_eur": 1456560.0
       },
       {
-        "consultant_fte": 63.0,
+        "consultant_fte": 56.0,
         "consultant_loaded_cost_eur": 159181.2,
-        "backoffice_fte": 17.0,
+        "backoffice_fte": 16.0,
         "backoffice_loaded_cost_eur": 127344.96000000002,
         "management_cost_eur": 1485691.2000000002
       }
@@ -245,41 +245,41 @@
     "fixed_overhead_by_year": [
       {
         "advisory_eur": 300000.0,
-        "legal_eur": 0.0,
+        "legal_eur": 120000.0,
         "it_software_eur": 700000.0,
         "office_rent_eur": 650000.0,
         "services_eur": 900000.0,
         "other_services_eur": 450000.0
       },
       {
-        "advisory_eur": 300000.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 700000.0,
-        "office_rent_eur": 650000.0,
+        "advisory_eur": 150000.0,
+        "legal_eur": 40000.0,
+        "it_software_eur": 600000.0,
+        "office_rent_eur": 550000.0,
         "services_eur": 900000.0,
         "other_services_eur": 450000.0
       },
       {
-        "advisory_eur": 300000.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 700000.0,
-        "office_rent_eur": 650000.0,
+        "advisory_eur": 150000.0,
+        "legal_eur": 40000.0,
+        "it_software_eur": 600000.0,
+        "office_rent_eur": 550000.0,
         "services_eur": 900000.0,
         "other_services_eur": 450000.0
       },
       {
-        "advisory_eur": 300000.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 700000.0,
-        "office_rent_eur": 650000.0,
+        "advisory_eur": 150000.0,
+        "legal_eur": 40000.0,
+        "it_software_eur": 600000.0,
+        "office_rent_eur": 550000.0,
         "services_eur": 900000.0,
         "other_services_eur": 450000.0
       },
       {
-        "advisory_eur": 300000.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 700000.0,
-        "office_rent_eur": 650000.0,
+        "advisory_eur": 150000.0,
+        "legal_eur": 40000.0,
+        "it_software_eur": 600000.0,
+        "office_rent_eur": 550000.0,
         "services_eur": 900000.0,
         "other_services_eur": 450000.0
       }
