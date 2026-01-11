@@ -913,6 +913,17 @@ Manual verification:
 Re-read ACCEPTANCE.md.
 
 Violations:
+- None observed (data-only revenue scenario adjustments; no UI changes).
+
+Changes:
+- Updated revenue scenario utilization, external mix, and external pricing for Worst/Base/Best to match bank-safe, realistic, and upside cases while keeping Year 0 fixed.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
 - None observed.
 
 Changes:

@@ -26,10 +26,10 @@
         ],
         "external_day_rate_eur": [
           3750.0,
-          3750.0,
-          3750.0,
-          3750.0,
-          3750.0
+          4600.0,
+          4600.0,
+          4600.0,
+          4600.0
         ],
         "day_rate_growth_pct": [
           0.0,
@@ -47,17 +47,17 @@
         ],
         "group_capacity_share_pct": [
           1.0,
-          0.85,
-          0.7,
-          0.6,
-          0.55
+          0.82,
+          0.68,
+          0.58,
+          0.5
         ],
         "external_capacity_share_pct": [
           0.0,
-          0.15,
-          0.3,
-          0.4,
-          0.45
+          0.18,
+          0.32,
+          0.42,
+          0.5
         ],
         "reference_revenue_eur": 20000000.0,
         "guarantee_pct_by_year": [
@@ -78,10 +78,10 @@
         ],
         "utilization_rate_pct": [
           0.42,
-          0.6,
-          0.7,
-          0.75,
-          0.75
+          0.62,
+          0.72,
+          0.78,
+          0.8
         ],
         "group_day_rate_eur": [
           3750.0,
@@ -92,10 +92,10 @@
         ],
         "external_day_rate_eur": [
           3750.0,
-          3750.0,
-          3750.0,
-          3750.0,
-          3750.0
+          4875.0,
+          4875.0,
+          4875.0,
+          4875.0
         ],
         "day_rate_growth_pct": [
           0.0,
@@ -113,17 +113,17 @@
         ],
         "group_capacity_share_pct": [
           1.0,
-          0.8,
-          0.6,
-          0.5,
-          0.45
+          0.72,
+          0.55,
+          0.4,
+          0.3
         ],
         "external_capacity_share_pct": [
           0.0,
-          0.2,
-          0.4,
-          0.5,
-          0.55
+          0.28,
+          0.45,
+          0.6,
+          0.7
         ],
         "reference_revenue_eur": 20000000.0,
         "guarantee_pct_by_year": [
@@ -158,10 +158,10 @@
         ],
         "external_day_rate_eur": [
           3750.0,
-          3750.0,
-          3750.0,
-          3750.0,
-          3750.0
+          4125.0,
+          4125.0,
+          4125.0,
+          4125.0
         ],
         "day_rate_growth_pct": [
           0.0,
@@ -179,17 +179,17 @@
         ],
         "group_capacity_share_pct": [
           1.0,
-          0.9,
+          0.92,
+          0.86,
           0.8,
-          0.7,
-          0.65
+          0.75
         ],
         "external_capacity_share_pct": [
           0.0,
-          0.1,
+          0.08,
+          0.14,
           0.2,
-          0.3,
-          0.35
+          0.25
         ],
         "reference_revenue_eur": 20000000.0,
         "guarantee_pct_by_year": [
