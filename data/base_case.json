@@ -351,7 +351,7 @@
     "opening_cash_balance_eur": 250000.0
   },
   "balance_sheet": {
-    "opening_equity_eur": 0.0,
+    "opening_equity_eur": 250000.0,
     "depreciation_rate_pct": 0.1,
     "minimum_cash_balance_eur": 250000.0,
     "pension_obligations_eur": 4000000.0
