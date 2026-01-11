@@ -860,3 +860,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and valuation navigation/content remain intact with the new structure.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Reinstated seller PV logic as a 3-year discounted EBIT anchor plus pensions; removed seller multiple from the seller block.
+- Added a separate market multiple assumption and used it for market reference value while keeping buyer DCF intact.
+- Expanded deal attractiveness to show EUR and % discounts with premium/discount labeling and added a detailed mechanics appendix.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and valuation tables/expanders render without navigation regressions.

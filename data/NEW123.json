@@ -360,6 +360,7 @@
   },
   "valuation": {
     "seller_multiple": 6.0,
+    "market_multiple": 6.0,
     "reference_year": 4,
     "discount_rate_pct": 0.1,
     "valuation_start_year": 0,

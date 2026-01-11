@@ -109,6 +109,7 @@ class TaxAssumptions:
 @dataclass(frozen=True)
 class ValuationAssumptions:
     seller_multiple: float
+    market_multiple: float
     reference_year: int
     discount_rate_pct: float
     valuation_start_year: int
@@ -258,6 +259,7 @@ def default_assumptions() -> Assumptions:
 
     valuation = ValuationAssumptions(
         seller_multiple=6.0,
+        market_multiple=6.0,
         reference_year=4,
         discount_rate_pct=0.10,
         valuation_start_year=0,

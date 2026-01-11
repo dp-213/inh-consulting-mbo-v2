@@ -561,6 +561,7 @@ def render_valuation_quick_inputs(assumptions: Assumptions) -> Assumptions:
         tax_and_distributions=assumptions.tax_and_distributions,
         valuation=ValuationAssumptions(
             seller_multiple=_to_float(_row_value(table, "Seller Multiple (x Operating Profit)")),
+            market_multiple=assumptions.valuation.market_multiple,
             reference_year=assumptions.valuation.reference_year,
             discount_rate_pct=assumptions.valuation.discount_rate_pct,
             valuation_start_year=assumptions.valuation.valuation_start_year,
@@ -690,6 +691,7 @@ def render_valuation_key_assumptions(assumptions: Assumptions, key_prefix: str) 
     table = _value_table(
         [
             ("Seller Multiple", "x", valuation.seller_multiple, ""),
+            ("Market Multiple", "x", valuation.market_multiple, ""),
             ("Reference Year", "Year", valuation.reference_year, ""),
             ("Discount Rate", "%", valuation.discount_rate_pct, ""),
             ("Valuation Start Year", "Year", valuation.valuation_start_year, ""),
@@ -698,12 +700,14 @@ def render_valuation_key_assumptions(assumptions: Assumptions, key_prefix: str) 
     )
     table = _edit_table(table, key=f"{key_prefix}.valuation")
     _require_value(table, "Seller Multiple")
+    _require_value(table, "Market Multiple")
     _require_value(table, "Reference Year")
     _require_value(table, "Discount Rate")
     _require_value(table, "Valuation Start Year")
     _require_value(table, "Transaction Costs (%)")
     updated_valuation = ValuationAssumptions(
         seller_multiple=_to_float(_row_value(table, "Seller Multiple")),
+        market_multiple=_to_float(_row_value(table, "Market Multiple")),
         reference_year=int(_to_float(_row_value(table, "Reference Year"))),
         discount_rate_pct=_to_float(_row_value(table, "Discount Rate")),
         valuation_start_year=int(_to_float(_row_value(table, "Valuation Start Year"))),

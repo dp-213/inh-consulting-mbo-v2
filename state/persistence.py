@@ -75,7 +75,10 @@ def _assumptions_from_dict(data: dict) -> Assumptions:
             opening_cash_balance_eur=balance_sheet.opening_equity_eur,
         )
     tax_and_distributions = TaxAssumptions(**data["tax_and_distributions"])
-    valuation = ValuationAssumptions(**data["valuation"])
+    valuation_data = dict(data["valuation"])
+    if "market_multiple" not in valuation_data:
+        valuation_data["market_multiple"] = valuation_data.get("seller_multiple", 0.0)
+    valuation = ValuationAssumptions(**valuation_data)
     equity = EquityAssumptions(**data["equity"])
 
     return Assumptions(
