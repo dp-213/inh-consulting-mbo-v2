@@ -11,25 +11,25 @@
           220.0
         ],
         "utilization_rate_pct": [
-          0.7,
-          0.7,
-          0.7,
-          0.7,
-          0.7
+          0.78,
+          0.78,
+          0.8,
+          0.8,
+          0.8
         ],
         "group_day_rate_eur": [
-          900.0,
-          900.0,
-          900.0,
-          900.0,
-          900.0
+          1500.0,
+          1500.0,
+          1500.0,
+          1500.0,
+          1500.0
         ],
         "external_day_rate_eur": [
-          1100.0,
-          1100.0,
-          1100.0,
-          1100.0,
-          1100.0
+          1800.0,
+          1800.0,
+          1800.0,
+          1800.0,
+          1800.0
         ],
         "day_rate_growth_pct": [
           0.02,
@@ -41,9 +41,9 @@
         "revenue_growth_pct": [
           0.0,
           0.0,
-          0.0,
-          0.0,
-          0.0
+          0.02,
+          0.03,
+          0.03
         ],
         "group_capacity_share_pct": [
           0.7,
@@ -59,7 +59,7 @@
           0.3,
           0.3
         ],
-        "reference_revenue_eur": 2500000.0,
+        "reference_revenue_eur": 21123258.0,
         "guarantee_pct_by_year": [
           0.0,
           0.0,
@@ -77,25 +77,25 @@
           225.0
         ],
         "utilization_rate_pct": [
-          0.75,
-          0.75,
-          0.75,
-          0.75,
-          0.75
+          0.82,
+          0.82,
+          0.83,
+          0.83,
+          0.83
         ],
         "group_day_rate_eur": [
-          950.0,
-          950.0,
-          950.0,
-          950.0,
-          950.0
+          1600.0,
+          1600.0,
+          1600.0,
+          1600.0,
+          1600.0
         ],
         "external_day_rate_eur": [
-          1200.0,
-          1200.0,
-          1200.0,
-          1200.0,
-          1200.0
+          1950.0,
+          1950.0,
+          1950.0,
+          1950.0,
+          1950.0
         ],
         "day_rate_growth_pct": [
           0.03,
@@ -105,11 +105,11 @@
           0.03
         ],
         "revenue_growth_pct": [
+          0.0,
           0.02,
-          0.02,
-          0.02,
-          0.02,
-          0.02
+          0.04,
+          0.04,
+          0.04
         ],
         "group_capacity_share_pct": [
           0.65,
@@ -125,7 +125,7 @@
           0.35,
           0.35
         ],
-        "reference_revenue_eur": 2500000.0,
+        "reference_revenue_eur": 21123258.0,
         "guarantee_pct_by_year": [
           0.0,
           0.0,
@@ -143,25 +143,25 @@
           210.0
         ],
         "utilization_rate_pct": [
-          0.6,
-          0.6,
-          0.6,
-          0.6,
-          0.6
+          0.7,
+          0.7,
+          0.72,
+          0.72,
+          0.72
         ],
         "group_day_rate_eur": [
-          850.0,
-          850.0,
-          850.0,
-          850.0,
-          850.0
+          1400.0,
+          1400.0,
+          1400.0,
+          1400.0,
+          1400.0
         ],
         "external_day_rate_eur": [
-          1000.0,
-          1000.0,
-          1000.0,
-          1000.0,
-          1000.0
+          1650.0,
+          1650.0,
+          1650.0,
+          1650.0,
+          1650.0
         ],
         "day_rate_growth_pct": [
           0.01,
@@ -172,10 +172,10 @@
         ],
         "revenue_growth_pct": [
           0.0,
+          -0.05,
           0.0,
-          0.0,
-          0.0,
-          0.0
+          0.01,
+          0.01
         ],
         "group_capacity_share_pct": [
           0.75,
@@ -191,7 +191,7 @@
           0.25,
           0.25
         ],
-        "reference_revenue_eur": 2500000.0,
+        "reference_revenue_eur": 21123258.0,
         "guarantee_pct_by_year": [
           0.0,
           0.0,
@@ -207,134 +207,134 @@
     "inflation_rate_pct": 0.02,
     "personnel_by_year": [
       {
-        "consultant_fte": 8.0,
-        "consultant_loaded_cost_eur": 95000.0,
-        "backoffice_fte": 1.0,
-        "backoffice_loaded_cost_eur": 65000.0,
-        "management_cost_eur": 150000.0
+        "consultant_fte": 63.0,
+        "consultant_loaded_cost_eur": 170000.0,
+        "backoffice_fte": 17.0,
+        "backoffice_loaded_cost_eur": 140000.0,
+        "management_cost_eur": 1500000.0
       },
       {
-        "consultant_fte": 8.0,
-        "consultant_loaded_cost_eur": 95000.0,
-        "backoffice_fte": 1.0,
-        "backoffice_loaded_cost_eur": 65000.0,
-        "management_cost_eur": 150000.0
+        "consultant_fte": 63.0,
+        "consultant_loaded_cost_eur": 170000.0,
+        "backoffice_fte": 17.0,
+        "backoffice_loaded_cost_eur": 140000.0,
+        "management_cost_eur": 1550000.0
       },
       {
-        "consultant_fte": 8.0,
-        "consultant_loaded_cost_eur": 95000.0,
-        "backoffice_fte": 1.0,
-        "backoffice_loaded_cost_eur": 65000.0,
-        "management_cost_eur": 150000.0
+        "consultant_fte": 65.0,
+        "consultant_loaded_cost_eur": 170000.0,
+        "backoffice_fte": 17.0,
+        "backoffice_loaded_cost_eur": 140000.0,
+        "management_cost_eur": 1600000.0
       },
       {
-        "consultant_fte": 8.0,
-        "consultant_loaded_cost_eur": 95000.0,
-        "backoffice_fte": 1.0,
-        "backoffice_loaded_cost_eur": 65000.0,
-        "management_cost_eur": 150000.0
+        "consultant_fte": 67.0,
+        "consultant_loaded_cost_eur": 170000.0,
+        "backoffice_fte": 18.0,
+        "backoffice_loaded_cost_eur": 140000.0,
+        "management_cost_eur": 1650000.0
       },
       {
-        "consultant_fte": 8.0,
-        "consultant_loaded_cost_eur": 95000.0,
-        "backoffice_fte": 1.0,
-        "backoffice_loaded_cost_eur": 65000.0,
-        "management_cost_eur": 150000.0
+        "consultant_fte": 69.0,
+        "consultant_loaded_cost_eur": 170000.0,
+        "backoffice_fte": 18.0,
+        "backoffice_loaded_cost_eur": 140000.0,
+        "management_cost_eur": 1700000.0
       }
     ],
     "fixed_overhead_by_year": [
       {
-        "advisory_eur": 0.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 12000.0,
-        "office_rent_eur": 30000.0,
-        "services_eur": 5000.0,
-        "other_services_eur": 0.0
+        "advisory_eur": 170000.0,
+        "legal_eur": 20000.0,
+        "it_software_eur": 600000.0,
+        "office_rent_eur": 480000.0,
+        "services_eur": 700000.0,
+        "other_services_eur": 450000.0
       },
       {
-        "advisory_eur": 0.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 12000.0,
-        "office_rent_eur": 30000.0,
-        "services_eur": 5000.0,
-        "other_services_eur": 0.0
+        "advisory_eur": 173400.0,
+        "legal_eur": 20400.0,
+        "it_software_eur": 612000.0,
+        "office_rent_eur": 489600.0,
+        "services_eur": 714000.0,
+        "other_services_eur": 459000.0
       },
       {
-        "advisory_eur": 0.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 12000.0,
-        "office_rent_eur": 30000.0,
-        "services_eur": 5000.0,
-        "other_services_eur": 0.0
+        "advisory_eur": 176868.0,
+        "legal_eur": 20808.0,
+        "it_software_eur": 624240.0,
+        "office_rent_eur": 499392.0,
+        "services_eur": 728280.0,
+        "other_services_eur": 468180.0
       },
       {
-        "advisory_eur": 0.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 12000.0,
-        "office_rent_eur": 30000.0,
-        "services_eur": 5000.0,
-        "other_services_eur": 0.0
+        "advisory_eur": 180405.36,
+        "legal_eur": 21224.16,
+        "it_software_eur": 636724.8,
+        "office_rent_eur": 509379.84,
+        "services_eur": 742845.6,
+        "other_services_eur": 477543.6
       },
       {
-        "advisory_eur": 0.0,
-        "legal_eur": 0.0,
-        "it_software_eur": 12000.0,
-        "office_rent_eur": 30000.0,
-        "services_eur": 5000.0,
-        "other_services_eur": 0.0
+        "advisory_eur": 184013.47,
+        "legal_eur": 21648.64,
+        "it_software_eur": 649459.3,
+        "office_rent_eur": 519567.44,
+        "services_eur": 757702.51,
+        "other_services_eur": 487094.47
       }
     ],
     "variable_costs_by_year": [
       {
         "training_type": "EUR",
-        "training_value": 0.0,
+        "training_value": 131859.0,
         "travel_type": "EUR",
-        "travel_value": 0.0,
+        "travel_value": 324549.0,
         "communication_type": "EUR",
-        "communication_value": 0.0
+        "communication_value": 6667.0
       },
       {
         "training_type": "EUR",
-        "training_value": 0.0,
+        "training_value": 134496.18,
         "travel_type": "EUR",
-        "travel_value": 0.0,
+        "travel_value": 331040.0,
         "communication_type": "EUR",
-        "communication_value": 0.0
+        "communication_value": 6800.34
       },
       {
         "training_type": "EUR",
-        "training_value": 0.0,
+        "training_value": 137186.1,
         "travel_type": "EUR",
-        "travel_value": 0.0,
+        "travel_value": 337660.8,
         "communication_type": "EUR",
-        "communication_value": 0.0
+        "communication_value": 6936.35
       },
       {
         "training_type": "EUR",
-        "training_value": 0.0,
+        "training_value": 139929.82,
         "travel_type": "EUR",
-        "travel_value": 0.0,
+        "travel_value": 344414.02,
         "communication_type": "EUR",
-        "communication_value": 0.0
+        "communication_value": 7075.08
       },
       {
         "training_type": "EUR",
-        "training_value": 0.0,
+        "training_value": 142728.42,
         "travel_type": "EUR",
-        "travel_value": 0.0,
+        "travel_value": 351302.3,
         "communication_type": "EUR",
-        "communication_value": 0.0
+        "communication_value": 7216.58
       }
     ]
   },
   "transaction_and_financing": {
-    "purchase_price_eur": 5000000.0,
-    "equity_contribution_eur": 2000000.0,
-    "senior_term_loan_start_eur": 3000000.0
+    "purchase_price_eur": 12000000.0,
+    "equity_contribution_eur": 5000000.0,
+    "senior_term_loan_start_eur": 7000000.0
   },
   "financing": {
-    "senior_debt_amount_eur": 3000000.0,
-    "initial_debt_eur": 3000000.0,
+    "senior_debt_amount_eur": 7000000.0,
+    "initial_debt_eur": 7000000.0,
     "interest_rate_pct": 0.06,
     "amortization_type": "Linear",
     "amortization_period_years": 5,
@@ -346,25 +346,25 @@
   "cashflow": {
     "tax_cash_rate_pct": 0.25,
     "tax_payment_lag_years": 0,
-    "capex_pct_revenue": 0.0,
-    "working_capital_pct_revenue": 0.0,
-    "opening_cash_balance_eur": 0.0
+    "capex_pct_revenue": 0.003,
+    "working_capital_pct_revenue": 0.01,
+    "opening_cash_balance_eur": 250000.0
   },
   "balance_sheet": {
     "opening_equity_eur": 0.0,
     "depreciation_rate_pct": 0.1,
-    "minimum_cash_balance_eur": 0.0,
+    "minimum_cash_balance_eur": 250000.0,
     "pension_obligations_eur": 4000000.0
   },
   "tax_and_distributions": {
     "tax_rate_pct": 0.25
   },
   "valuation": {
-    "seller_multiple": 6.0,
-    "reference_year": 4,
-    "discount_rate_pct": 0.1,
+    "seller_multiple": 4.0,
+    "reference_year": 0,
+    "discount_rate_pct": 0.12,
     "valuation_start_year": 0,
-    "transaction_costs_pct": 0.0
+    "transaction_costs_pct": 0.01
   },
   "equity": {
     "exit_year": 4,
