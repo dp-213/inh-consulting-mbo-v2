@@ -5,6 +5,8 @@ import re
 
 import streamlit as st
 
+from dataclasses import replace
+
 from model.excel_export import export_ic_excel
 from model.run_model import ModelResult
 from state.assumptions import Assumptions
@@ -16,7 +18,9 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
     st.caption("This page lets you export the current case exactly as shown in the tool.")
 
     case_name = _case_name(st.session_state.get("data_path", ""))
-    scenario = assumptions.scenario
+    scenario = st.session_state.get("view_scenario", assumptions.scenario)
+    if scenario in {"Worst", "Base", "Best"} and scenario != assumptions.scenario:
+        assumptions = replace(assumptions, scenario=scenario)
     st.caption(f"Current selection: {case_name} · {scenario}")
 
     export_key = (case_name, scenario)
@@ -80,7 +84,6 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
                 export_bytes = export_case_snapshot_json(
                     assumptions,
                     case_name=case_name,
-                    result=result,
                 )
             except Exception as exc:  # pragma: no cover - streamlit presentation
                 st.error(f"JSON export failed: {exc}")
