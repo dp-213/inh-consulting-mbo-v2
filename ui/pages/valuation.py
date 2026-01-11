@@ -58,7 +58,13 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         else 0.0
     )
     net_debt_close = closing_debt - cash_at_close
-    enterprise_value = updated_result.equity.get("enterprise_value", 0.0)
+    reference_year = updated_assumptions.valuation.reference_year
+    if reference_year < 0 or reference_year >= len(updated_result.pnl):
+        st.error("Reference Year is out of range for the current plan horizon.")
+        st.stop()
+    reference_ebit = updated_result.pnl[reference_year]["ebit"]
+    seller_multiple = updated_assumptions.valuation.seller_multiple
+    enterprise_value_multiple = reference_ebit * seller_multiple
 
     business_free_cf = [
         row["free_cashflow"] - row.get("acquisition_outflow", 0.0)
@@ -80,10 +86,12 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         value for idx, value in enumerate(business_free_cf) if idx >= start_year
     )
 
-    multiple_equity = enterprise_value - net_debt_close - pension_obligation
+    multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
     dcf_equity = dcf_value - net_debt_close - pension_obligation
     intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
-    affordability = updated_result.equity.get("exit_value", 0.0) - pension_obligation
+    exit_equity_value = (
+        updated_result.equity.get("exit_value", 0.0) - pension_obligation
+    )
 
     with output_container:
         st.markdown("### Valuation Today – Overview")
@@ -91,7 +99,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             ("Multiple-based Equity Value (Today)", [multiple_equity]),
             ("DCF-based Equity Value (Today, no terminal)", [dcf_equity]),
             ("Intrinsic / Cash-Based Value (Today)", [intrinsic_equity]),
-            ("Buyer Affordability (Ceiling)", [affordability]),
+            ("Illustrative Exit Equity Value (Sensitivity)", [exit_equity_value]),
         ]
         outputs._render_statement_table_html(
             overview_rows,
@@ -133,16 +141,11 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
 
     with st.expander("Detailed analysis", expanded=False):
         st.markdown("#### Multiple-Based Valuation (Today)")
-        reference_year = updated_assumptions.valuation.reference_year
-        if reference_year < 0 or reference_year >= len(updated_result.pnl):
-            st.error("Reference Year is out of range for the current plan horizon.")
-            st.stop()
-        reference_ebit = updated_result.pnl[reference_year]["ebit"]
         multiple_rows = [
             (f"Reference EBIT ({outputs.YEAR_LABELS[reference_year]})", [reference_ebit]),
-            ("Applied Multiple (Assumption)", [f"{updated_assumptions.valuation.seller_multiple:.2f}x"]),
-            ("Enterprise Value (Model)", [enterprise_value]),
-            ("Net Debt at Close (Reference)", [net_debt_close]),
+            ("Applied Multiple (Assumption)", [f"{seller_multiple:.2f}x"]),
+            ("Enterprise Value (EBIT × Multiple)", [enterprise_value_multiple]),
+            ("Net Debt (End of Transition Year)", [net_debt_close]),
             ("Pension Obligations Assumed", [pension_obligation]),
             ("Equity Value (Multiple-Based)", [multiple_equity]),
         ]
@@ -175,7 +178,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             ("Discount Factor", discount_factors),
             ("Present Value of FCF", pv_fcf),
             ("PV Sum (no terminal)", cumulative_pv),
-            ("Net Debt at Close (Reference)", [net_debt_close] + [""] * 4),
+            ("Net Debt (End of Transition Year)", [net_debt_close] + [""] * 4),
             ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
             ("Equity Value (DCF, no terminal)", ["", "", "", "", dcf_equity]),
         ]
@@ -188,7 +191,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         intrinsic_rows = [
             ("Free Cashflow (Business)", business_free_cf),
             ("Sum of Plan Cashflows", ["", "", "", "", intrinsic_value]),
-            ("Net Debt at Close (Reference)", [net_debt_close] + [""] * 4),
+            ("Net Debt (End of Transition Year)", [net_debt_close] + [""] * 4),
             ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
             ("Equity Value (Intrinsic / Cash-Based)", ["", "", "", "", intrinsic_equity]),
         ]
@@ -197,17 +200,17 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             bold_labels={"Equity Value (Intrinsic / Cash-Based)"},
         )
 
-        st.markdown("#### Buyer Affordability (Ceiling, not valuation)")
-        affordability_rows = [
+        st.markdown("#### Illustrative Exit Equity Value (Sensitivity)")
+        exit_rows = [
             ("Minimum Cash Balance (Assumption)", [updated_assumptions.balance_sheet.minimum_cash_balance_eur]),
             ("Covenant Threshold (DSCR)", [f"{updated_assumptions.financing.minimum_dscr:.2f}x"]),
-            ("Net Debt at Close (Reference)", [net_debt_close]),
+            ("Net Debt (End of Transition Year)", [net_debt_close]),
             ("Pension Obligations Assumed", [pension_obligation]),
-            ("Equity Value (Buyer Affordability)", [affordability]),
+            ("Equity Value (Illustrative Exit)", [exit_equity_value]),
         ]
         outputs._render_statement_table_html(
-            affordability_rows,
-            bold_labels={"Equity Value (Buyer Affordability)"},
+            exit_rows,
+            bold_labels={"Equity Value (Illustrative Exit)"},
             years=1,
             year_labels=["Value"],
         )
@@ -226,7 +229,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             "Multiple-based Equity Value = Enterprise Value – Net Debt at Close – Pension Obligations Assumed.\n"
             "DCF-based Equity Value = Present Value of Plan Free Cashflows (operating only, excluding acquisition outflows) – Net Debt at Close – Pension Obligations Assumed.\n"
             "Intrinsic / Cash-Based Equity Value = Sum of Plan Free Cashflows (operating only) – Net Debt at Close – Pension Obligations Assumed.\n"
-            "Buyer Affordability is a financing- and liquidity‑constrained ceiling and is reduced by pension obligations.\n"
+            "Illustrative Exit Equity Value is a sensitivity view that applies exit mechanics to the equity bridge; it is not an affordability ceiling.\n"
             "Seller Valuation Logic shows the seller’s internal pricing anchor based on discounted EBIT over the first three years plus assumed pensions.\n\n"
             "**C. Interpretation & Red Flags**\n"
             "A purchase price above the valuation range or above affordability indicates a likely deal break without structural changes.\n"

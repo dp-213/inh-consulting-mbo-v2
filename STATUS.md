@@ -598,3 +598,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Multiple-based valuation now derives enterprise value directly from Reference EBIT × seller multiple and uses it consistently in overview and detailed tables.
+- Net debt labels now correctly indicate end of transition year.
+- Buyer affordability display is relabeled as an illustrative exit equity value sensitivity, aligning labels with the underlying calculation.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
