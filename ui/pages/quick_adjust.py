@@ -34,16 +34,19 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
 
         st.markdown("**Utilization stress (delta vs. plan, percentage points)**")
         utilization_key = f"{key_prefix}.utilization_delta_pp.{scenario}"
+        planned_utilization = scenario_assumptions.utilization_rate_pct[year_index]
+        max_utilization_delta = int(round((1 - planned_utilization) * 100))
+        if max_utilization_delta < 10:
+            max_utilization_delta = 10
         utilization_delta_pp = st.slider(
             "Utilization stress (delta vs. plan, percentage points)",
             min_value=-30,
-            max_value=30,
+            max_value=max_utilization_delta,
             value=int(scenario_state.get("utilization_delta_pp", 0)),
             step=1,
             key=utilization_key,
             label_visibility="collapsed",
         )
-        planned_utilization = scenario_assumptions.utilization_rate_pct[year_index]
         effective_utilization = max(
             0.0, min(1.0, planned_utilization + (utilization_delta_pp / 100))
         )

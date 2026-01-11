@@ -921,3 +921,14 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and overlay reset returns to planning values.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Made utilization stress max dynamic per scenario so effective utilization can reach 100%.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and overlay reset returns to planning values.
