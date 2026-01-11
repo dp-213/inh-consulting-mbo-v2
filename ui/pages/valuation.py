@@ -82,13 +82,8 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
         running += value * factor
     dcf_value = running
-    intrinsic_value = sum(
-        value for idx, value in enumerate(business_free_cf) if idx >= start_year
-    )
-
     multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
     dcf_equity = dcf_value - net_debt_close - pension_obligation
-    intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
 
     with output_container:
         st.markdown("### Seller Price Expectation")
@@ -109,7 +104,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             year_labels=["Value"],
         )
         st.markdown(
-            '<div class="subtle">Seller logic reflects a negotiation anchor, not intrinsic value.</div>',
+            '<div class="subtle">Negotiation Anchor – not intrinsic value.</div>',
             unsafe_allow_html=True,
         )
 
@@ -124,7 +119,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             year_labels=["Value"],
         )
         st.markdown(
-            '<div class="subtle">DCF excludes acquisition outflows and reflects operating free cashflow only.</div>',
+            '<div class="subtle">These are reference checks to assess price plausibility, not intrinsic valuations.</div>',
             unsafe_allow_html=True,
         )
 
@@ -136,7 +131,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             ("Enterprise Value (EBIT × Multiple)", [enterprise_value_multiple]),
             ("Net Debt (End of Transition Year)", [net_debt_close]),
             ("Pension Obligations Assumed", [pension_obligation]),
-            ("Reference Equity Value", [multiple_equity]),
+            ("Reference Value (after net debt & pensions)", [multiple_equity]),
         ]
         outputs._render_statement_table_html(
             multiple_rows,
@@ -174,41 +169,27 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             dcf_rows,
         )
 
-        st.markdown("#### Intrinsic / Cash-Based Value (Undiscounted)")
-        intrinsic_rows = [
-            ("Free Cashflow (Business)", business_free_cf),
-            ("Sum of Plan Cashflows", ["", "", "", "", intrinsic_value]),
-            ("Net Debt (End of Transition Year)", [net_debt_close] + [""] * 4),
-            ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
-            ("Equity Value (Intrinsic / Cash-Based)", ["", "", "", "", intrinsic_equity]),
-        ]
-        outputs._render_statement_table_html(
-            intrinsic_rows,
-            bold_labels={"Equity Value (Intrinsic / Cash-Based)"},
-        )
-
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "**1) Business Question**\n"
-            "- Is the price defensible today versus intrinsic cash value and the EBIT‑multiple reference?\n"
+            "- Is the price defensible today versus seller expectations and buyer-side reference checks?\n"
             "\n**2) What This Shows / What This Does NOT Show**\n"
-            "- Shows DCF cash coverage, EBIT‑multiple reference, and seller pricing anchor, all adjusted for net debt and pensions.\n"
-            "- Does not include terminal value, growth case, or a price recommendation.\n"
+            "- Shows seller price expectation, a multiple-based reference, and DCF cash coverage, all adjusted for net debt and pensions.\n"
+            "- Does not include terminal value, exit upside, or a price recommendation.\n"
             "\n**3) Calculation Logic (Transparent, Step-by-Step)**\n"
             "- Enterprise Value (Multiple) = Reference EBIT × Seller Multiple.\n"
-            "- Equity Value (Multiple) = Enterprise Value − Net Debt (End of Transition Year) − Pension Obligations.\n"
+            "- Multiple-Based Reference = Enterprise Value − Net Debt (End of Transition Year) − Pension Obligations.\n"
             "- DCF PV = Σ (Operating Free Cashflowᵗ / (1 + discount rate)ᵗ) from valuation start year.\n"
-            "- Equity Value (DCF) = DCF PV − Net Debt (End of Transition Year) − Pension Obligations.\n"
-            "- Intrinsic Cash Value = Σ Operating Free Cashflow from start year − Net Debt − Pension Obligations.\n"
+            "- Cashflow Coverage Value = DCF PV − Net Debt (End of Transition Year) − Pension Obligations.\n"
             "- Seller Price Expectation = Σ PV(EBIT Year 0–2) + Pension Obligations.\n"
             "\n**4) Interpretation for the Decision**\n"
-            "- If purchase price exceeds both DCF and multiple reference, downside protection is weak.\n"
-            "- If DCF is materially below multiple reference, value depends on multiple expansion, not cash.\n"
-            "- Use exit sensitivity only to size upside, not to justify price.\n"
+            "- If purchase price exceeds both reference checks, downside protection is weak.\n"
+            "- Large gaps between checks signal dependence on assumptions rather than cash reality.\n"
+            "- Use these references to guide negotiation, not to declare a final value.\n"
             "\n**5) Insights & Red Flags**\n"
-            "- Large dispersion between DCF and multiple values signals fragile cash generation.\n"
-            "- Negative or weak early cashflows materially reduce intrinsic value.\n"
-            "- Pension obligations can compress equity value to unattractive levels.\n"
+            "- Large dispersion between DCF and multiple checks signals fragile cash generation.\n"
+            "- Negative or weak early cashflows materially reduce cash coverage.\n"
+            "- Pension obligations can compress buyer value after obligations to unattractive levels.\n"
             "\n**6) Key Dependencies**\n"
             "- Reference EBIT and seller multiple.\n"
             "- Discount rate and valuation start year.\n"

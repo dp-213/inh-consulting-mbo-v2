@@ -145,6 +145,19 @@ Manual verification:
 Re-read ACCEPTANCE.md.
 
 Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Restructured Valuation & Purchase Price to emphasize Seller Price Expectation and demote buyer checks to reference-only language.
+- Removed intrinsic/exit narratives and equity-value wording, keeping only multiple-based and DCF mechanics under Detailed analysis.
+- Updated explanatory copy to reinforce negotiation anchors and avoid precision language.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and the valuation page remains navigable with the simplified sections.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
 - None observed.
 
 Changes:
