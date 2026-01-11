@@ -525,8 +525,10 @@ def main() -> None:
         if scenario != updated_assumptions.scenario:
             updated_assumptions = replace(updated_assumptions, scenario=scenario)
             st.session_state["case"] = updated_assumptions
+            st.session_state["view_scenario"] = scenario
             if not data_path.endswith("base_case.json"):
                 save_case(updated_assumptions, data_path)
+                st.session_state["case_original"] = asdict(updated_assumptions)
         if case_actions["reset"]:
             data_path = "data/base_case.json"
             st.session_state["data_path"] = data_path
@@ -534,6 +536,7 @@ def main() -> None:
             st.session_state["case"] = updated_assumptions
             st.session_state["case_path"] = data_path
             st.session_state["case_original"] = asdict(updated_assumptions)
+            st.session_state["view_scenario"] = updated_assumptions.scenario
         elif case_actions["load"] and case_actions["load_choice"] != "Select case...":
             load_choice = str(case_actions["load_choice"])
             if load_choice.endswith(".json") and ("/" in load_choice or load_choice.startswith("data")):
@@ -545,14 +548,17 @@ def main() -> None:
             st.session_state["case"] = updated_assumptions
             st.session_state["case_path"] = data_path
             st.session_state["case_original"] = asdict(updated_assumptions)
+            st.session_state["view_scenario"] = updated_assumptions.scenario
         if case_actions["save"]:
             save_case(updated_assumptions, data_path)
+            st.session_state["case_original"] = asdict(updated_assumptions)
         if case_actions["save_as"] and case_actions["new_case_name"]:
             new_path = str(case_path(case_actions["new_case_name"]))
             save_case(updated_assumptions, new_path)
             st.session_state["data_path"] = new_path
             st.session_state["case_path"] = new_path
             data_path = new_path
+            st.session_state["case_original"] = asdict(updated_assumptions)
         if case_actions["save_as"] and not case_actions["new_case_name"]:
             st.markdown("Enter a case name before saving a copy.")
         if case_actions["load"] and case_actions["load_choice"] == "Select case...":

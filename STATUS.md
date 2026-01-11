@@ -873,3 +873,15 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and valuation tables/expanders render without navigation regressions.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Fixed case management functional wiring: sync view scenario on load/reset, and update case_original on save/save as/scenario change.
+- Rebuilt Case Management UI into Active Case, Switch Case, Save/Duplicate, and Reset sections per spec; removed scenario selector.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and case load/save/reset should update session state and downstream pages immediately.

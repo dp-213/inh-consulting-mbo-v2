@@ -11,28 +11,18 @@ def render(assumptions: Assumptions, data_path: str, case_options: list[str]) ->
     st.markdown("# Case Management")
     is_base_case = data_path.endswith("base_case.json")
 
-    # A. Current Case (status)
-    st.subheader("A. Current Case")
-    st.write(f"Active case: **{_case_name(data_path)}**")
-    st.write("Source: **Base**" if is_base_case else "Source: **Custom JSON**")
-    st.caption(f"File: {data_path}")
-
-    st.markdown("")
-    st.write("Scenario affects the planning inputs for this case.")
-    scenario = st.selectbox(
-        "Scenario",
-        ["Base", "Best", "Worst"],
-        index=["Base", "Best", "Worst"].index(assumptions.scenario),
-        disabled=is_base_case,
-        help="Base Case is read-only.",
-    )
+    # A. Active Case (read-only)
+    st.subheader("A. Active Case")
+    st.markdown(f"**{_case_name(data_path)}**")
+    st.caption(f"Source: {'Base' if is_base_case else 'Custom'}")
+    st.caption(f"Active Scenario: {assumptions.scenario}")
+    st.caption(f"File path: {data_path}")
 
     st.markdown("---")
 
-    # B. Case Library
-    st.subheader("B. Case Library")
-    st.write("Load a previously saved case to continue working from that state.")
-    st.caption("Loading a case replaces the current case in the tool immediately.")
+    # B. Switch Case
+    st.subheader("B. Switch Case")
+    st.caption("Loading a case replaces the current session immediately.")
 
     library_paths = _discover_case_paths(case_options)
     load_choice = st.selectbox(
@@ -47,9 +37,8 @@ def render(assumptions: Assumptions, data_path: str, case_options: list[str]) ->
 
     # C. Save / Duplicate
     st.subheader("C. Save / Duplicate")
-    st.write("Save changes to the current case, or duplicate it as a new case.")
     if is_base_case:
-        st.caption("Base Case is protected. Create a copy with Save As.")
+        st.caption("Base Case is read-only. Use Save As to create a copy.")
 
     new_case_name = st.text_input(
         "New case name (for Save As)",
@@ -60,20 +49,19 @@ def render(assumptions: Assumptions, data_path: str, case_options: list[str]) ->
 
     save_cols = st.columns([1, 1, 3])
     with save_cols[0]:
-        save_pressed = st.button("Save", disabled=is_base_case)
+        save_pressed = st.button("Save", disabled=is_base_case, type="primary")
     with save_cols[1]:
-        save_as_pressed = st.button("Save As")
+        save_as_pressed = st.button("Save As", type="secondary")
 
     st.markdown("---")
 
-    # D. Reset
-    st.subheader("D. Reset")
-    st.write("Reset the tool to the Base Case.")
-    st.caption("This will discard the current loaded case in the session.")
+    # D. Reset (Danger Zone)
+    st.subheader("D. Reset (Danger Zone)")
+    st.caption("This will discard all unsaved changes in the current session.")
     reset_pressed = st.button("Reset to Base Case", type="secondary")
 
     return {
-        "scenario": scenario,
+        "scenario": assumptions.scenario,
         "save": save_pressed,
         "save_as": save_as_pressed,
         "load": load_pressed,
