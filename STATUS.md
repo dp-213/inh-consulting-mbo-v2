@@ -797,3 +797,16 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Reframed Equity Case into management-first sections with capital at risk, upside sources, and entry ownership context.
+- Added cash-to-equity retention note, de-emphasized exit economics, and moved MOIC/IRR into a detailed analysis expander labeled indicative only.
+- Added Investor Snapshot (Context Only) and softened pension impact highlight plus neutralized interpretation copy.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

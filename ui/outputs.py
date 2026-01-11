@@ -600,20 +600,43 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     external_share = external_equity / total_equity if total_equity else 0.0
     ownership_split = f"Management {management_share * 100:.1f}% / External {external_share * 100:.1f}%"
 
-    st.markdown("### Capital at Risk – Entry View")
+    st.markdown("## Management View")
+    st.markdown("### Management Capital at Risk")
+    management_rows = [
+        ("Management Equity Invested", [_format_money(management_equity)]),
+        ("Management Ownership", [f"{management_share * 100:.1f}%"]),
+        ("Capital at Risk (Management Equity)", [_format_money(management_equity)]),
+    ]
+    _render_statement_table_html(
+        management_rows,
+        years=1,
+        year_labels=["Value"],
+    )
+
+    st.markdown("### Sources of Upside")
+    upside_rows = [
+        ("Residual Cash Participation", [f"{management_share * 100:.1f}% of residual cash (if any)"]),
+        ("Exit Participation", [f"{management_share * 100:.1f}% of exit equity value"]),
+        ("Exit Year", [_year_label(assumptions.equity.exit_year)]),
+    ]
+    _render_statement_table_html(upside_rows, years=1, year_labels=["Statement"])
+    st.markdown(
+        "Management invests limited capital, accepts downside risk, and participates primarily via long-term value creation."
+    )
+
+    st.markdown("### Entry Ownership (Context)")
     equity_rows = [
-        ("Management (Sponsor) Equity", [_format_money(management_equity), f"{management_share * 100:.1f}%"]),
+        ("Management Equity", [_format_money(management_equity), f"{management_share * 100:.1f}%"]),
         ("External Investor Equity", [_format_money(external_equity), f"{external_share * 100:.1f}%"]),
         ("Total Equity", [_format_money(total_equity), "100.0%"]),
     ]
     _render_statement_table_html(
         equity_rows,
-        bold_labels={"Total Equity"},
         years=2,
         year_labels=["Equity (EUR)", "Ownership (%)"],
     )
 
-    st.markdown("### Ownership & Control")
+    st.markdown("### Transaction Structure (Context)")
     control_logic = (
         "Management control (majority ownership)"
         if management_share >= 0.5
@@ -622,7 +645,6 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     control_rows = [
         ("Ownership Split", [ownership_split]),
         ("Control Logic", [control_logic]),
-        ("Exit Year", [_year_label(assumptions.equity.exit_year)]),
         ("Exit Mechanism", [assumptions.equity.exit_mechanism]),
         ("Investor Participation", [assumptions.equity.investor_participation]),
         ("Management Participation", [assumptions.equity.management_participation]),
@@ -657,8 +679,12 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
         ("Allocation – Management", management_cashflows),
     ]
     _render_statement_table_html(cashflow_rows, years=5, year_labels=year_labels)
+    st.markdown(
+        '<div class="subtle">No dividends assumed in early years; cash is retained to deleverage and stabilize the business.</div>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("### Exit Equity Bridge (Single Source of Truth)")
+    st.markdown("#### Exit Economics (Secondary)")
     enterprise_value = result.equity.get("enterprise_value", 0.0)
     net_debt_exit = result.equity.get("net_debt_exit", 0.0)
     excess_cash = result.equity.get("excess_cash_exit", 0.0)
@@ -672,41 +698,50 @@ def render_equity_case(result: ModelResult, assumptions: Assumptions) -> None:
     ]
     _render_statement_table_html(
         equity_bridge_rows,
-        bold_labels={"Equity Value at Exit"},
         years=1,
         year_labels=["Exit Year"],
     )
 
-    st.markdown("### Returns Summary")
+    st.markdown("#### Investor Snapshot (Context Only)")
     investor_rows = [
-        ("Invested Equity", [_format_money(external_equity)]),
-        ("Exit Proceeds", [_format_money(external_exit)]),
-        (
-            "MOIC",
-            [f"{external_exit / external_equity:.2f}x" if external_equity else "n/a"],
-        ),
-        (
-            "IRR",
-            [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a"],
-        ),
+        ("Invested Capital", [_format_money(external_equity)]),
+        ("Ownership", [f"{external_share * 100:.1f}%"]),
+        ("Return Profile", ["Long-term, exit-dependent"]),
+        ("Role", ["Capital partner, not operational controller"]),
     ]
-    st.markdown("#### External Investor")
-    _render_statement_table_html(investor_rows, years=1, year_labels=["Value"])
+    _render_statement_table_html(investor_rows, years=1, year_labels=["Statement"])
 
-    management_rows = [
-        ("Invested Equity", [_format_money(management_equity)]),
-        ("Exit Proceeds", [_format_money(management_exit)]),
-        (
-            "MOIC",
-            [f"{management_exit / management_equity:.2f}x" if management_equity else "n/a"],
-        ),
-        (
-            "IRR",
-            [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a"],
-        ),
-    ]
-    st.markdown("#### Management")
-    _render_statement_table_html(management_rows, years=1, year_labels=["Value"])
+    with st.expander("Indicative return metrics (detailed analysis only)", expanded=False):
+        st.markdown("Indicative only -- context for sensitivity, not a decision target.")
+        investor_rows = [
+            ("Invested Equity", [_format_money(external_equity)]),
+            ("Exit Proceeds", [_format_money(external_exit)]),
+            (
+                "MOIC",
+                [f"{external_exit / external_equity:.2f}x" if external_equity else "n/a"],
+            ),
+            (
+                "IRR",
+                [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if external_equity else "n/a"],
+            ),
+        ]
+        st.markdown("#### External Investor")
+        _render_statement_table_html(investor_rows, years=1, year_labels=["Value"])
+
+        management_rows = [
+            ("Invested Equity", [_format_money(management_equity)]),
+            ("Exit Proceeds", [_format_money(management_exit)]),
+            (
+                "MOIC",
+                [f"{management_exit / management_equity:.2f}x" if management_equity else "n/a"],
+            ),
+            (
+                "IRR",
+                [f"{result.equity.get('irr', 0.0) * 100:.1f}%" if management_equity else "n/a"],
+            ),
+        ]
+        st.markdown("#### Management")
+        _render_statement_table_html(management_rows, years=1, year_labels=["Value"])
 
 
 def render_valuation_summary(result: ModelResult, assumptions: Assumptions) -> None:
