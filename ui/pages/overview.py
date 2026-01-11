@@ -189,14 +189,15 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
         dcf_equity = dcf_value - net_debt_close - pension_obligation
         intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
-        affordability = result.equity.get("exit_value", 0.0) - pension_obligation
-        negotiation_gap = equity_price - multiple_equity
+        minimum_cash_balance = assumptions.balance_sheet.minimum_cash_balance_eur
+        financing_ceiling = debt_amount + management_equity - minimum_cash_balance
+        market_discount = multiple_equity - equity_price
+        financing_headroom = financing_ceiling - purchase_price
 
         st.markdown("#### Value Perspectives (Today)")
         value_rows = [
-            ("Intrinsic Cash Value (DCF, no terminal)", [dcf_equity]),
-            ("Market Reference Value (EBIT × Multiple)", [multiple_equity]),
-            ("Buyer Affordability (Ceiling)", [affordability]),
+            ("Cashflow Coverage Value (DCF, no terminal)", [dcf_equity]),
+            ("Market Reference (EBIT × Multiple)", [multiple_equity]),
         ]
         outputs._render_statement_table_html(
             value_rows,
@@ -204,29 +205,44 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
             year_labels=["Equity Value"],
         )
         st.markdown(
-            '<div class="subtle">These are distinct perspectives, not a valuation range. '
-            'Buyer affordability is a financing/liquidity ceiling, not a valuation.</div>',
+            '<div class="subtle">Two valuation lenses on equity value; not a range.</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Financing Limit (Buyer)")
+        financing_rows = [
+            ("Buyer Financing Ceiling (Not a valuation)", [financing_ceiling]),
+        ]
+        outputs._render_statement_table_html(
+            financing_rows,
+            years=1,
+            year_labels=["Enterprise Value"],
+        )
+        st.markdown(
+            '<div class="subtle">Ceiling is based on max debt, equity at close, and required minimum cash.</div>',
             unsafe_allow_html=True,
         )
 
         st.markdown("#### Purchase Price Positioning")
-        value_rows = [
-            ("Purchase Price (Equity)", [equity_price]),
-            ("Gap vs. Market Reference", [negotiation_gap]),
-            ("Gap vs. Buyer Affordability", [equity_price - affordability]),
+        positioning_rows = [
+            ("Equity Price (Buyer)", [equity_price]),
+            ("Discount vs Market Reference", [market_discount]),
             ("Purchase Price (Enterprise)", [purchase_price]),
+            ("Headroom vs Financing Ceiling", [financing_headroom]),
         ]
         outputs._render_statement_table_html(
-            value_rows,
+            positioning_rows,
             years=1,
             year_labels=["Value"],
         )
-        if equity_price > affordability and equity_price > multiple_equity:
-            interpretation = "Purchase price exceeds market reference and financing-based affordability."
-        elif equity_price > affordability:
-            interpretation = "Purchase price is below market reference but above financing-based affordability."
+        if financing_headroom < 0 and market_discount < 0:
+            interpretation = "Price exceeds market reference and the financing ceiling."
+        elif financing_headroom < 0:
+            interpretation = "Price fits market reference but exceeds the financing ceiling."
+        elif market_discount < 0:
+            interpretation = "Price is financeable but above market reference."
         else:
-            interpretation = "Purchase price is below affordability and market reference."
+            interpretation = "Price is financeable and below market reference."
         st.markdown(f'<div class="subtle">{interpretation}</div>', unsafe_allow_html=True)
 
     with st.expander("Key Assumptions (View Only)", expanded=False):

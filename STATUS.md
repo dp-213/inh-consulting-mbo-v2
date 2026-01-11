@@ -834,3 +834,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and the valuation page copy change does not affect layout or navigation.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Split the Overview decision core into valuation perspectives and a dedicated financing limit block.
+- Rewired the financing ceiling to use debt capacity, equity at close, and minimum cash balance instead of exit value.
+- Replaced gap labels with discount/headroom wording and updated the interpretation logic to keep positive = good.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation/content regressions introduced.
