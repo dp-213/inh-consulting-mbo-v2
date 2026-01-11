@@ -717,3 +717,16 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Operational Steering Levers now write only to st.session_state["operational_steering"] and are applied at runtime without persisting into st.session_state["case"].
+- Navigating into the P&L page clears operational steering values, while case assumptions remain intact.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

@@ -435,6 +435,9 @@ def main() -> None:
     if page not in NAV_PAGES:
         page = DEFAULT_PAGE
         st.session_state["page"] = page
+    if st.session_state.get("last_page") != page and page == "Operating Model (P&L)":
+        st.session_state["operational_steering"] = {}
+    st.session_state["last_page"] = page
 
     data_path = st.session_state["data_path"]
     if (

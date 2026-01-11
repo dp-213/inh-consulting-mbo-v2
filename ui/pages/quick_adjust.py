@@ -30,58 +30,76 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
         )
     consultant_fte_default = assumptions.cost.personnel_by_year[year_index].consultant_fte
     overhead_default = 100.0
+    steering_state = st.session_state.setdefault("operational_steering", {})
+    scenario_state = steering_state.setdefault(scenario, {})
 
     with st.expander("Operational Steering Levers", expanded=False):
         top_cols = st.columns([0.8, 0.2])
         reset_key = f"{key_prefix}.reset.{scenario}"
         if top_cols[1].button("Reset to planning values", key=reset_key):
-            _set_state_defaults(
+            scenario_state.update(
                 {
-                    f"{key_prefix}.utilization.{scenario}": utilization_default,
-                    f"{key_prefix}.day_rate.{scenario}": avg_day_rate_default,
-                    f"{key_prefix}.consultant_fte.{scenario}": consultant_fte_default,
-                    f"{key_prefix}.overhead_pct.{scenario}": overhead_default,
+                    "utilization_rate": utilization_default,
+                    "avg_day_rate": avg_day_rate_default,
+                    "consultant_fte": consultant_fte_default,
+                    "overhead_pct": overhead_default,
                 }
             )
             st.rerun()
 
         st.markdown("**Capacity & Utilization**")
+        utilization_key = f"{key_prefix}.utilization.{scenario}"
         utilization_rate = st.number_input(
             "Utilization rate",
             min_value=0.0,
             max_value=1.0,
             step=0.01,
-            value=float(utilization_default),
-            key=f"{key_prefix}.utilization.{scenario}",
+            value=float(scenario_state.get("utilization_rate", utilization_default)),
+            key=utilization_key,
         )
         st.markdown("**Pricing**")
+        day_rate_key = f"{key_prefix}.day_rate.{scenario}"
         avg_day_rate = st.number_input(
             "Average day rate",
             min_value=0.0,
             step=50.0,
-            value=float(avg_day_rate_default),
-            key=f"{key_prefix}.day_rate.{scenario}",
+            value=float(scenario_state.get("avg_day_rate", avg_day_rate_default)),
+            key=day_rate_key,
         )
         st.markdown("**People Costs**")
+        fte_key = f"{key_prefix}.consultant_fte.{scenario}"
         consultant_fte = st.number_input(
             "Consultant FTE",
             min_value=0.0,
             step=0.5,
-            value=float(consultant_fte_default),
-            key=f"{key_prefix}.consultant_fte.{scenario}",
+            value=float(scenario_state.get("consultant_fte", consultant_fte_default)),
+            key=fte_key,
         )
         st.markdown("**Overhead**")
+        overhead_key = f"{key_prefix}.overhead_pct.{scenario}"
         overhead_pct = st.number_input(
             "Overhead %",
             min_value=0.0,
             step=5.0,
-            value=overhead_default,
-            key=f"{key_prefix}.overhead_pct.{scenario}",
+            value=float(scenario_state.get("overhead_pct", overhead_default)),
+            key=overhead_key,
         )
         st.markdown(
             '<div class="hint-text">What-if sliders for this page only. Nothing is saved. Revenue Model stays the source of truth.</div>',
             unsafe_allow_html=True,
         )
+
+    scenario_state.update(
+        {
+            "utilization_rate": utilization_rate,
+            "avg_day_rate": avg_day_rate,
+            "consultant_fte": consultant_fte,
+            "overhead_pct": overhead_pct,
+        }
+    )
+    for key in (utilization_key, day_rate_key, fte_key, overhead_key):
+        if key in st.session_state:
+            del st.session_state[key]
 
     return _apply_quick_inputs(
         assumptions=assumptions,
@@ -90,11 +108,6 @@ def render_quick_adjust_pnl(assumptions: Assumptions, key_prefix: str) -> Assump
         consultant_fte=consultant_fte,
         overhead_pct=overhead_pct,
     )
-
-
-def _set_state_defaults(defaults: dict) -> None:
-    for key, value in defaults.items():
-        st.session_state[key] = value
 
 
 def _apply_quick_inputs(
