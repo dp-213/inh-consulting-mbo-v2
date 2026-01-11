@@ -33,33 +33,17 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     current = scenarios[scenario]
 
     st.markdown("### Revenue Drivers")
-    planning_mode = st.selectbox(
-        "Planning Mode",
-        ["Capacity-driven planning", "Top-down revenue growth"],
-        index=0,
-        key="revenue.planning_mode",
-    )
     driver_rows = [
         ("Workdays per Year", "Days", current.workdays_per_year, "Billable calendar days."),
         ("Utilization %", "%", current.utilization_rate_pct, "Share of billable time."),
         ("Day Rate Growth (% p.a.)", "% p.a.", current.day_rate_growth_pct, ""),
     ]
-    if planning_mode == "Top-down revenue growth":
-        driver_rows.append(
-            ("Revenue Growth (% p.a.)", "% p.a.", current.revenue_growth_pct, "")
-        )
     drivers_table = _year_table(driver_rows)
     drivers_table = _edit_table(drivers_table, key="revenue.drivers")
-    if planning_mode == "Capacity-driven planning":
-        st.markdown(
-            '<div class="subtle">Revenue Growth is locked to 0% in capacity-driven mode. Revenue is driven by headcount, utilization, and day rates.</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<div class="subtle">Top-down growth applies as an overlay on capacity-driven revenue. Validate that growth assumptions are consistent with capacity.</div>',
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        '<div class="subtle">Revenue is fully capacity-driven: headcount × workdays × utilization × day rates.</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### Capacity Allocation")
     allocation_table = _year_table(
@@ -68,22 +52,17 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         ]
     )
     allocation_table = _edit_table(allocation_table, key="revenue.allocation")
-    external_share_values = _row_years_numeric(allocation_table, "External Capacity Share %")
-    group_share_values = [max(1 - value, 0.0) for value in external_share_values]
-    normalized_group = []
-    normalized_external = []
-    for idx in range(len(group_share_values)):
-        total = group_share_values[idx] + external_share_values[idx]
-        if total > 0:
-            normalized_group.append(f"{(group_share_values[idx] / total) * 100:.1f}%")
-            normalized_external.append(f"{(external_share_values[idx] / total) * 100:.1f}%")
-        else:
-            normalized_group.append("0.0%")
-            normalized_external.append("0.0%")
+    external_share_inputs = _row_years_numeric(
+        allocation_table, "External Capacity Share %"
+    )
+    external_share_values = [min(max(value, 0.0), 1.0) for value in external_share_inputs]
+    group_share_values = [1 - value for value in external_share_values]
+    normalized_external = [f"{value * 100:.1f}%" for value in external_share_values]
+    normalized_group = [f"{value * 100:.1f}%" for value in group_share_values]
     outputs._render_statement_table_html(
         [
-            ("Group Capacity Share (Calculated)", normalized_group),
             ("External Capacity Share (Input)", normalized_external),
+            ("Group Capacity Share (Calculated)", normalized_group),
         ],
         years=len(outputs.YEAR_LABELS),
         year_labels=outputs.YEAR_LABELS,
@@ -118,11 +97,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         group_day_rate_eur=_row_years_numeric(rate_table, "Group Day Rate"),
         external_day_rate_eur=_row_years_numeric(rate_table, "External Day Rate"),
         day_rate_growth_pct=_row_years_numeric(drivers_table, "Day Rate Growth (% p.a.)"),
-        revenue_growth_pct=(
-            _row_years_numeric(drivers_table, "Revenue Growth (% p.a.)")
-            if planning_mode == "Top-down revenue growth"
-            else [0.0 for _ in range(5)]
-        ),
+        revenue_growth_pct=[0.0 for _ in range(5)],
         group_capacity_share_pct=group_share_values,
         external_capacity_share_pct=external_share_values,
         reference_revenue_eur=_to_float(_row_years_numeric(reference_table, "Reference Revenue")[0]),
@@ -437,7 +412,7 @@ def render_revenue_quick_inputs(assumptions: Assumptions) -> Assumptions:
         group_day_rate_eur=_row_years_numeric(quick_table, "Group Day Rate"),
         external_day_rate_eur=_row_years_numeric(quick_table, "External Day Rate"),
         day_rate_growth_pct=current.day_rate_growth_pct,
-        revenue_growth_pct=current.revenue_growth_pct,
+        revenue_growth_pct=[0.0 for _ in range(5)],
         group_capacity_share_pct=current.group_capacity_share_pct,
         external_capacity_share_pct=current.external_capacity_share_pct,
         reference_revenue_eur=_from_meur(_row_value(reference_table, "Reference Revenue")),

@@ -29,15 +29,22 @@ def render(assumptions: Assumptions) -> Assumptions:
     if components:
         st.markdown("### Revenue Bridge")
         rows = [
-            ("Modeled Group Revenue", [row["modeled_group_revenue"] for row in components]),
-            ("Guaranteed Floor", [row["guaranteed_floor"] for row in components]),
-            ("Guaranteed Group Revenue", [row["guaranteed_group_revenue"] for row in components]),
-            ("Modeled External Revenue", [row["modeled_external_revenue"] for row in components]),
+            ("Capacity-driven Revenue (Pre-Guarantee)", [row["modeled_total_revenue"] for row in components]),
+            ("Group Revenue (Calculated)", [row["modeled_group_revenue"] for row in components]),
+            ("External Revenue (Calculated)", [row["modeled_external_revenue"] for row in components]),
+            ("Guaranteed Group Revenue (Floor)", [row["guaranteed_group_revenue"] for row in components]),
+            (
+                "Guarantee Uplift (if any)",
+                [
+                    row["guaranteed_group_revenue"] - row["modeled_group_revenue"]
+                    for row in components
+                ],
+            ),
             ("Total Revenue (Final)", [row["final_total"] for row in components]),
         ]
         outputs._render_statement_table_html(
             rows,
-            bold_labels={"Total Revenue (Final)", "Guaranteed Group Revenue"},
+            bold_labels={"Total Revenue (Final)", "Guaranteed Group Revenue (Floor)"},
             year_labels=outputs.YEAR_LABELS,
         )
     return updated_assumptions

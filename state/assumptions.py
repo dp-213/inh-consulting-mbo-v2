@@ -163,7 +163,7 @@ def default_assumptions() -> Assumptions:
                 group_day_rate_eur=_year_list(950.0),
                 external_day_rate_eur=_year_list(1200.0),
                 day_rate_growth_pct=_year_list(0.03),
-                revenue_growth_pct=_year_list(0.02),
+                revenue_growth_pct=_year_list(0.0),
                 group_capacity_share_pct=_year_list(0.65),
                 external_capacity_share_pct=_year_list(0.35),
                 reference_revenue_eur=2_500_000.0,

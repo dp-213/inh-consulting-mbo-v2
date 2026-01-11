@@ -533,3 +533,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Revenue Capacity Allocation now clamps external share inputs to 0–100% and always calculates group share as 100% minus external.
+- Revenue Growth is fully removed from Revenue Model entry points and forced to 0% in quick inputs to keep planning strictly capacity-driven.
+- Base case assumptions now set revenue growth to 0% across all scenarios to avoid hidden top-down overlays.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
