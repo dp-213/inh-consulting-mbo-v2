@@ -31,6 +31,11 @@ def _render_scenario_selector(current: str) -> str:
 def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("# Revenue Model")
     selected_scenario = _render_scenario_selector(assumptions.scenario)
+    st.markdown(
+        '<div class="subtle">Szenarien = operative Realitaet (Revenue-Risiko). '
+        'Kosten &amp; Kapitalstruktur = strukturelle Fixpunkte. konservativ.</div>',
+        unsafe_allow_html=True,
+    )
     if selected_scenario != assumptions.scenario:
         assumptions = replace(assumptions, scenario=selected_scenario)
     st.markdown("### Consultant Capacity (Derived)")
