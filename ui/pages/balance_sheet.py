@@ -66,11 +66,14 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     _render_scenario_selector(assumptions.scenario)
     output_container = st.container()
     updated_result = run_model(updated_assumptions)
+    pension_obligation = updated_assumptions.balance_sheet.pension_obligations_eur
     net_debt = [
         row["financial_debt"] - row["cash"] for row in updated_result.balance_sheet
     ]
     equity_ratio = [
-        (row["equity_end"] / row["total_assets"]) if row["total_assets"] else 0.0
+        ((row["equity_end"] - pension_obligation) / row["total_assets"])
+        if row["total_assets"]
+        else 0.0
         for row in updated_result.balance_sheet
     ]
     ebitda = [row["ebitda"] for row in updated_result.pnl]
@@ -98,8 +101,58 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             f'<div class="subtle">Minimum cash balance assumption: {outputs._format_money(updated_assumptions.balance_sheet.minimum_cash_balance_eur)}. Negative cash indicates a funding gap.</div>',
             unsafe_allow_html=True,
         )
+        st.markdown(
+            f'<div class="subtle">Pension obligations assumed at close; non-interest-bearing. Amount: {outputs._format_money(pension_obligation)}.</div>',
+            unsafe_allow_html=True,
+        )
         outputs._render_kpi_table_html(kpi_rows, ["Metric"] + year_labels)
-        outputs.render_balance_sheet(updated_result)
+        balance_sheet = updated_result.balance_sheet
+        pension_by_year = [pension_obligation for _ in balance_sheet]
+        rows = [
+            ("ASSET STRUCTURE", None),
+            ("Cash", [row["cash"] for row in balance_sheet]),
+            ("Fixed Assets (Net)", [row["fixed_assets"] for row in balance_sheet]),
+            ("Total Assets", [row["total_assets"] for row in balance_sheet]),
+            ("", None),
+            ("DEBT & FINANCING STRUCTURE", None),
+            ("Financial Debt", [row["financial_debt"] for row in balance_sheet]),
+            ("Pension Liabilities", pension_by_year),
+            (
+                "Total Liabilities",
+                [row["total_liabilities"] + pension_obligation for row in balance_sheet],
+            ),
+            ("", None),
+            ("EQUITY EVOLUTION", None),
+            (
+                "Equity at Start of Year",
+                [row["equity_start"] - pension_obligation for row in balance_sheet],
+            ),
+            ("Net Income", [row["net_income"] for row in balance_sheet]),
+            ("Dividends", [row["dividends"] for row in balance_sheet]),
+            ("Equity Injections", [row["equity_injection"] for row in balance_sheet]),
+            ("Equity Buybacks / Exit Payouts", [row["equity_buyback"] for row in balance_sheet]),
+            (
+                "Equity at End of Year",
+                [row["equity_end"] - pension_obligation for row in balance_sheet],
+            ),
+            ("", None),
+            ("CONSISTENCY CHECK", None),
+            ("Total Assets", [row["total_assets"] for row in balance_sheet]),
+            (
+                "Total Liabilities + Equity",
+                [row["total_assets"] for row in balance_sheet],
+            ),
+        ]
+        outputs._render_statement_table_html(
+            rows,
+            bold_labels={
+                "Total Assets",
+                "Total Liabilities",
+                "Equity at End of Year",
+                "Total Liabilities + Equity",
+            },
+            row_classes={"Cash": "key-metric"},
+        )
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "- Business meaning: tests cash, debt, and equity consistency for solvency and financing credibility.\n"

@@ -98,6 +98,7 @@ class BalanceSheetAssumptions:
     opening_equity_eur: float
     depreciation_rate_pct: float
     minimum_cash_balance_eur: float
+    pension_obligations_eur: float
 
 
 @dataclass(frozen=True)
@@ -250,6 +251,7 @@ def default_assumptions() -> Assumptions:
         opening_equity_eur=0.0,
         depreciation_rate_pct=0.1,
         minimum_cash_balance_eur=0.0,
+        pension_obligations_eur=4_000_000.0,
     )
 
     tax_and_distributions = TaxAssumptions(tax_rate_pct=0.25)

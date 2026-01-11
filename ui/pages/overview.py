@@ -53,19 +53,39 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
     net_debt_close = closing_debt - cash_at_close
 
     enterprise_value = result.equity.get("enterprise_value", 0.0)
+    pension_obligation = assumptions.balance_sheet.pension_obligations_eur
+    equity_price = purchase_price - net_debt_close - pension_obligation
+    total_equity_invested = management_equity + external_equity
+    management_share = management_equity / total_equity_invested if total_equity_invested else 0.0
+    external_share = external_equity / total_equity_invested if total_equity_invested else 0.0
+    management_equity_value = equity_price * management_share
+    external_equity_value = equity_price * external_share
     st.markdown("### Deal Snapshot – Mechanics")
     snapshot_rows = [
         ("Enterprise Value (Headline)", [enterprise_value]),
-        ("Equity Total", [total_equity_needed]),
-        ("Management Equity", [management_equity]),
-        ("External Investor Equity", [external_equity]),
+        ("Purchase Price (Enterprise)", [purchase_price]),
+        ("Equity Value (Mgmt / Investor)", [f"{outputs._format_money(management_equity_value)} / {outputs._format_money(external_equity_value)}"]),
         ("Debt Amount", [debt_amount]),
         ("Net Debt at Close", [net_debt_close]),
+        ("Pension Obligations Assumed", [pension_obligation]),
         ("Plan Horizon", ["Transition Year (Year 0) → Business Plan Years (1–4)"]),
     ]
     outputs._render_statement_table_html(
         snapshot_rows,
-        bold_labels={"Enterprise Value (Headline)", "Equity Total"},
+        bold_labels={"Enterprise Value (Headline)", "Purchase Price (Enterprise)"},
+        years=1,
+        year_labels=["Value"],
+    )
+    st.markdown("### Price Composition")
+    composition_rows = [
+        ("Enterprise Price", [purchase_price]),
+        ("Net Debt at Close", [net_debt_close]),
+        ("Pension Obligations", [pension_obligation]),
+        ("Equity Price", [equity_price]),
+    ]
+    outputs._render_statement_table_html(
+        composition_rows,
+        bold_labels={"Equity Price"},
         years=1,
         year_labels=["Value"],
     )
@@ -159,18 +179,21 @@ def render(result: ModelResult, assumptions: Assumptions) -> None:
         intrinsic_value = sum(
             value for idx, value in enumerate(free_cf) if idx >= start_year
         )
-        valuation_min = min(enterprise_value, dcf_value, intrinsic_value)
-        valuation_max = max(enterprise_value, dcf_value, intrinsic_value)
+        multiple_equity = enterprise_value - net_debt_close - pension_obligation
+        dcf_equity = dcf_value - net_debt_close - pension_obligation
+        intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
+        valuation_min = min(multiple_equity, dcf_equity, intrinsic_equity)
+        valuation_max = max(multiple_equity, dcf_equity, intrinsic_equity)
         midpoint = (valuation_min + valuation_max) / 2 if valuation_min or valuation_max else 0.0
-        affordability = result.equity.get("exit_value", 0.0)
-        negotiation_gap = purchase_price - midpoint
+        affordability = result.equity.get("exit_value", 0.0) - pension_obligation
+        negotiation_gap = equity_price - midpoint
 
         value_rows = [
             ("Valuation Min (Today)", [valuation_min]),
             ("Valuation Midpoint (Today)", [midpoint]),
             ("Valuation Max (Today)", [valuation_max]),
             ("Buyer Affordability (Ceiling)", [affordability]),
-            ("Purchase Price", [purchase_price]),
+            ("Purchase Price (Enterprise)", [purchase_price]),
             ("Negotiation Gap (EUR)", [negotiation_gap]),
         ]
         outputs._render_statement_table_html(

@@ -542,16 +542,19 @@ def render_balance_sheet_key_assumptions(assumptions: Assumptions, key_prefix: s
             ("Opening Equity", "EUR", balance_sheet.opening_equity_eur, ""),
             ("Depreciation Rate", "%", balance_sheet.depreciation_rate_pct, ""),
             ("Minimum Cash Balance", "EUR", balance_sheet.minimum_cash_balance_eur, ""),
+            ("Pension Obligations at Close", "EUR", balance_sheet.pension_obligations_eur, ""),
         ]
     )
     table = _edit_table(table, key=f"{key_prefix}.balance_sheet")
     _require_value(table, "Opening Equity")
     _require_value(table, "Depreciation Rate")
     _require_value(table, "Minimum Cash Balance")
+    _require_value(table, "Pension Obligations at Close")
     updated_balance_sheet = BalanceSheetAssumptions(
         opening_equity_eur=_to_float(_row_value(table, "Opening Equity")),
         depreciation_rate_pct=_to_float(_row_value(table, "Depreciation Rate")),
         minimum_cash_balance_eur=_to_float(_row_value(table, "Minimum Cash Balance")),
+        pension_obligations_eur=_to_float(_row_value(table, "Pension Obligations at Close")),
     )
     return replace(assumptions, balance_sheet=updated_balance_sheet)
 

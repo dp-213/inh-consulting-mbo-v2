@@ -376,3 +376,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Added pension obligation assumption and wired it through balance sheet display, valuation today logic, overview snapshot, and debt/ equity informational notes.
+- Rebuilt valuation today sections to subtract pension obligations from equity value and added purchase price logic block with explicit pension line.
+- Extended Overview deal mechanics with pension obligations and a price composition bridge.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

@@ -18,6 +18,18 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     updated_result = run_model(updated_assumptions)
     with output_container:
         outputs.render_financing_debt(updated_result, updated_assumptions)
+        pension_obligation = updated_assumptions.balance_sheet.pension_obligations_eur
+        info_rows = [
+            (
+                "Structural obligations not covered by CFADS: Pension liabilities",
+                [outputs._format_money(pension_obligation)],
+            )
+        ]
+        outputs._render_statement_table_html(
+            info_rows,
+            years=1,
+            year_labels=["Value"],
+        )
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "**Business Purpose**\n"
