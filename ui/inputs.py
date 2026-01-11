@@ -160,12 +160,16 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
         },
     ]
     inflation_table = _edit_table(inflation_table, key="cost.inflation")
+    st.markdown(
+        '<div class="subtle">Inflation is applied only to monetary inputs (loaded costs, management, overhead, and variable costs), not to FTE counts.</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### Consultant Costs")
     consultant_table = _year_table(
         [
             ("Consultant FTE", "FTE", [row.consultant_fte for row in cost.personnel_by_year], ""),
-            ("Consultant Loaded Cost", "EUR", [row.consultant_loaded_cost_eur for row in cost.personnel_by_year], ""),
+            ("Consultant Loaded Cost", "k€", [row.consultant_loaded_cost_eur for row in cost.personnel_by_year], ""),
         ]
     )
     consultant_table = _edit_table(consultant_table, key="cost.consultant")
@@ -174,7 +178,7 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     backoffice_table = _year_table(
         [
             ("Backoffice FTE", "FTE", [row.backoffice_fte for row in cost.personnel_by_year], ""),
-            ("Backoffice Loaded Cost", "EUR", [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year], ""),
+            ("Backoffice Loaded Cost", "k€", [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year], ""),
         ]
     )
     backoffice_table = _edit_table(backoffice_table, key="cost.backoffice")
@@ -182,7 +186,7 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     st.markdown("### Management")
     management_table = _year_table(
         [
-            ("Management Cost", "EUR", [row.management_cost_eur for row in cost.personnel_by_year], ""),
+            ("Management Cost", "k€", [row.management_cost_eur for row in cost.personnel_by_year], ""),
         ]
     )
     management_table = _edit_table(management_table, key="cost.management")
@@ -190,12 +194,12 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     st.markdown("### Fixed Overhead")
     fixed_overhead_table = _year_table(
         [
-            ("Advisory", "EUR", [row.advisory_eur for row in cost.fixed_overhead_by_year], ""),
-            ("Legal", "EUR", [row.legal_eur for row in cost.fixed_overhead_by_year], ""),
-            ("IT & Software", "EUR", [row.it_software_eur for row in cost.fixed_overhead_by_year], ""),
-            ("Office Rent", "EUR", [row.office_rent_eur for row in cost.fixed_overhead_by_year], ""),
-            ("Services", "EUR", [row.services_eur for row in cost.fixed_overhead_by_year], ""),
-            ("Other Services", "EUR", [row.other_services_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Advisory", "k€", [row.advisory_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Legal", "k€", [row.legal_eur for row in cost.fixed_overhead_by_year], ""),
+            ("IT & Software", "k€", [row.it_software_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Office Rent", "k€", [row.office_rent_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Services", "k€", [row.services_eur for row in cost.fixed_overhead_by_year], ""),
+            ("Other Services", "k€", [row.other_services_eur for row in cost.fixed_overhead_by_year], ""),
         ]
     )
     fixed_overhead_table = _edit_table(fixed_overhead_table, key="cost.fixed")
@@ -211,9 +215,9 @@ def render_cost_inputs(assumptions: Assumptions) -> Assumptions:
     variable_type_table = _edit_table(variable_type_table, key="cost.variable.type")
     variable_value_table = _year_table(
         [
-            ("Training", "EUR / %", [row.training_value for row in cost.variable_costs_by_year], ""),
-            ("Travel", "EUR / %", [row.travel_value for row in cost.variable_costs_by_year], ""),
-            ("Communication", "EUR / %", [row.communication_value for row in cost.variable_costs_by_year], ""),
+            ("Training", "k€ / %", [row.training_value for row in cost.variable_costs_by_year], ""),
+            ("Travel", "k€ / %", [row.travel_value for row in cost.variable_costs_by_year], ""),
+            ("Communication", "k€ / %", [row.communication_value for row in cost.variable_costs_by_year], ""),
         ]
     )
     variable_value_table = _edit_table(variable_value_table, key="cost.variable.value")
@@ -459,10 +463,10 @@ def render_cost_quick_inputs(assumptions: Assumptions) -> Assumptions:
     quick_table = _year_table(
         [
             ("Consultant Headcount", "People", [row.consultant_fte for row in cost.personnel_by_year], "Delivery capacity."),
-            ("Consultant Cost (All-in)", "EUR", [row.consultant_loaded_cost_eur for row in cost.personnel_by_year], "Fully loaded cost per person."),
+            ("Consultant Cost (All-in)", "k€", [row.consultant_loaded_cost_eur for row in cost.personnel_by_year], "Fully loaded cost per person."),
             ("Backoffice Headcount", "People", [row.backoffice_fte for row in cost.personnel_by_year], "Support capacity."),
-            ("Backoffice Cost (All-in)", "EUR", [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year], "Fully loaded cost per person."),
-            ("Management Cost", "EUR", [row.management_cost_eur for row in cost.personnel_by_year], "Fixed leadership cost."),
+            ("Backoffice Cost (All-in)", "k€", [row.backoffice_loaded_cost_eur for row in cost.personnel_by_year], "Fully loaded cost per person."),
+            ("Management Cost", "k€", [row.management_cost_eur for row in cost.personnel_by_year], "Fixed leadership cost."),
         ]
     )
     quick_table = _edit_table(quick_table, key="wizard.cost")
@@ -869,7 +873,7 @@ def _row_years_numeric(table: List[dict], name: str) -> List[float]:
             values = [_to_float(row.get(year, 0.0)) for year in YEARS]
             if _is_percent_unit(unit):
                 return [value / 100 for value in values]
-            if unit == "k€":
+            if unit.startswith("k€"):
                 return [value * 1_000 for value in values]
             if unit == "m€":
                 return [value * MILLION for value in values]
@@ -939,7 +943,7 @@ def _display_value(value, unit: str):
         return f"{float(number) * 100:,.1f}" if number is not None else "0.0"
     if str(unit).strip() in {"Year", "Years"}:
         return f"{float(number):,.0f}" if number is not None else "0"
-    if str(unit).strip() == "k€":
+    if str(unit).strip().startswith("k€"):
         return f"{float(number) / 1_000:,.2f}" if number is not None else "0.00"
     if str(unit).strip() == "m€":
         return f"{float(number):,.2f}" if number is not None else "0.00"
