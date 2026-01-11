@@ -18,6 +18,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     updated_result = run_model(updated_assumptions)
     with output_container:
         outputs.render_financing_debt(updated_result, updated_assumptions)
+        st.markdown(
+            '<div class="subtle">Repayment profile is fixed to linear amortization for this model version to maintain comparability across cases; changes to repayment structure should be evaluated as a separate financing scenario.</div>',
+            unsafe_allow_html=True,
+        )
         pension_obligation = updated_assumptions.balance_sheet.pension_obligations_eur
         info_rows = [
             (
