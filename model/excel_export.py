@@ -302,7 +302,9 @@ def _build_assumptions_sheet(
         [
             ("Profit Tax Rate", "%", assumptions.tax_and_distributions.tax_rate_pct, "tax.rate"),
             ("Seller Multiple", "x", assumptions.valuation.seller_multiple, "valuation.multiple"),
+            ("Reference Year", "Year", assumptions.valuation.reference_year, "valuation.reference_year"),
             ("Discount Rate (Cost of Capital)", "%", assumptions.valuation.discount_rate_pct, "valuation.discount_rate"),
+            ("Valuation Start Year", "Year", assumptions.valuation.valuation_start_year, "valuation.start_year"),
             ("Transaction Costs (%)", "%", assumptions.valuation.transaction_costs_pct, "valuation.txn_cost_pct"),
             ("Investor Exit Year", "Year", assumptions.equity.exit_year, "valuation.exit_year"),
         ],
@@ -1038,6 +1040,7 @@ def _build_cashflow_sheet(
     _apply_total_style(ws, row_map["closing_cash"], styles, 7)
 
     return {
+        "ebitda": _row_cells("Cashflow & Liquidity", row_map["ebitda_support"]),
         "operating_cf": _row_cells("Cashflow & Liquidity", row_map["operating_cf"]),
         "free_cashflow": _row_cells("Cashflow & Liquidity", row_map["free_cashflow"]),
         "net_cashflow": _row_cells("Cashflow & Liquidity", row_map["net_cashflow"]),
@@ -1050,6 +1053,7 @@ def _build_cashflow_sheet(
         "fixed_assets": _row_cells("Cashflow & Liquidity", row_map["fixed_assets"]),
         "depreciation": _row_cells("Cashflow & Liquidity", row_map["depreciation"]),
         "capex": _row_cells("Cashflow & Liquidity", row_map["capex"]),
+        "acquisition_outflow": _row_cells("Cashflow & Liquidity", row_map["acquisition_outflow"]),
         "interest_paid": _row_cells("Cashflow & Liquidity", row_map["interest_paid"]),
         "total_repayment": _row_cells("Cashflow & Liquidity", row_map["total_repayment"]),
         "opening_debt": _row_cells("Cashflow & Liquidity", row_map["opening_debt"]),
@@ -1080,7 +1084,7 @@ def _build_debt_sheet(
         row_map,
         "ebitda",
         styles,
-        lambda c, idx=None: f"={cashflow_map['operating_cf'][idx]}+{cashflow_map['taxes_paid'][idx]}+{cashflow_map['working_capital_balance'][idx]}-{cashflow_map['working_capital_balance'][idx]}",
+        lambda c, idx=None: f"={cashflow_map['ebitda'][idx]}",
     )
     row = _write_formula_row(
         ws,
@@ -1110,7 +1114,7 @@ def _build_debt_sheet(
         row_map,
         "working_capital_change",
         styles,
-        lambda c, idx=None: f"=0",
+        lambda c, idx=None: f"={cashflow_map['working_capital_change'][idx]}",
     )
     row = _write_formula_row(
         ws,
@@ -1171,6 +1175,16 @@ def _build_debt_sheet(
         "minimum_dscr",
         styles,
         lambda c: f"={assumptions_map['financing.minimum_dscr']}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "DSCR Headroom",
+        "x",
+        row_map,
+        "dscr_headroom",
+        styles,
+        lambda c: f"=C{row_map['dscr']}-C{row_map['minimum_dscr']}",
     )
     row = _write_formula_row(
         ws,
@@ -1824,40 +1838,156 @@ def _build_valuation_sheet(
     row = _write_header_row(ws, row, styles)
     row_map: Dict[str, int] = {}
 
-    row = _write_section_label(ws, row, "Seller vs Buyer View", styles)
+    row = _write_section_label(ws, row, "Value Perspectives (Today)", styles)
     row = _write_formula_row(
         ws,
         row,
-        "Seller Equity Value",
+        "Reference EBIT",
         "EUR",
         row_map,
-        "seller_value",
+        "reference_ebit",
         styles,
         lambda c, idx=None: (
-            f"={equity_map['enterprise_value'][idx]}"
-            f"-({balance_map['financial_debt'][0]}-{balance_map['cash'][0]})"
-            f"-{assumptions_map['balance.pension_obligations']}"
+            f"=INDEX({pnl_map['ebit'][0]}:{pnl_map['ebit'][-1]},{assumptions_map['valuation.reference_year']}+1)"
         ),
     )
     row = _write_formula_row(
         ws,
         row,
-        "Buyer Affordability",
+        "Enterprise Value (EBIT × Multiple)",
         "EUR",
         row_map,
-        "buyer_value",
+        "enterprise_value_multiple",
         styles,
-        lambda c, idx=None: f"={equity_map['exit_value'][idx]}-{assumptions_map['balance.pension_obligations']}",
+        lambda c: f"=C{row_map['reference_ebit']}*{assumptions_map['valuation.multiple']}",
     )
     row = _write_formula_row(
         ws,
         row,
-        "Valuation Gap",
+        "Net Debt (End of Transition Year)",
         "EUR",
         row_map,
-        "valuation_gap",
+        "net_debt_close",
         styles,
-        lambda c: f"=C{row_map['buyer_value']}-C{row_map['seller_value']}",
+        lambda c: f"={balance_map['financial_debt'][0]}-{balance_map['cash'][0]}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Pension Obligations Assumed",
+        "EUR",
+        row_map,
+        "pension_obligations",
+        styles,
+        lambda c: f"={assumptions_map['balance.pension_obligations']}",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Equity Value (Multiple-Based)",
+        "EUR",
+        row_map,
+        "multiple_equity",
+        styles,
+        lambda c: f"=C{row_map['enterprise_value_multiple']}-C{row_map['net_debt_close']}-C{row_map['pension_obligations']}",
+    )
+
+    row = _write_section_label(ws, row + 1, "DCF (No Terminal) – Buyer View", styles)
+    row = _write_formula_row(
+        ws,
+        row,
+        "Operating Free Cashflow (Business)",
+        "EUR",
+        row_map,
+        "free_cashflow_business",
+        styles,
+        lambda c, idx=None: (
+            f"=IF((COLUMN()-3)<{assumptions_map['valuation.start_year']},\"\","
+            f"{cashflow_map['free_cashflow'][idx]}-{cashflow_map['acquisition_outflow'][idx]})"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Discount Factor",
+        "",
+        row_map,
+        "discount_factor",
+        styles,
+        lambda c, idx=None: (
+            f"=IF((COLUMN()-3)<{assumptions_map['valuation.start_year']},\"\","
+            f"1/(1+({assumptions_map['valuation.discount_rate']}/100))^(COLUMN()-3-{assumptions_map['valuation.start_year']}+1))"
+        ),
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Present Value of FCF",
+        "EUR",
+        row_map,
+        "pv_fcf",
+        styles,
+        lambda c: f"=IF(C{row_map['discount_factor']}=\"\",\"\",C{row_map['free_cashflow_business']}*C{row_map['discount_factor']})",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "DCF PV Sum (no terminal)",
+        "EUR",
+        row_map,
+        "dcf_pv_sum",
+        styles,
+        lambda c, idx=None: f"=IF({idx}=4,SUM(C{row_map['pv_fcf']}:G{row_map['pv_fcf']}),\"\")",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Equity Value (DCF)",
+        "EUR",
+        row_map,
+        "dcf_equity",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=4,C{row_map['dcf_pv_sum']}-C{row_map['net_debt_close']}-C{row_map['pension_obligations']},\"\")"
+        ),
+    )
+
+    row = _write_section_label(ws, row + 1, "Intrinsic Cash Value", styles)
+    row = _write_formula_row(
+        ws,
+        row,
+        "Sum of Plan Cashflows",
+        "EUR",
+        row_map,
+        "intrinsic_sum",
+        styles,
+        lambda c, idx=None: f"=IF({idx}=4,SUM(C{row_map['free_cashflow_business']}:G{row_map['free_cashflow_business']}),\"\")",
+    )
+    row = _write_formula_row(
+        ws,
+        row,
+        "Equity Value (Intrinsic)",
+        "EUR",
+        row_map,
+        "intrinsic_equity",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=4,C{row_map['intrinsic_sum']}-C{row_map['net_debt_close']}-C{row_map['pension_obligations']},\"\")"
+        ),
+    )
+
+    row = _write_section_label(ws, row + 1, "Illustrative Exit (Sensitivity)", styles)
+    row = _write_formula_row(
+        ws,
+        row,
+        "Illustrative Exit Equity Value",
+        "EUR",
+        row_map,
+        "exit_equity_value",
+        styles,
+        lambda c, idx=None: (
+            f"=IF({idx}=4,{equity_map['exit_value'][idx]}-{assumptions_map['balance.pension_obligations']},\"\")"
+        ),
     )
 
     row = _write_section_label(ws, row + 1, "Seller Valuation Logic (Reference)", styles)
@@ -1934,93 +2064,11 @@ def _build_valuation_sheet(
         ),
     )
 
-    row = _write_section_label(ws, row + 1, "Buyer View (Cash-Based)", styles)
-    row = _write_formula_row(
-        ws,
-        row,
-        "Free Cashflow",
-        "EUR",
-        row_map,
-        "free_cashflow",
-        styles,
-        lambda c, idx=None: f"={cashflow_map['free_cashflow'][idx]}",
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Discount Factor",
-        "",
-        row_map,
-        "discount_factor",
-        styles,
-        lambda c, idx=None: f"=1/(1+({assumptions_map['valuation.discount_rate']}/100))^{idx+1}",
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Present Value of FCF",
-        "EUR",
-        row_map,
-        "pv_fcf",
-        styles,
-        lambda c: f"=C{row_map['free_cashflow']}*C{row_map['discount_factor']}",
-    )
-    cumulative_pv_row = row
-    row = _write_formula_row(
-        ws,
-        row,
-        "Cumulative PV of FCF",
-        "EUR",
-        row_map,
-        "cumulative_pv",
-        styles,
-        lambda c: (
-            f"=IF(COLUMN()=3,C{row_map['pv_fcf']},"
-            f"OFFSET($C${cumulative_pv_row},0,COLUMN()-4)+C{row_map['pv_fcf']})"
-        ),
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Net Debt at Close",
-        "EUR",
-        row_map,
-        "net_debt_close",
-        styles,
-        lambda c: f"={balance_map['financial_debt'][0]}-{balance_map['cash'][0]}",
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Pension Obligations Assumed",
-        "EUR",
-        row_map,
-        "pension_obligations",
-        styles,
-        lambda c: f"={assumptions_map['balance.pension_obligations']}",
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Transaction Costs",
-        "EUR",
-        row_map,
-        "transaction_costs",
-        styles,
-        lambda c: f"=C{row_map['seller_value']}*({assumptions_map['valuation.txn_cost_pct']}/100)",
-    )
-    row = _write_formula_row(
-        ws,
-        row,
-        "Equity Value (Buyer View)",
-        "EUR",
-        row_map,
-        "equity_value_buyer",
-        styles,
-        lambda c: f"=C{row_map['buyer_value']}",
-    )
-
-    _apply_total_style(ws, row_map["equity_value_buyer"], styles, 7)
+    _apply_total_style(ws, row_map["multiple_equity"], styles, 7)
+    if "dcf_equity" in row_map:
+        _apply_total_style(ws, row_map["dcf_equity"], styles, 7)
+    if "intrinsic_equity" in row_map:
+        _apply_total_style(ws, row_map["intrinsic_equity"], styles, 7)
 
 
 def _build_overview_sheet(

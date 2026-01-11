@@ -674,3 +674,19 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Excel export now respects active session scenario selection and recalculates export results accordingly.
+- Valuation sheet aligns with app logic (reference EBIT multiple, DCF excluding acquisition outflow, net debt at transition year, pension adjustments, illustrative exit only).
+- Debt sheet now uses working capital change in CFADS and includes DSCR headroom (x).
+- Assumptions sheet includes valuation reference year and valuation start year for traceable Excel formulas.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Programmatically generated Excel export via `export_ic_excel` for base case (bytes generated successfully).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

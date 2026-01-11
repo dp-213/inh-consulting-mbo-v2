@@ -8,7 +8,7 @@ import streamlit as st
 from dataclasses import replace
 
 from model.excel_export import export_ic_excel
-from model.run_model import ModelResult
+from model.run_model import ModelResult, run_model
 from state.assumptions import Assumptions
 from state.json_export import export_case_snapshot_json
 
@@ -19,8 +19,10 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
 
     case_name = _case_name(st.session_state.get("data_path", ""))
     scenario = st.session_state.get("view_scenario", assumptions.scenario)
+    export_assumptions = assumptions
     if scenario in {"Worst", "Base", "Best"} and scenario != assumptions.scenario:
-        assumptions = replace(assumptions, scenario=scenario)
+        export_assumptions = replace(assumptions, scenario=scenario)
+        result = run_model(export_assumptions)
     st.caption(f"Current selection: {case_name} · {scenario}")
 
     export_key = (case_name, scenario)
@@ -47,7 +49,7 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
 
         if st.button("Export IC-Ready Excel Model", type="primary"):
             try:
-                export_bytes = export_ic_excel(assumptions, result, case_name)
+                export_bytes = export_ic_excel(export_assumptions, result, case_name)
             except ImportError:
                 st.error("Excel export requires the openpyxl package to be installed.")
                 return
@@ -82,7 +84,7 @@ def render(assumptions: Assumptions, result: ModelResult) -> None:
         if st.button("Download Case (JSON)"):
             try:
                 export_bytes = export_case_snapshot_json(
-                    assumptions,
+                    export_assumptions,
                     case_name=case_name,
                 )
             except Exception as exc:  # pragma: no cover - streamlit presentation
