@@ -23,6 +23,7 @@ from state.assumptions import (
 )
 
 YEARS = build_year_labels(5)
+MILLION = 1_000_000.0
 
 
 def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
@@ -66,7 +67,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     st.markdown("### Group Revenue Floor")
     reference_table = _year_table(
         [
-            ("Reference Revenue", "EUR", [current.reference_revenue_eur for _ in range(5)], ""),
+            ("Reference Revenue", "m€", [_to_meur(current.reference_revenue_eur) for _ in range(5)], ""),
         ]
     )
     reference_table = _edit_table(reference_table, key="revenue.reference")
@@ -252,13 +253,21 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
     financing = assumptions.financing
 
     st.markdown("### Quick Inputs")
+    repayment_options = _options_with_current(["Linear", "Bullet"], financing.amortization_type)
+    repayment_type = st.selectbox(
+        "Repayment Type",
+        repayment_options,
+        index=repayment_options.index(financing.amortization_type)
+        if financing.amortization_type in repayment_options
+        else 0,
+        key="financing.quick.repayment_type",
+    )
     quick_table = _value_table(
         [
-            ("Purchase Price", "EUR", transaction.purchase_price_eur, "Transaction entry price."),
-            ("Owner Contribution", "EUR", transaction.equity_contribution_eur, "Owner cash at close."),
-            ("Senior Loan Amount", "EUR", financing.senior_debt_amount_eur, "Starting loan amount."),
+            ("Purchase Price", "m€", _to_meur(transaction.purchase_price_eur), "Transaction entry price."),
+            ("Owner Contribution", "m€", _to_meur(transaction.equity_contribution_eur), "Owner cash at close."),
+            ("Senior Loan Amount", "m€", _to_meur(financing.senior_debt_amount_eur), "Starting loan amount."),
             ("Interest Rate", "% p.a.", financing.interest_rate_pct, "Loan interest rate."),
-            ("Repayment Type", "", financing.amortization_type, "Straight-line or lump-sum."),
             ("Repayment Period (Years)", "Years", financing.amortization_period_years, "Repayment length."),
         ]
     )
@@ -269,18 +278,30 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
         st.markdown("#### Transaction & Financing")
         transaction_table = _value_table(
             [
-                ("Senior Loan Start", "EUR", transaction.senior_term_loan_start_eur, ""),
+                ("Senior Loan Start", "m€", _to_meur(transaction.senior_term_loan_start_eur), ""),
             ]
         )
         transaction_table = _edit_table(transaction_table, key="financing.transaction")
 
         st.markdown("#### Loan Terms")
+        special_year_options = ["None"] + YEARS
+        special_year_value = (
+            YEARS[financing.special_repayment_year]
+            if financing.special_repayment_year is not None
+            and 0 <= financing.special_repayment_year < len(YEARS)
+            else "None"
+        )
+        special_year = st.selectbox(
+            "One-Time Repayment Year",
+            special_year_options,
+            index=special_year_options.index(special_year_value),
+            key="financing.terms.special_year",
+        )
         financing_table = _value_table(
             [
-                ("Opening Loan Balance", "EUR", financing.initial_debt_eur, ""),
+                ("Opening Loan Balance", "m€", _to_meur(financing.initial_debt_eur), ""),
                 ("Interest-Only Period (Years)", "Years", financing.grace_period_years, ""),
-                ("One-Time Repayment Year (None/Year X)", "", _format_special_year(financing.special_repayment_year), ""),
-                ("One-Time Repayment Amount", "EUR", financing.special_repayment_amount_eur, ""),
+                ("One-Time Repayment Amount", "m€", _to_meur(financing.special_repayment_amount_eur), ""),
                 ("Minimum Loan Coverage", "", financing.minimum_dscr, ""),
             ]
         )
@@ -291,25 +312,25 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
         revenue=assumptions.revenue,
         cost=assumptions.cost,
         transaction_and_financing=TransactionFinancingAssumptions(
-            purchase_price_eur=_to_float(_row_value(quick_table, "Purchase Price")),
-            equity_contribution_eur=_to_float(
+            purchase_price_eur=_from_meur(_row_value(quick_table, "Purchase Price")),
+            equity_contribution_eur=_from_meur(
                 _row_value(quick_table, "Owner Contribution")
             ),
-            senior_term_loan_start_eur=_to_float(
+            senior_term_loan_start_eur=_from_meur(
                 _row_value(transaction_table, "Senior Loan Start")
             )
             if "transaction_table" in locals()
             else transaction.senior_term_loan_start_eur,
         ),
         financing=FinancingAssumptions(
-            senior_debt_amount_eur=_to_float(_row_value(quick_table, "Senior Loan Amount")),
-            initial_debt_eur=_to_float(
+            senior_debt_amount_eur=_from_meur(_row_value(quick_table, "Senior Loan Amount")),
+            initial_debt_eur=_from_meur(
                 _row_value(financing_table, "Opening Loan Balance")
             )
             if "financing_table" in locals()
             else financing.initial_debt_eur,
             interest_rate_pct=_to_float(_row_value(quick_table, "Interest Rate")),
-            amortization_type=str(_row_value(quick_table, "Repayment Type")).strip() or "Linear",
+            amortization_type=repayment_type,
             amortization_period_years=int(
                 _to_float(_row_value(quick_table, "Repayment Period (Years)") or 0)
             ),
@@ -318,12 +339,10 @@ def render_financing_assumptions(assumptions: Assumptions) -> Assumptions:
             )
             if "financing_table" in locals()
             else financing.grace_period_years,
-            special_repayment_year=_parse_special_year(
-                str(_row_value(financing_table, "One-Time Repayment Year (None/Year X)")).strip()
-            )
+            special_repayment_year=_parse_year_option(special_year)
             if "financing_table" in locals()
             else financing.special_repayment_year,
-            special_repayment_amount_eur=_to_float(
+            special_repayment_amount_eur=_from_meur(
                 _row_value(financing_table, "One-Time Repayment Amount")
             )
             if "financing_table" in locals()
@@ -357,7 +376,7 @@ def render_revenue_quick_inputs(assumptions: Assumptions) -> Assumptions:
     quick_table = _edit_table(quick_table, key="wizard.revenue")
 
     reference_table = _value_table(
-        [("Reference Revenue", "EUR", current.reference_revenue_eur, "")]
+        [("Reference Revenue", "m€", _to_meur(current.reference_revenue_eur), "")]
     )
     reference_table = _edit_table(reference_table, key="wizard.revenue.reference")
 
@@ -370,7 +389,7 @@ def render_revenue_quick_inputs(assumptions: Assumptions) -> Assumptions:
         revenue_growth_pct=current.revenue_growth_pct,
         group_capacity_share_pct=current.group_capacity_share_pct,
         external_capacity_share_pct=current.external_capacity_share_pct,
-        reference_revenue_eur=_to_float(_row_value(reference_table, "Reference Revenue")),
+        reference_revenue_eur=_from_meur(_row_value(reference_table, "Reference Revenue")),
         guarantee_pct_by_year=_row_years_numeric(quick_table, "Guarantee %"),
     )
 
@@ -434,12 +453,20 @@ def render_cost_quick_inputs(assumptions: Assumptions) -> Assumptions:
 
 def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
     finance = assumptions.financing
+    repayment_options = _options_with_current(["Linear", "Bullet"], finance.amortization_type)
+    repayment_type = st.selectbox(
+        "Repayment Type",
+        repayment_options,
+        index=repayment_options.index(finance.amortization_type)
+        if finance.amortization_type in repayment_options
+        else 0,
+        key="wizard.financing.repayment_type",
+    )
     table = _value_table(
         [
-            ("Senior Loan Amount", "EUR", finance.senior_debt_amount_eur, "Starting loan amount."),
-            ("Opening Loan Balance", "EUR", finance.initial_debt_eur, "Drawn at close."),
+            ("Senior Loan Amount", "m€", _to_meur(finance.senior_debt_amount_eur), "Starting loan amount."),
+            ("Opening Loan Balance", "m€", _to_meur(finance.initial_debt_eur), "Drawn at close."),
             ("Interest Rate", "% p.a.", finance.interest_rate_pct, "Loan interest rate."),
-            ("Repayment Type", "", finance.amortization_type, "Straight-line or lump-sum."),
             ("Repayment Period (Years)", "Years", finance.amortization_period_years, "Repayment length."),
             ("Interest-Only Period (Years)", "Years", finance.grace_period_years, "Initial interest-only years."),
             ("Minimum Loan Coverage", "", finance.minimum_dscr, "Coverage threshold."),
@@ -453,10 +480,10 @@ def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
         cost=assumptions.cost,
         transaction_and_financing=assumptions.transaction_and_financing,
         financing=FinancingAssumptions(
-            senior_debt_amount_eur=_to_float(_row_value(table, "Senior Loan Amount")),
-            initial_debt_eur=_to_float(_row_value(table, "Opening Loan Balance")),
+            senior_debt_amount_eur=_from_meur(_row_value(table, "Senior Loan Amount")),
+            initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
             interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
-            amortization_type=str(_row_value(table, "Repayment Type")).strip() or "Linear",
+            amortization_type=repayment_type,
             amortization_period_years=int(
                 _to_float(_row_value(table, "Repayment Period (Years)") or 0)
             ),
@@ -478,7 +505,7 @@ def render_financing_quick_inputs(assumptions: Assumptions) -> Assumptions:
 def render_valuation_quick_inputs(assumptions: Assumptions) -> Assumptions:
     table = _value_table(
         [
-            ("Purchase Price", "EUR", assumptions.transaction_and_financing.purchase_price_eur, "Entry consideration."),
+            ("Purchase Price", "m€", _to_meur(assumptions.transaction_and_financing.purchase_price_eur), "Entry consideration."),
             ("Seller Multiple (x Operating Profit)", "x", assumptions.valuation.seller_multiple, "Exit multiple assumption."),
         ]
     )
@@ -489,7 +516,7 @@ def render_valuation_quick_inputs(assumptions: Assumptions) -> Assumptions:
         revenue=assumptions.revenue,
         cost=assumptions.cost,
         transaction_and_financing=TransactionFinancingAssumptions(
-            purchase_price_eur=_to_float(_row_value(table, "Purchase Price")),
+            purchase_price_eur=_from_meur(_row_value(table, "Purchase Price")),
             equity_contribution_eur=assumptions.transaction_and_financing.equity_contribution_eur,
             senior_term_loan_start_eur=assumptions.transaction_and_financing.senior_term_loan_start_eur,
         ),
@@ -516,7 +543,7 @@ def render_cashflow_key_assumptions(assumptions: Assumptions, key_prefix: str) -
             ("Tax Payment Lag", "Years", cashflow.tax_payment_lag_years, ""),
             ("Capex (% of Revenue)", "%", cashflow.capex_pct_revenue, ""),
             ("Working Capital (% of Revenue)", "%", cashflow.working_capital_pct_revenue, ""),
-            ("Opening Cash Balance", "EUR", cashflow.opening_cash_balance_eur, ""),
+            ("Opening Cash Balance", "m€", _to_meur(cashflow.opening_cash_balance_eur), ""),
         ]
     )
     table = _edit_table(table, key=f"{key_prefix}.cashflow")
@@ -530,7 +557,7 @@ def render_cashflow_key_assumptions(assumptions: Assumptions, key_prefix: str) -
         tax_payment_lag_years=int(_to_float(_row_value(table, "Tax Payment Lag"))),
         capex_pct_revenue=_to_float(_row_value(table, "Capex (% of Revenue)")),
         working_capital_pct_revenue=_to_float(_row_value(table, "Working Capital (% of Revenue)")),
-        opening_cash_balance_eur=_to_float(_row_value(table, "Opening Cash Balance")),
+        opening_cash_balance_eur=_from_meur(_row_value(table, "Opening Cash Balance")),
     )
     return replace(assumptions, cashflow=updated_cashflow)
 
@@ -539,10 +566,10 @@ def render_balance_sheet_key_assumptions(assumptions: Assumptions, key_prefix: s
     balance_sheet = assumptions.balance_sheet
     table = _value_table(
         [
-            ("Opening Equity", "EUR", balance_sheet.opening_equity_eur, ""),
+            ("Opening Equity", "m€", _to_meur(balance_sheet.opening_equity_eur), ""),
             ("Depreciation Rate", "%", balance_sheet.depreciation_rate_pct, ""),
-            ("Minimum Cash Balance", "EUR", balance_sheet.minimum_cash_balance_eur, ""),
-            ("Pension Obligations at Close", "EUR", balance_sheet.pension_obligations_eur, ""),
+            ("Minimum Cash Balance", "m€", _to_meur(balance_sheet.minimum_cash_balance_eur), ""),
+            ("Pension Obligations at Close", "m€", _to_meur(balance_sheet.pension_obligations_eur), ""),
         ]
     )
     table = _edit_table(table, key=f"{key_prefix}.balance_sheet")
@@ -551,26 +578,46 @@ def render_balance_sheet_key_assumptions(assumptions: Assumptions, key_prefix: s
     _require_value(table, "Minimum Cash Balance")
     _require_value(table, "Pension Obligations at Close")
     updated_balance_sheet = BalanceSheetAssumptions(
-        opening_equity_eur=_to_float(_row_value(table, "Opening Equity")),
+        opening_equity_eur=_from_meur(_row_value(table, "Opening Equity")),
         depreciation_rate_pct=_to_float(_row_value(table, "Depreciation Rate")),
-        minimum_cash_balance_eur=_to_float(_row_value(table, "Minimum Cash Balance")),
-        pension_obligations_eur=_to_float(_row_value(table, "Pension Obligations at Close")),
+        minimum_cash_balance_eur=_from_meur(_row_value(table, "Minimum Cash Balance")),
+        pension_obligations_eur=_from_meur(_row_value(table, "Pension Obligations at Close")),
     )
     return replace(assumptions, balance_sheet=updated_balance_sheet)
 
 
 def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
     financing = assumptions.financing
+    amortization_options = _options_with_current(["Linear", "Bullet"], financing.amortization_type)
+    repayment_type = st.selectbox(
+        "Repayment Type",
+        amortization_options,
+        index=amortization_options.index(financing.amortization_type)
+        if financing.amortization_type in amortization_options
+        else 0,
+        key=f"{key_prefix}.repayment_type",
+    )
+    year_options = ["None"] + YEARS
+    special_year_value = (
+        YEARS[financing.special_repayment_year]
+        if financing.special_repayment_year is not None
+        and 0 <= financing.special_repayment_year < len(YEARS)
+        else "None"
+    )
+    special_year = st.selectbox(
+        "One-Time Repayment Year",
+        year_options,
+        index=year_options.index(special_year_value),
+        key=f"{key_prefix}.special_repayment_year",
+    )
     table = _value_table(
         [
-            ("Debt Amount", "EUR", financing.senior_debt_amount_eur, ""),
-            ("Opening Loan Balance", "EUR", financing.initial_debt_eur, ""),
+            ("Debt Amount", "m€", _to_meur(financing.senior_debt_amount_eur), ""),
+            ("Opening Loan Balance", "m€", _to_meur(financing.initial_debt_eur), ""),
             ("Interest Rate", "% p.a.", financing.interest_rate_pct, ""),
-            ("Repayment Type", "", financing.amortization_type, ""),
             ("Repayment Period (Years)", "Years", financing.amortization_period_years, ""),
             ("Interest-Only Period (Years)", "Years", financing.grace_period_years, ""),
-            ("One-Time Repayment Year (None/Year X)", "", _format_special_year(financing.special_repayment_year), ""),
-            ("One-Time Repayment Amount", "EUR", financing.special_repayment_amount_eur, ""),
+            ("One-Time Repayment Amount", "m€", _to_meur(financing.special_repayment_amount_eur), ""),
             ("Minimum DSCR", "", financing.minimum_dscr, ""),
         ]
     )
@@ -578,27 +625,19 @@ def render_financing_key_assumptions(assumptions: Assumptions, key_prefix: str) 
     _require_value(table, "Debt Amount")
     _require_value(table, "Opening Loan Balance")
     _require_value(table, "Interest Rate")
-    _require_value(table, "Repayment Type")
     _require_value(table, "Repayment Period (Years)")
     _require_value(table, "Interest-Only Period (Years)")
-    _require_value(table, "One-Time Repayment Year (None/Year X)")
     _require_value(table, "One-Time Repayment Amount")
     _require_value(table, "Minimum DSCR")
-    repayment_type = str(_row_value(table, "Repayment Type")).strip()
-    if not repayment_type:
-        st.error("Repayment Type is required.")
-        st.stop()
     updated_financing = FinancingAssumptions(
-        senior_debt_amount_eur=_to_float(_row_value(table, "Debt Amount")),
-        initial_debt_eur=_to_float(_row_value(table, "Opening Loan Balance")),
+        senior_debt_amount_eur=_from_meur(_row_value(table, "Debt Amount")),
+        initial_debt_eur=_from_meur(_row_value(table, "Opening Loan Balance")),
         interest_rate_pct=_to_float(_row_value(table, "Interest Rate")),
         amortization_type=repayment_type,
         amortization_period_years=int(_to_float(_row_value(table, "Repayment Period (Years)"))),
         grace_period_years=int(_to_float(_row_value(table, "Interest-Only Period (Years)"))),
-        special_repayment_year=_parse_special_year(
-            str(_row_value(table, "One-Time Repayment Year (None/Year X)")).strip()
-        ),
-        special_repayment_amount_eur=_to_float(_row_value(table, "One-Time Repayment Amount")),
+        special_repayment_year=_parse_year_option(special_year),
+        special_repayment_amount_eur=_from_meur(_row_value(table, "One-Time Repayment Amount")),
         minimum_dscr=_to_float(_row_value(table, "Minimum DSCR")),
     )
     return replace(assumptions, financing=updated_financing)
@@ -634,39 +673,72 @@ def render_valuation_key_assumptions(assumptions: Assumptions, key_prefix: str) 
 def render_equity_key_assumptions(assumptions: Assumptions, key_prefix: str) -> Assumptions:
     equity = assumptions.equity
     transaction = assumptions.transaction_and_financing
+    exit_year_options = YEARS
+    exit_year_label = (
+        YEARS[equity.exit_year]
+        if 0 <= equity.exit_year < len(YEARS)
+        else YEARS[0]
+    )
+    exit_year = st.selectbox(
+        "Exit Year",
+        exit_year_options,
+        index=exit_year_options.index(exit_year_label),
+        key=f"{key_prefix}.exit_year",
+    )
+    exit_mechanism_options = _options_with_current(
+        ["Management buys out investor", "Third-party sale", "Investor buyout"],
+        equity.exit_mechanism,
+    )
+    exit_mechanism = st.selectbox(
+        "Exit Mechanism",
+        exit_mechanism_options,
+        index=exit_mechanism_options.index(equity.exit_mechanism)
+        if equity.exit_mechanism in exit_mechanism_options
+        else 0,
+        key=f"{key_prefix}.exit_mechanism",
+    )
+    participation_options = _options_with_current(
+        ["Pro-rata", "Preferred return", "Waterfall"],
+        equity.investor_participation,
+    )
+    investor_participation = st.selectbox(
+        "Investor Participation",
+        participation_options,
+        index=participation_options.index(equity.investor_participation)
+        if equity.investor_participation in participation_options
+        else 0,
+        key=f"{key_prefix}.investor_participation",
+    )
+    management_participation = st.selectbox(
+        "Management Participation",
+        participation_options,
+        index=participation_options.index(equity.management_participation)
+        if equity.management_participation in participation_options
+        else 0,
+        key=f"{key_prefix}.management_participation",
+    )
     table = _value_table(
         [
-            ("Purchase Price", "EUR", transaction.purchase_price_eur, ""),
-            ("Management Equity Contribution", "EUR", transaction.equity_contribution_eur, ""),
-            ("Exit Year", "Year", equity.exit_year, ""),
-            ("Exit Mechanism", "", equity.exit_mechanism, ""),
-            ("Investor Participation", "", equity.investor_participation, ""),
-            ("Management Participation", "", equity.management_participation, ""),
+            ("Purchase Price", "m€", _to_meur(transaction.purchase_price_eur), ""),
+            ("Management Equity Contribution", "m€", _to_meur(transaction.equity_contribution_eur), ""),
         ]
     )
     table = _edit_table(table, key=f"{key_prefix}.equity")
     _require_value(table, "Purchase Price")
     _require_value(table, "Management Equity Contribution")
-    _require_value(table, "Exit Year")
-    _require_value(table, "Exit Mechanism")
-    _require_value(table, "Investor Participation")
-    _require_value(table, "Management Participation")
     updated_transaction = TransactionFinancingAssumptions(
-        purchase_price_eur=_to_float(_row_value(table, "Purchase Price")),
-        equity_contribution_eur=_to_float(
+        purchase_price_eur=_from_meur(_row_value(table, "Purchase Price")),
+        equity_contribution_eur=_from_meur(
             _row_value(table, "Management Equity Contribution")
         ),
         senior_term_loan_start_eur=transaction.senior_term_loan_start_eur,
     )
     updated_equity = EquityAssumptions(
-        exit_year=int(_to_float(_row_value(table, "Exit Year"))),
-        exit_mechanism=str(_row_value(table, "Exit Mechanism")).strip(),
-        investor_participation=str(_row_value(table, "Investor Participation")).strip(),
-        management_participation=str(_row_value(table, "Management Participation")).strip(),
+        exit_year=_parse_year_option(exit_year),
+        exit_mechanism=exit_mechanism,
+        investor_participation=investor_participation,
+        management_participation=management_participation,
     )
-    if not updated_equity.exit_mechanism:
-        st.error("Exit Mechanism is required.")
-        st.stop()
     return replace(
         assumptions,
         transaction_and_financing=updated_transaction,
@@ -734,6 +806,8 @@ def _row_years_numeric(table: List[dict], name: str) -> List[float]:
             values = [_to_float(row.get(year, 0.0)) for year in YEARS]
             if _is_percent_unit(unit):
                 return [value / 100 for value in values]
+            if unit == "m€":
+                return [value * MILLION for value in values]
             return values
     return [0.0 for _ in YEARS]
 
@@ -800,6 +874,8 @@ def _display_value(value, unit: str):
         return f"{float(number) * 100:,.1f}" if number is not None else "0.0"
     if str(unit).strip() in {"Year", "Years"}:
         return f"{float(number):,.0f}" if number is not None else "0"
+    if str(unit).strip() == "m€":
+        return f"{float(number):,.2f}" if number is not None else "0.00"
     if _is_currency_unit(str(unit).strip()):
         return _format_currency_display(number)
     return f"{float(number):,.2f}" if number is not None else "0.00"
@@ -810,7 +886,7 @@ def _is_percent_unit(unit: str) -> bool:
 
 
 def _is_currency_unit(unit: str) -> bool:
-    return "EUR" in unit and "%" not in unit
+    return "EUR" in unit and "%" not in unit and "m€" not in unit
 
 
 def _format_currency_display(value: float) -> str:
@@ -856,6 +932,28 @@ def _parse_special_year(value: str) -> int | None:
             return int(value.split(" ")[1])
         except (IndexError, ValueError):
             return None
+    return None
+
+
+def _to_meur(value: float) -> float:
+    return float(value) / MILLION if value is not None else 0.0
+
+
+def _from_meur(value) -> float:
+    return _to_float(value) * MILLION
+
+
+def _options_with_current(options: List[str], current: str) -> List[str]:
+    if current in options:
+        return options
+    return [current] + options
+
+
+def _parse_year_option(value: str) -> int | None:
+    if value == "None":
+        return None
+    if value in YEARS:
+        return YEARS.index(value)
     return None
 
 

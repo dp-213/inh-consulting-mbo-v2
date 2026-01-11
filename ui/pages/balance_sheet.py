@@ -155,8 +155,17 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         )
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
-            "- Business meaning: tests cash, debt, and equity consistency for solvency and financing credibility.\n"
-            "- Calculation logic: assets equal liabilities plus equity; equity moves from opening equity through net income, injections, dividends, and buybacks.\n"
-            "- Key dependencies: P&L net income, cashflow opening cash/minimum cash, and the debt schedule."
+            "**A. Business Question**\n"
+            "This page verifies balance sheet integrity and solvency by showing how cash, debt, and equity evolve through the plan.\n\n"
+            "**B. Financial Mechanics (Step-by-Step)**\n"
+            "Total Assets = Cash + Fixed Assets.\n"
+            "Total Liabilities = Financial Debt + Pension Liabilities.\n"
+            "Equity at End of Year = Equity at Start of Year + Net Income + Equity Injections – Dividends – Buybacks.\n"
+            "Consistency Check requires Total Assets = Total Liabilities + Equity each year; pension obligations reduce equity as a structural liability.\n\n"
+            "**C. Interpretation & Red Flags**\n"
+            "Negative equity or rising leverage without earnings improvement signals structural weakness.\n"
+            "Persistent cash deficits indicate a funding gap rather than a temporary timing issue.\n\n"
+            "**D. Key Model Dependencies**\n"
+            "Depends on P&L net income, cashflow opening cash and minimum cash settings, debt schedule balances, and the pension obligation assumption."
         )
     return updated_assumptions

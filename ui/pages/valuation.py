@@ -96,21 +96,32 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             year_labels=["Equity Value"],
         )
 
-        st.markdown("### Purchase Price Logic")
-        ebit_years = [updated_result.pnl[idx]["ebit"] for idx in range(1, 4)]
-        discounted_ebit = 0.0
-        for idx, value in enumerate(ebit_years, start=1):
-            discounted_ebit += value / ((1 + discount_rate) ** idx)
-        purchase_price = updated_assumptions.transaction_and_financing.purchase_price_eur
-        price_rows = [
-            ("Seller pricing mechanism (3-year EBIT discounted)", [discounted_ebit]),
-            ("Pension obligations assumed", [pension_obligation]),
-            ("Purchase Price (Enterprise)", [purchase_price]),
+        st.markdown("### Seller Valuation Logic (Reference)")
+        ebit_years = [updated_result.pnl[idx]["ebit"] for idx in range(3)]
+        discount_factors = [1 / ((1 + discount_rate) ** idx) for idx in range(3)]
+        pv_ebit = [ebit_years[idx] * discount_factors[idx] for idx in range(3)]
+        pv_sum = sum(pv_ebit)
+        seller_price_expectation = pv_sum + pension_obligation
+        seller_rows = [
+            ("EBIT", ebit_years),
+            (
+                "Discount Factor to Today",
+                [f"{discount_factors[0]:.2f}", f"{discount_factors[1]:.2f}", f"{discount_factors[2]:.2f}"],
+            ),
+            ("Present Value of EBIT", pv_ebit),
+            ("PV of 3-year EBIT", ["", "", pv_sum]),
+            ("Pension Obligations Assumed", ["", "", pension_obligation]),
+            ("Seller Price Expectation", ["", "", seller_price_expectation]),
         ]
         outputs._render_statement_table_html(
-            price_rows,
-            years=1,
-            year_labels=["Value"],
+            seller_rows,
+            bold_labels={"Seller Price Expectation"},
+            years=3,
+            year_labels=outputs.YEAR_LABELS[:3],
+        )
+        st.markdown(
+            '<div class="subtle">This reflects the seller’s internal pricing logic and serves as a negotiation anchor. It is not a valuation of intrinsic business value.</div>',
+            unsafe_allow_html=True,
         )
 
     with st.expander("Detailed analysis", expanded=False):
@@ -202,8 +213,18 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         outputs.render_valuation_exit(updated_result)
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
-            "- Business meaning: contrasts what the business is worth today with what a buyer can afford to pay today, net of assumed pension liabilities.\n"
-            "- Calculation logic: equity value is derived as enterprise value minus net debt at close and assumed pension obligations; DCF discounts plan cashflows to today; intrinsic sums plan cashflows; affordability reflects financing and liquidity constraints.\n"
-            "- Key dependencies: P&L (reference year metric), cashflow plan, balance sheet net debt at close, pension obligation assumption, and financing assumptions."
+            "**A. Business Question**\n"
+            "This page determines today’s equity value and compares it with the buyer’s affordability ceiling, providing the core price‑versus‑value decision frame for an IC.\n\n"
+            "**B. Financial Mechanics (Step-by-Step)**\n"
+            "Multiple-based Equity Value = Enterprise Value – Net Debt at Close – Pension Obligations Assumed.\n"
+            "DCF-based Equity Value = Present Value of Plan Free Cashflows – Net Debt at Close – Pension Obligations Assumed.\n"
+            "Intrinsic / Cash-Based Equity Value = Sum of Plan Free Cashflows – Net Debt at Close – Pension Obligations Assumed.\n"
+            "Buyer Affordability is a financing- and liquidity‑constrained ceiling and is reduced by pension obligations.\n"
+            "Seller Valuation Logic shows the seller’s internal pricing anchor based on discounted EBIT over the first three years plus assumed pensions.\n\n"
+            "**C. Interpretation & Red Flags**\n"
+            "A purchase price above the valuation range or above affordability indicates a likely deal break without structural changes.\n"
+            "Large gaps between valuation methods highlight uncertainty around sustainable cashflows and downside resilience.\n\n"
+            "**D. Key Model Dependencies**\n"
+            "Depends on P&L EBIT (reference years), the cashflow plan, balance sheet net debt at close, pension obligation assumption, and financing covenants that drive affordability."
         )
     return updated_assumptions

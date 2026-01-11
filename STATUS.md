@@ -390,3 +390,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Upgraded all “Explain business & calculation logic” blocks to IC-grade structured documentation across Cashflow, Balance Sheet, Financing & Debt, Valuation, and Equity Case.
+- Added Seller Valuation Logic (Reference) block on Valuation with discounted EBIT year 0–2, pensions, and seller price expectation.
+- Improved assumptions UX with m€ units and dropdowns for categorical fields in key assumption sections and relevant wizard inputs.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

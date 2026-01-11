@@ -66,8 +66,18 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         outputs.render_cashflow_liquidity(updated_result)
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
-            "- Business meaning: shows whether cash goes negative and how large the funding gap becomes.\n"
-            "- Calculation logic: EBITDA converts to operating cashflow after taxes and working capital, then capex yields free cashflow, financing flows drive net cashflow and closing cash.\n"
-            "- Key dependencies: P&L EBITDA, working capital and capex assumptions, debt schedule, and opening cash."
+            "**A. Business Question**\n"
+            "This page answers whether the company runs out of cash at any point and how large the funding gap becomes, which is the primary survival test in an MBO.\n\n"
+            "**B. Financial Mechanics (Step-by-Step)**\n"
+            "Operating Cashflow = EBITDA – Cash Taxes Paid ± Working Capital Change.\n"
+            "Free Cashflow = Operating Cashflow – Capex.\n"
+            "Net Cashflow = Free Cashflow + Debt Drawdowns – Interest Paid – Debt Repayment.\n"
+            "Closing Cash = Opening Cash + Net Cashflow.\n"
+            "The transition year reflects closing effects and initial financing flows.\n\n"
+            "**C. Interpretation & Red Flags**\n"
+            "Sustained negative closing cash indicates a funding shortfall that must be covered by additional equity or debt.\n"
+            "Large early-year gaps are typical failure modes for leveraged transactions with tight working capital.\n\n"
+            "**D. Key Model Dependencies**\n"
+            "Depends on P&L EBITDA, tax assumptions, capex and working capital settings, financing drawdowns and repayments, and the opening cash balance."
         )
     return updated_assumptions

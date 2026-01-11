@@ -39,8 +39,17 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         )
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
-            "- Business meaning: shows who puts capital at risk and who receives cashflows and exit proceeds.\n"
-            "- Calculation logic: equity contributions fund the purchase price gap, residual cash after debt service flows to equity holders, and the exit bridge reconciles enterprise value to equity value.\n"
-            "- Key dependencies: transaction and financing assumptions, debt schedule, and valuation exit values."
+            "**A. Business Question**\n"
+            "This page clarifies who contributes equity, how cash flows are distributed, and how exit value is allocated between management and external investors.\n\n"
+            "**B. Financial Mechanics (Step-by-Step)**\n"
+            "Equity required at entry = Purchase Price – Debt Amount.\n"
+            "Residual Cash to Equity = Operating Cashflows – Debt Service.\n"
+            "Exit Equity Value = Enterprise Value – Net Debt at Exit ± Excess Cash.\n"
+            "Pension obligations assumed at entry reduce equity value and therefore reduce exit proceeds to equity holders.\n\n"
+            "**C. Interpretation & Red Flags**\n"
+            "High reliance on external equity or weak residual cash flow indicates limited sponsor control and fragile economics.\n"
+            "Exit equity value below invested capital signals permanent capital loss risk.\n\n"
+            "**D. Key Model Dependencies**\n"
+            "Depends on transaction terms (purchase price and equity contribution), debt schedule, cashflow generation, and valuation outputs including pension obligations."
         )
     return updated_assumptions
