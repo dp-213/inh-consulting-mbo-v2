@@ -494,3 +494,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Revenue Model now shows Consultant Capacity in the standard statement table style.
+- Capacity Allocation enforces external share as input and computes group share as 1 minus external, with a calculated display.
+- Revenue Drivers now include an explicit planning mode toggle with revenue growth locked at 0% for capacity-driven planning.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

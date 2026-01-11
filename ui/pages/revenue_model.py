@@ -13,16 +13,16 @@ def render(assumptions: Assumptions) -> Assumptions:
     st.markdown("### Consultant Capacity (Derived)")
     year_columns = inputs.YEARS
     rows = [
-        {
-            "Parameter": "Consultant FTE (Derived from Cost Model)",
-            "Unit": "FTE",
-            **{
-                year_columns[idx]: assumptions.cost.personnel_by_year[idx].consultant_fte
-                for idx in range(5)
-            },
-        }
+        (
+            "Consultant FTE (Derived from Cost Model)",
+            [assumptions.cost.personnel_by_year[idx].consultant_fte for idx in range(5)],
+        )
     ]
-    _render_input_table(rows, ["Parameter", "Unit"] + year_columns)
+    outputs._render_statement_table_html(
+        rows,
+        years=len(year_columns),
+        year_labels=year_columns,
+    )
     updated_assumptions = inputs.render_revenue_inputs(assumptions)
     updated_result = run_model(updated_assumptions)
     components = updated_result.revenue.get("components_by_year", [])

@@ -33,30 +33,48 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     current = scenarios[scenario]
 
     st.markdown("### Revenue Drivers")
+    planning_mode = st.selectbox(
+        "Planning Mode",
+        ["Capacity-driven planning", "Top-down revenue growth"],
+        index=0,
+        key="revenue.planning_mode",
+    )
     drivers_table = _year_table(
         [
             ("Workdays per Year", "Days", current.workdays_per_year, "Billable calendar days."),
             ("Utilization %", "%", current.utilization_rate_pct, "Share of billable time."),
             ("Day Rate Growth (% p.a.)", "% p.a.", current.day_rate_growth_pct, ""),
-            ("Revenue Growth (% p.a.)", "% p.a.", current.revenue_growth_pct, ""),
+            (
+                "Revenue Growth (% p.a.)",
+                "% p.a.",
+                [0.0 for _ in range(5)]
+                if planning_mode == "Capacity-driven planning"
+                else current.revenue_growth_pct,
+                "",
+            ),
         ]
     )
     drivers_table = _edit_table(drivers_table, key="revenue.drivers")
-    st.markdown(
-        '<div class="subtle">Revenue Growth (% p.a.) is an optional overlay on capacity-driven revenue. If you plan explicitly via headcount, utilization, and day rates, keep growth at 0%.</div>',
-        unsafe_allow_html=True,
-    )
+    if planning_mode == "Capacity-driven planning":
+        st.markdown(
+            '<div class="subtle">Revenue Growth is locked to 0% in capacity-driven mode. Revenue is driven by headcount, utilization, and day rates.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="subtle">Top-down growth applies as an overlay on capacity-driven revenue. Validate that growth assumptions are consistent with capacity.</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("### Capacity Allocation")
     allocation_table = _year_table(
         [
-            ("Group Capacity Share %", "%", current.group_capacity_share_pct, ""),
             ("External Capacity Share %", "%", current.external_capacity_share_pct, ""),
         ]
     )
     allocation_table = _edit_table(allocation_table, key="revenue.allocation")
-    group_share_values = _row_years_numeric(allocation_table, "Group Capacity Share %")
     external_share_values = _row_years_numeric(allocation_table, "External Capacity Share %")
+    group_share_values = [max(1 - value, 0.0) for value in external_share_values]
     normalized_group = []
     normalized_external = []
     for idx in range(len(group_share_values)):
@@ -70,7 +88,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     outputs._render_statement_table_html(
         [
             ("Group Capacity Share (Calculated)", normalized_group),
-            ("External Capacity Share (Calculated)", normalized_external),
+            ("External Capacity Share (Input)", normalized_external),
         ],
         years=len(outputs.YEAR_LABELS),
         year_labels=outputs.YEAR_LABELS,
@@ -106,8 +124,8 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         external_day_rate_eur=_row_years_numeric(rate_table, "External Day Rate"),
         day_rate_growth_pct=_row_years_numeric(drivers_table, "Day Rate Growth (% p.a.)"),
         revenue_growth_pct=_row_years_numeric(drivers_table, "Revenue Growth (% p.a.)"),
-        group_capacity_share_pct=_row_years_numeric(allocation_table, "Group Capacity Share %"),
-        external_capacity_share_pct=_row_years_numeric(allocation_table, "External Capacity Share %"),
+        group_capacity_share_pct=group_share_values,
+        external_capacity_share_pct=external_share_values,
         reference_revenue_eur=_to_float(_row_years_numeric(reference_table, "Reference Revenue")[0]),
         guarantee_pct_by_year=_row_years_numeric(guarantee_table, "Guarantee %"),
     )
