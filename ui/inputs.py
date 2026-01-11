@@ -39,21 +39,16 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         index=0,
         key="revenue.planning_mode",
     )
-    drivers_table = _year_table(
-        [
-            ("Workdays per Year", "Days", current.workdays_per_year, "Billable calendar days."),
-            ("Utilization %", "%", current.utilization_rate_pct, "Share of billable time."),
-            ("Day Rate Growth (% p.a.)", "% p.a.", current.day_rate_growth_pct, ""),
-            (
-                "Revenue Growth (% p.a.)",
-                "% p.a.",
-                [0.0 for _ in range(5)]
-                if planning_mode == "Capacity-driven planning"
-                else current.revenue_growth_pct,
-                "",
-            ),
-        ]
-    )
+    driver_rows = [
+        ("Workdays per Year", "Days", current.workdays_per_year, "Billable calendar days."),
+        ("Utilization %", "%", current.utilization_rate_pct, "Share of billable time."),
+        ("Day Rate Growth (% p.a.)", "% p.a.", current.day_rate_growth_pct, ""),
+    ]
+    if planning_mode == "Top-down revenue growth":
+        driver_rows.append(
+            ("Revenue Growth (% p.a.)", "% p.a.", current.revenue_growth_pct, "")
+        )
+    drivers_table = _year_table(driver_rows)
     drivers_table = _edit_table(drivers_table, key="revenue.drivers")
     if planning_mode == "Capacity-driven planning":
         st.markdown(
@@ -123,7 +118,11 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         group_day_rate_eur=_row_years_numeric(rate_table, "Group Day Rate"),
         external_day_rate_eur=_row_years_numeric(rate_table, "External Day Rate"),
         day_rate_growth_pct=_row_years_numeric(drivers_table, "Day Rate Growth (% p.a.)"),
-        revenue_growth_pct=_row_years_numeric(drivers_table, "Revenue Growth (% p.a.)"),
+        revenue_growth_pct=(
+            _row_years_numeric(drivers_table, "Revenue Growth (% p.a.)")
+            if planning_mode == "Top-down revenue growth"
+            else [0.0 for _ in range(5)]
+        ),
         group_capacity_share_pct=group_share_values,
         external_capacity_share_pct=external_share_values,
         reference_revenue_eur=_to_float(_row_years_numeric(reference_table, "Reference Revenue")[0]),
