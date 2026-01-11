@@ -63,6 +63,17 @@ def _assumptions_from_dict(data: dict) -> Assumptions:
     financing = FinancingAssumptions(**data["financing"])
     cashflow = CashflowAssumptions(**data["cashflow"])
     balance_sheet = BalanceSheetAssumptions(**data["balance_sheet"])
+    if (
+        balance_sheet.opening_equity_eur
+        != cashflow.opening_cash_balance_eur
+    ):
+        cashflow = CashflowAssumptions(
+            tax_cash_rate_pct=cashflow.tax_cash_rate_pct,
+            tax_payment_lag_years=cashflow.tax_payment_lag_years,
+            capex_pct_revenue=cashflow.capex_pct_revenue,
+            working_capital_pct_revenue=cashflow.working_capital_pct_revenue,
+            opening_cash_balance_eur=balance_sheet.opening_equity_eur,
+        )
     tax_and_distributions = TaxAssumptions(**data["tax_and_distributions"])
     valuation = ValuationAssumptions(**data["valuation"])
     equity = EquityAssumptions(**data["equity"])

@@ -58,8 +58,8 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     st.markdown("### Pricing Assumptions")
     rate_table = _year_table(
         [
-            ("Group Day Rate", "EUR", current.group_day_rate_eur, "Contracted group pricing."),
-            ("External Day Rate", "EUR", current.external_day_rate_eur, "Market upside pricing."),
+            ("Group Day Rate", "k€", current.group_day_rate_eur, "Contracted group pricing."),
+            ("External Day Rate", "k€", current.external_day_rate_eur, "Market upside pricing."),
         ]
     )
     rate_table = _edit_table(rate_table, key="revenue.rates")
@@ -831,6 +831,8 @@ def _row_years_numeric(table: List[dict], name: str) -> List[float]:
             values = [_to_float(row.get(year, 0.0)) for year in YEARS]
             if _is_percent_unit(unit):
                 return [value / 100 for value in values]
+            if unit == "k€":
+                return [value * 1_000 for value in values]
             if unit == "m€":
                 return [value * MILLION for value in values]
             return values
@@ -899,6 +901,8 @@ def _display_value(value, unit: str):
         return f"{float(number) * 100:,.1f}" if number is not None else "0.0"
     if str(unit).strip() in {"Year", "Years"}:
         return f"{float(number):,.0f}" if number is not None else "0"
+    if str(unit).strip() == "k€":
+        return f"{float(number) / 1_000:,.2f}" if number is not None else "0.00"
     if str(unit).strip() == "m€":
         return f"{float(number):,.2f}" if number is not None else "0.00"
     if _is_currency_unit(str(unit).strip()):
@@ -911,7 +915,12 @@ def _is_percent_unit(unit: str) -> bool:
 
 
 def _is_currency_unit(unit: str) -> bool:
-    return "EUR" in unit and "%" not in unit and "m€" not in unit
+    return (
+        "EUR" in unit
+        and "%" not in unit
+        and "m€" not in unit
+        and "k€" not in unit
+    )
 
 
 def _format_currency_display(value: float) -> str:
