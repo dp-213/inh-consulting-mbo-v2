@@ -63,7 +63,11 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     ]
     with output_container:
         outputs._render_kpi_table_html(kpi_rows, ["Metric", "Value"])
-        outputs.render_cashflow_liquidity(updated_result)
+        year_labels = outputs.build_year_labels(5)
+        year_labels[0] = (
+            "Transition Year (As-Is / Closing) – Includes one-off transaction and financing effects"
+        )
+        outputs.render_cashflow_liquidity(updated_result, year_labels=year_labels)
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "**1) Business Question**\n"

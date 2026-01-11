@@ -371,9 +371,14 @@ def render_operating_model(result: ModelResult, assumptions: Assumptions) -> Non
         )
 
 
-def render_cashflow_liquidity(result: ModelResult) -> None:
+def render_cashflow_liquidity(
+    result: ModelResult, year_labels: List[str] | None = None
+) -> None:
+    free_cashflow_pre = [
+        row["operating_cf"] - row["capex"] for row in result.cashflow
+    ]
     rows = [
-        ("CASH GENERATION (OPERATING REALITY)", None),
+        ("Operating Cash Generation", None),
         ("EBITDA", [row["ebitda"] for row in result.cashflow]),
         ("Cash Taxes Paid", [row["taxes_paid"] for row in result.cashflow]),
         (
@@ -381,31 +386,40 @@ def render_cashflow_liquidity(result: ModelResult) -> None:
             [row["working_capital_change"] for row in result.cashflow],
         ),
         ("Operating Cashflow", [row["operating_cf"] for row in result.cashflow]),
-        ("", None),
-        ("INVESTMENT & FREE CASHFLOW", None),
         ("Capex", [row["capex"] for row in result.cashflow]),
-        ("Free Cashflow", [row["free_cashflow"] for row in result.cashflow]),
+        (
+            "Free Cashflow (pre-financing)",
+            [_format_money(value) for value in free_cashflow_pre],
+        ),
         ("", None),
-        ("FINANCING & DEBT BURDEN", None),
+        ("Transaction & Financing Cashflows", None),
+        ("Equity Contribution", [row["equity_injection"] for row in result.cashflow]),
         ("Debt Drawdowns", [row["debt_drawdown"] for row in result.cashflow]),
         ("Interest Paid", [row["interest_paid"] for row in result.cashflow]),
         ("Debt Repayment", [row["debt_repayment"] for row in result.cashflow]),
-        ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
+        (
+            "Net Cashflow (after financing)",
+            [row["net_cashflow"] for row in result.cashflow],
+        ),
         ("", None),
-        ("LIQUIDITY POSITION", None),
+        ("Liquidity Position", None),
         ("Opening Cash", [row["opening_cash"] for row in result.cashflow]),
-        ("Net Cashflow", [row["net_cashflow"] for row in result.cashflow]),
+        (
+            "Net Cashflow (after financing)",
+            [row["net_cashflow"] for row in result.cashflow],
+        ),
         ("Closing Cash", [row["cash_balance"] for row in result.cashflow]),
     ]
     _render_statement_table_html(
         rows,
         bold_labels={
             "Operating Cashflow",
-            "Free Cashflow",
-            "Net Cashflow",
+            "Free Cashflow (pre-financing)",
+            "Net Cashflow (after financing)",
             "Closing Cash",
         },
         row_classes={"Closing Cash": "key-metric"},
+        year_labels=year_labels,
     )
 
 
