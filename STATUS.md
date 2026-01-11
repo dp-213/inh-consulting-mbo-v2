@@ -757,3 +757,17 @@ Changes:
 Manual verification:
 - Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed for navigation, statement fidelity, or formatting rules.
+
+Changes:
+- Valuation page now focuses on seller price expectation and buyer sanity checks, removing exit/upside values.
+- Seller valuation is a single-column table with reference EBIT, PV of 3-year EBIT, pensions, and seller expectation.
+- Multiple-based and DCF labels updated to negotiation anchor and cashflow coverage respectively.
+
+Manual verification:
+- Ran `python -m streamlit run app.py --server.headless true --server.port 8502` (startup successful; command timed out after launch).
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation or content regressions introduced.

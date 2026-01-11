@@ -89,74 +89,62 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     multiple_equity = enterprise_value_multiple - net_debt_close - pension_obligation
     dcf_equity = dcf_value - net_debt_close - pension_obligation
     intrinsic_equity = intrinsic_value - net_debt_close - pension_obligation
-    exit_equity_value = (
-        updated_result.equity.get("exit_value", 0.0) - pension_obligation
-    )
 
     with output_container:
-        st.markdown("### Valuation Today – Overview")
-        overview_rows = [
-            ("Multiple-based Equity Value (Today)", [multiple_equity]),
-            ("DCF-based Equity Value (Today, no terminal)", [dcf_equity]),
-            ("Intrinsic / Cash-Based Value (Today)", [intrinsic_equity]),
-            ("Illustrative Exit Equity Value (Sensitivity)", [exit_equity_value]),
-        ]
-        outputs._render_statement_table_html(
-            overview_rows,
-            years=1,
-            year_labels=["Equity Value"],
-        )
-        st.markdown(
-            '<div class="subtle">DCF and intrinsic values exclude acquisition outflows and reflect operating free cashflow only.</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.markdown("### Seller Valuation Logic (Reference)")
+        st.markdown("### Seller Price Expectation")
         ebit_years = [updated_result.pnl[idx]["ebit"] for idx in range(3)]
         discount_factors = [1 / ((1 + discount_rate) ** idx) for idx in range(3)]
         pv_ebit = [ebit_years[idx] * discount_factors[idx] for idx in range(3)]
         pv_sum = sum(pv_ebit)
         seller_price_expectation = pv_sum + pension_obligation
         seller_rows = [
-            ("EBIT", ebit_years),
-            (
-                "Discount Factor to Today",
-                [f"{discount_factors[0]:.2f}", f"{discount_factors[1]:.2f}", f"{discount_factors[2]:.2f}"],
-            ),
-            ("Present Value of EBIT", pv_ebit),
-            ("PV of 3-year EBIT", ["", "", pv_sum]),
-            ("Pension Obligations Assumed", ["", "", pension_obligation]),
-            ("Seller Price Expectation", ["", "", seller_price_expectation]),
+            ("Reference EBIT (Transition Year)", [reference_ebit]),
+            ("PV of 3-year EBIT", [pv_sum]),
+            ("Pension Obligations Assumed", [pension_obligation]),
+            ("Seller Price Expectation", [seller_price_expectation]),
         ]
         outputs._render_statement_table_html(
             seller_rows,
-            bold_labels={"Seller Price Expectation"},
-            years=3,
-            year_labels=outputs.YEAR_LABELS[:3],
+            years=1,
+            year_labels=["Value"],
         )
         st.markdown(
-            '<div class="subtle">This reflects the seller’s internal pricing logic and serves as a negotiation anchor. It is not a valuation of intrinsic business value.</div>',
+            '<div class="subtle">Seller logic reflects a negotiation anchor, not intrinsic value.</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("### Buyer Sanity Checks")
+        buyer_rows = [
+            ("Multiple-Based Reference (Negotiation Anchor)", [multiple_equity]),
+            ("Cashflow Coverage Value (DCF, no terminal)", [dcf_equity]),
+        ]
+        outputs._render_statement_table_html(
+            buyer_rows,
+            years=1,
+            year_labels=["Value"],
+        )
+        st.markdown(
+            '<div class="subtle">DCF excludes acquisition outflows and reflects operating free cashflow only.</div>',
             unsafe_allow_html=True,
         )
 
     with st.expander("Detailed analysis", expanded=False):
-        st.markdown("#### Multiple-Based Valuation (Today)")
+        st.markdown("#### Multiple-Based Reference (Negotiation Anchor)")
         multiple_rows = [
             (f"Reference EBIT ({outputs.YEAR_LABELS[reference_year]})", [reference_ebit]),
             ("Applied Multiple (Assumption)", [f"{seller_multiple:.2f}x"]),
             ("Enterprise Value (EBIT × Multiple)", [enterprise_value_multiple]),
             ("Net Debt (End of Transition Year)", [net_debt_close]),
             ("Pension Obligations Assumed", [pension_obligation]),
-            ("Equity Value (Multiple-Based)", [multiple_equity]),
+            ("Reference Equity Value", [multiple_equity]),
         ]
         outputs._render_statement_table_html(
             multiple_rows,
-            bold_labels={"Equity Value (Multiple-Based)"},
             years=1,
             year_labels=["Value"],
         )
 
-        st.markdown("#### DCF-Based Valuation (no terminal)")
+        st.markdown("#### Cashflow Coverage Value (DCF, no terminal)")
         discount_factors = []
         pv_fcf = []
         cumulative_pv = []
@@ -180,11 +168,10 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             ("PV Sum (no terminal)", cumulative_pv),
             ("Net Debt (End of Transition Year)", [net_debt_close] + [""] * 4),
             ("Pension Obligations Assumed", [pension_obligation] + [""] * 4),
-            ("Equity Value (DCF, no terminal)", ["", "", "", "", dcf_equity]),
+            ("Cashflow Coverage Value", ["", "", "", "", dcf_equity]),
         ]
         outputs._render_statement_table_html(
             dcf_rows,
-            bold_labels={"Equity Value (DCF, no terminal)"},
         )
 
         st.markdown("#### Intrinsic / Cash-Based Value (Undiscounted)")
@@ -200,34 +187,13 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
             bold_labels={"Equity Value (Intrinsic / Cash-Based)"},
         )
 
-        st.markdown("#### Illustrative Exit Equity Value (Sensitivity)")
-        exit_rows = [
-            ("Minimum Cash Balance (Assumption)", [updated_assumptions.balance_sheet.minimum_cash_balance_eur]),
-            ("Covenant Threshold (DSCR)", [f"{updated_assumptions.financing.minimum_dscr:.2f}x"]),
-            ("Net Debt (End of Transition Year)", [net_debt_close]),
-            ("Pension Obligations Assumed", [pension_obligation]),
-            ("Equity Value (Illustrative Exit)", [exit_equity_value]),
-        ]
-        outputs._render_statement_table_html(
-            exit_rows,
-            bold_labels={"Equity Value (Illustrative Exit)"},
-            years=1,
-            year_labels=["Value"],
-        )
-
-    with st.expander("Upside / Exit Sensitivity (Optional)", expanded=False):
-        st.markdown(
-            '<div class="subtle">Exit analysis is shown for sensitivity only and is not part of today’s valuation.</div>',
-            unsafe_allow_html=True,
-        )
-        outputs.render_valuation_exit(updated_result)
     with st.expander("Explain business & calculation logic", expanded=False):
         st.markdown(
             "**1) Business Question**\n"
-            "- Is the price defensible today versus intrinsic cash value and market reference without relying on exit upside?\n"
+            "- Is the price defensible today versus intrinsic cash value and the EBIT‑multiple reference?\n"
             "\n**2) What This Shows / What This Does NOT Show**\n"
-            "- Shows DCF intrinsic, EBIT-multiple reference, and seller pricing anchor, all adjusted for net debt and pensions.\n"
-            "- Does not include terminal value, growth case, or a price recommendation; exit value is sensitivity only.\n"
+            "- Shows DCF cash coverage, EBIT‑multiple reference, and seller pricing anchor, all adjusted for net debt and pensions.\n"
+            "- Does not include terminal value, growth case, or a price recommendation.\n"
             "\n**3) Calculation Logic (Transparent, Step-by-Step)**\n"
             "- Enterprise Value (Multiple) = Reference EBIT × Seller Multiple.\n"
             "- Equity Value (Multiple) = Enterprise Value − Net Debt (End of Transition Year) − Pension Obligations.\n"
