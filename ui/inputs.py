@@ -5,6 +5,7 @@ from typing import List
 
 import streamlit as st
 
+from ui import outputs
 from ui.outputs import build_year_labels
 from state.assumptions import (
     Assumptions,
@@ -42,7 +43,7 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
     )
     drivers_table = _edit_table(drivers_table, key="revenue.drivers")
     st.markdown(
-        '<div class="subtle">Revenue Growth (% p.a.) applies to capacity-driven revenue, not a guaranteed top-line uplift.</div>',
+        '<div class="subtle">Revenue Growth (% p.a.) is an optional overlay on capacity-driven revenue. If you plan explicitly via headcount, utilization, and day rates, keep growth at 0%.</div>',
         unsafe_allow_html=True,
     )
 
@@ -54,6 +55,26 @@ def render_revenue_inputs(assumptions: Assumptions) -> Assumptions:
         ]
     )
     allocation_table = _edit_table(allocation_table, key="revenue.allocation")
+    group_share_values = _row_years_numeric(allocation_table, "Group Capacity Share %")
+    external_share_values = _row_years_numeric(allocation_table, "External Capacity Share %")
+    normalized_group = []
+    normalized_external = []
+    for idx in range(len(group_share_values)):
+        total = group_share_values[idx] + external_share_values[idx]
+        if total > 0:
+            normalized_group.append(f"{(group_share_values[idx] / total) * 100:.1f}%")
+            normalized_external.append(f"{(external_share_values[idx] / total) * 100:.1f}%")
+        else:
+            normalized_group.append("0.0%")
+            normalized_external.append("0.0%")
+    outputs._render_statement_table_html(
+        [
+            ("Group Capacity Share (Calculated)", normalized_group),
+            ("External Capacity Share (Calculated)", normalized_external),
+        ],
+        years=len(outputs.YEAR_LABELS),
+        year_labels=outputs.YEAR_LABELS,
+    )
 
     st.markdown("### Pricing Assumptions")
     rate_table = _year_table(
