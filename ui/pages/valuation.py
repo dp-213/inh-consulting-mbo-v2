@@ -56,6 +56,7 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
     transition_ebit = updated_result.pnl[0]["ebit"]
     seller_multiple = updated_assumptions.valuation.seller_multiple
     enterprise_value_multiple = transition_ebit * seller_multiple
+    purchase_price = updated_assumptions.transaction_and_financing.purchase_price_eur
 
     business_free_cf = [
         row["free_cashflow"] - row.get("acquisition_outflow", 0.0)
@@ -73,113 +74,100 @@ def render(result: ModelResult, assumptions: Assumptions) -> Assumptions:
         factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
         running += value * factor
     dcf_value = running
+    seller_price_expectation = enterprise_value_multiple + pension_obligation
+
+    debt_year0 = updated_result.debt[0] if updated_result.debt else {}
+    closing_debt = debt_year0.get(
+        "closing_debt", updated_assumptions.financing.senior_debt_amount_eur
+    )
+    cash_at_close = (
+        updated_result.balance_sheet[0].get("cash", 0.0)
+        if updated_result.balance_sheet
+        else 0.0
+    )
+    net_debt_close = closing_debt - cash_at_close
+    equity_price = purchase_price - net_debt_close - pension_obligation
+    discount_to_intrinsic = dcf_value - purchase_price
+    discount_to_market = enterprise_value_multiple - purchase_price
+    implied_multiple = purchase_price / transition_ebit if transition_ebit else 0.0
 
     with output_container:
-        st.markdown("## Seller Price Expectation – Transparent Build-Up")
         st.markdown(
-            '<div class="subtle">Reference pricing based on historic EBIT, not a standalone valuation.</div>',
+            "## Seller Price Expectation (Negotiation Anchor - not valuation)"
+        )
+        st.markdown(
+            '<div class="subtle">Reference pricing based on transition-year EBIT, not a standalone valuation.</div>',
             unsafe_allow_html=True,
         )
-        discount_factors = [
-            1 / ((1 + discount_rate) ** year_index) for year_index in (1, 2, 3)
-        ]
-        pv_ebit = [transition_ebit * factor for factor in discount_factors]
-        pv_sum = sum(pv_ebit)
-        seller_price_expectation = pv_sum + pension_obligation
         seller_rows = [
             ("Reference EBIT (Transition Year)", [transition_ebit]),
-            ("Discount rate (Seller assumption)", [f"{discount_rate:.2f}%"]),
-            ("EBIT Year 1", [transition_ebit]),
-            ("Discount factor Year 1", [f"{discount_factors[0]:.4f}"]),
-            ("Present Value Year 1", [pv_ebit[0]]),
-            ("EBIT Year 2", [transition_ebit]),
-            ("Discount factor Year 2", [f"{discount_factors[1]:.4f}"]),
-            ("Present Value Year 2", [pv_ebit[1]]),
-            ("EBIT Year 3", [transition_ebit]),
-            ("Discount factor Year 3", [f"{discount_factors[2]:.4f}"]),
-            ("Present Value Year 3", [pv_ebit[2]]),
-            ("Sum of Present Values (3-year EBIT)", [pv_sum]),
+            ("Seller reference multiple (anchor)", [f"{seller_multiple:.2f}x"]),
+            ("Seller headline price (EBIT x multiple)", [enterprise_value_multiple]),
             ("Pension obligations assumed", [pension_obligation]),
-            ("Seller Price Expectation (Total)", [seller_price_expectation]),
+            ("Seller headline price (Total)", [seller_price_expectation]),
         ]
         outputs._render_statement_table_html(
             seller_rows,
-            bold_labels={"Seller Price Expectation (Total)"},
+            bold_labels={"Seller headline price (Total)"},
             years=1,
             year_labels=["Value"],
-            row_classes={
-                "Discount factor Year 1": "substep",
-                "Present Value Year 1": "substep",
-                "Discount factor Year 2": "substep",
-                "Present Value Year 2": "substep",
-                "Discount factor Year 3": "substep",
-                "Present Value Year 3": "substep",
-            },
         )
 
-        st.markdown("### Interpretation")
         st.markdown(
-            "- Uses only transition-year EBIT, so it is backward-looking and conservative.\n"
-            "- Applies a fixed seller discount rate rather than buyer affordability logic.\n"
-            "- Ignores growth and financing structure by design; it is a price anchor, not a value claim."
+            "This reflects the seller's internal pricing logic, not intrinsic business value."
         )
 
-        st.markdown("### Buyer Sanity Checks (Context Only)")
+        st.markdown("## Buyer Value Perspectives (Standalone, Today)")
         st.markdown(
-            '<div class="subtle">Reference / Plausibility Checks</div>',
+            '<div class="subtle">Buyer value is shown separately from price; both are enterprise values.</div>',
             unsafe_allow_html=True,
         )
-        buyer_rows = [
-            ("Multiple-Based Reference (EBIT × Multiple)", [enterprise_value_multiple]),
-            ("Cashflow Coverage Value (DCF, no terminal)", [dcf_value]),
-        ]
-        outputs._render_statement_table_html(
-            buyer_rows,
-            years=1,
-            year_labels=["Value"],
-        )
+        left_col, right_col = st.columns(2)
+        with left_col:
+            st.markdown("### Intrinsic Value (Cashflow-Based)")
+            intrinsic_rows = [
+                ("Conservative intrinsic value (no growth, no terminal)", [dcf_value]),
+            ]
+            outputs._render_statement_table_html(
+                intrinsic_rows,
+                years=1,
+                year_labels=["Value"],
+            )
+            st.markdown(
+                '<div class="subtle">Based on business free cashflow (no financing).</div>',
+                unsafe_allow_html=True,
+            )
+        with right_col:
+            st.markdown("### Market Reference Value")
+            market_rows = [
+                ("Observed market valuation reference", [enterprise_value_multiple]),
+                ("Reference EBIT (Transition Year)", [transition_ebit]),
+                ("Market multiple assumption", [f"{seller_multiple:.2f}x"]),
+            ]
+            outputs._render_statement_table_html(
+                market_rows,
+                years=1,
+                year_labels=["Value"],
+            )
 
-    with st.expander("Detailed Mechanics (Optional)", expanded=False):
-        st.markdown("#### Multiple-Based Reference (EBIT × Multiple)")
-        multiple_rows = [
-            (f"Reference EBIT ({outputs.YEAR_LABELS[0]})", [transition_ebit]),
-            ("Applied Multiple (Assumption)", [f"{seller_multiple:.2f}x"]),
-            ("Enterprise Value (EBIT × Multiple)", [enterprise_value_multiple]),
-        ]
-        outputs._render_statement_table_html(
-            multiple_rows,
-            years=1,
-            year_labels=["Value"],
+        st.markdown("## Deal Attractiveness (Price vs. Value)")
+        st.markdown(
+            '<div class="subtle">Positive discounts mean price is below value.</div>',
+            unsafe_allow_html=True,
         )
-
-        st.markdown("#### Cashflow Coverage Value (DCF, no terminal)")
-        discount_factors = []
-        pv_fcf = []
-        cumulative_pv = []
-        running = 0.0
-        for idx in range(len(business_free_cf)):
-            if idx < start_year:
-                discount_factors.append("")
-                pv_fcf.append("")
-                cumulative_pv.append("")
-                continue
-            factor = 1 / ((1 + discount_rate) ** (idx - start_year + 1))
-            value = business_free_cf[idx] * factor
-            running += value
-            discount_factors.append(f"{factor:.2f}")
-            pv_fcf.append(value)
-            cumulative_pv.append(running)
-        dcf_rows = [
-            ("Free Cashflow (Business)", business_free_cf),
-            ("Discount Factor", discount_factors),
-            ("Present Value of FCF", pv_fcf),
-            ("PV Sum (no terminal)", cumulative_pv),
+        deal_rows = [
+            ("Purchase Price (Enterprise)", [purchase_price]),
+            ("Implied Equity Price (after net debt & pensions)", [equity_price]),
+            ("Discount to intrinsic value", [discount_to_intrinsic]),
+            ("Discount to market reference", [discount_to_market]),
             (
-                "Cashflow Coverage Value",
-                [""] * (len(business_free_cf) - 1) + [dcf_value],
+                "Implied multiple vs. market",
+                [f"{implied_multiple:.2f}x vs {seller_multiple:.2f}x"],
             ),
         ]
         outputs._render_statement_table_html(
-            dcf_rows,
+            deal_rows,
+            years=1,
+            year_labels=["Value"],
         )
     return updated_assumptions

@@ -847,3 +847,16 @@ Changes:
 
 Manual verification:
 - Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and no navigation/content regressions introduced.
+
+Re-read ACCEPTANCE.md.
+
+Violations:
+- None observed.
+
+Changes:
+- Rebuilt Valuation & Purchase Price around seller anchor, buyer value perspectives, and deal attractiveness with the required wording and separation.
+- Removed seller discounting mechanics and detailed PV tables; anchor now uses reference EBIT and a simple multiple plus pension obligations.
+- Added a clear price-vs-value block with enterprise/equity price, discounts to intrinsic and market reference, and implied multiple positioning.
+
+Manual verification:
+- Mental smoke test: app should start without errors, all pages render, inputs still affect outputs, and valuation navigation/content remain intact with the new structure.
