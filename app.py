@@ -437,8 +437,15 @@ def main() -> None:
         st.session_state["page"] = page
 
     data_path = st.session_state["data_path"]
-    original_assumptions = load_assumptions(data_path)
-    assumptions = original_assumptions
+    if (
+        "case" not in st.session_state
+        or st.session_state.get("case_path") != data_path
+    ):
+        loaded_assumptions = load_assumptions(data_path)
+        st.session_state["case"] = loaded_assumptions
+        st.session_state["case_path"] = data_path
+        st.session_state["case_original"] = asdict(loaded_assumptions)
+    assumptions = st.session_state["case"]
     case_options = list_cases()
 
     # Page titles are rendered by each view.
@@ -472,15 +479,18 @@ def main() -> None:
         updated_assumptions = cost_model.render(assumptions)
     else:
         updated_assumptions = assumptions
+    st.session_state["case"] = updated_assumptions
 
     can_persist = page in {"Revenue Model", "Cost Model", "Case Management"}
     if (
         can_persist
         and data_path.endswith("base_case.json")
-        and asdict(updated_assumptions) != asdict(original_assumptions)
+        and asdict(updated_assumptions) != st.session_state.get("case_original", {})
     ):
         pass
-    elif can_persist and asdict(updated_assumptions) != asdict(original_assumptions):
+    elif can_persist and asdict(updated_assumptions) != st.session_state.get(
+        "case_original", {}
+    ):
         save_case(updated_assumptions, data_path)
 
     result = run_model(
@@ -507,12 +517,16 @@ def main() -> None:
         scenario = case_actions["scenario"]
         if scenario != updated_assumptions.scenario:
             updated_assumptions = replace(updated_assumptions, scenario=scenario)
+            st.session_state["case"] = updated_assumptions
             if not data_path.endswith("base_case.json"):
                 save_case(updated_assumptions, data_path)
         if case_actions["reset"]:
             data_path = "data/base_case.json"
             st.session_state["data_path"] = data_path
             updated_assumptions = load_assumptions(data_path)
+            st.session_state["case"] = updated_assumptions
+            st.session_state["case_path"] = data_path
+            st.session_state["case_original"] = asdict(updated_assumptions)
         elif case_actions["load"] and case_actions["load_choice"] != "Select case...":
             load_choice = str(case_actions["load_choice"])
             if load_choice.endswith(".json") and ("/" in load_choice or load_choice.startswith("data")):
@@ -521,12 +535,16 @@ def main() -> None:
                 data_path = str(case_path(load_choice))
             st.session_state["data_path"] = data_path
             updated_assumptions = load_case(data_path)
+            st.session_state["case"] = updated_assumptions
+            st.session_state["case_path"] = data_path
+            st.session_state["case_original"] = asdict(updated_assumptions)
         if case_actions["save"]:
             save_case(updated_assumptions, data_path)
         if case_actions["save_as"] and case_actions["new_case_name"]:
             new_path = str(case_path(case_actions["new_case_name"]))
             save_case(updated_assumptions, new_path)
             st.session_state["data_path"] = new_path
+            st.session_state["case_path"] = new_path
             data_path = new_path
         if case_actions["save_as"] and not case_actions["new_case_name"]:
             st.markdown("Enter a case name before saving a copy.")
@@ -541,12 +559,13 @@ def main() -> None:
             if page in view_only_scenario_pages
             else page_updated_assumptions
         )
+        st.session_state["case"] = persist_assumptions
         if (
             data_path.endswith("base_case.json")
-            and asdict(persist_assumptions) != asdict(original_assumptions)
+            and asdict(persist_assumptions) != st.session_state.get("case_original", {})
         ):
             pass
-        elif asdict(persist_assumptions) != asdict(original_assumptions):
+        elif asdict(persist_assumptions) != st.session_state.get("case_original", {}):
             save_case(persist_assumptions, data_path)
 
 
